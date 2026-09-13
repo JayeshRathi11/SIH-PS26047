@@ -2,7 +2,13 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.schemas.patient import PatientCreate, PatientResponse
+from app.schemas.timeline import TimelineListResponse
+from app.schemas.abnormal_value import AbnormalValueListResponse
+from app.schemas.doctor_dashboard import DoctorPatientDashboardResponse
 from app.services.patient_service import patient_service
+from app.services.medical_timeline_service import medical_timeline_service
+from app.services.medical_abnormal_value_service import medical_abnormal_value_service
+from app.services.doctor_dashboard_service import doctor_dashboard_service
 
 router = APIRouter(prefix="/patients", tags=["patients"])
 
@@ -21,3 +27,42 @@ def get_patient(
     db: Session = Depends(get_db),
 ):
     return patient_service.get_patient(db=db, patient_id=patient_id)
+
+
+@router.get("/{patient_id}/timeline", response_model=TimelineListResponse, status_code=status.HTTP_200_OK)
+def get_patient_timeline(
+    patient_id: int,
+    db: Session = Depends(get_db),
+):
+    return medical_timeline_service.get_patient_timeline(db=db, patient_id=patient_id)
+
+
+@router.get(
+    "/{patient_id}/abnormal-values",
+    response_model=AbnormalValueListResponse,
+    status_code=status.HTTP_200_OK,
+)
+def get_patient_abnormal_values(
+    patient_id: int,
+    db: Session = Depends(get_db),
+):
+    return medical_abnormal_value_service.get_patient_abnormal_values(
+        db=db,
+        patient_id=patient_id,
+    )
+
+
+@router.get(
+    "/{patient_id}/dashboard",
+    response_model=DoctorPatientDashboardResponse,
+    status_code=status.HTTP_200_OK,
+)
+def get_patient_dashboard(
+    patient_id: int,
+    db: Session = Depends(get_db),
+):
+    return doctor_dashboard_service.get_patient_dashboard(
+        db=db,
+        patient_id=patient_id,
+    )
+

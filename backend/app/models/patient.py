@@ -1,5 +1,6 @@
 from datetime import date, datetime
 from sqlalchemy import Column, Date, DateTime, Integer, String, func
+from sqlalchemy.orm import relationship
 from app.core.database import Base
 
 
@@ -19,3 +20,51 @@ class Patient(Base):
         onupdate=func.now(),
         nullable=False,
     )
+
+    interviews = relationship(
+        "Interview",
+        back_populates="patient",
+        cascade="all, delete-orphan",
+    )
+    documents = relationship(
+        "MedicalDocument",
+        back_populates="patient",
+        cascade="all, delete-orphan",
+    )
+    timeline_events = relationship(
+        "MedicalTimelineEvent",
+        back_populates="patient",
+        cascade="all, delete-orphan",
+    )
+    investigation_results = relationship(
+        "MedicalInvestigationResult",
+        back_populates="patient",
+        cascade="all, delete-orphan",
+    )
+    case_summaries = relationship(
+        "MedicalCaseSummary",
+        back_populates="patient",
+        cascade="all, delete-orphan",
+    )
+    confirmations = relationship(
+        "PatientSummaryConfirmation",
+        back_populates="patient",
+        cascade="all, delete-orphan",
+    )
+    doctor_reviews = relationship(
+        "DoctorSummaryReview",
+        back_populates="patient",
+        cascade="all, delete-orphan",
+    )
+    bilingual_summaries = relationship(
+        "BilingualSummaryOutput",
+        back_populates="patient",
+        cascade="all, delete-orphan",
+    )
+    abha_links = relationship(
+        "PatientAbhaLink",
+        back_populates="patient",
+        cascade="all, delete-orphan",
+    )
+
+

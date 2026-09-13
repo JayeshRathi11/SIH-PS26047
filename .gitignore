@@ -39,6 +39,10 @@ venv.bak/
 .env.*
 !.env.example
 
+# Uploaded medical documents
+uploads/
+backend/uploads/
+
 # IDE & Editor artifacts
 .vscode/*
 !.vscode/extensions.json
@@ -57,3 +61,5 @@ venv.bak/
 .Trashes
 ehthumbs.db
 Thumbs.db
+backend/scratch/
+backend/scratch/
