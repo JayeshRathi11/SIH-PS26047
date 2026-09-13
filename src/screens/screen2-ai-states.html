@@ -1264,6 +1264,8 @@
 
     // Re-trigger current state pill text
     setAIState(currentState);
+  const savedLang = (function(){ try { return localStorage.getItem('medikiosk_lang'); } catch(e){ return null; } })() || 'en';
+  setLanguage(savedLang);
   }
 
   // Bind Language Chips

@@ -406,6 +406,52 @@
     .btn-primary:active {
       background: var(--color-btn-primary-bg-pressed);
     }
+
+    /* Modal Overlays */
+    .kiosk-modal-overlay {
+      display: none;
+      position: absolute;
+      inset: 0;
+      background: rgba(44, 37, 32, 0.65);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+      box-sizing: border-box;
+    }
+
+    .scanner-beam-box {
+      position: relative;
+      width: 280px;
+      height: 180px;
+      background: #FAF8F2;
+      border: 2px dashed var(--primitive-haritaki-gold);
+      border-radius: var(--radius-card);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--primitive-haritaki-deep);
+      margin: 0 auto 16px;
+      box-shadow: inset 0 0 12px rgba(200, 138, 34, 0.1);
+    }
+
+    .scanner-beam-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, transparent, #C88A22, #FFD175, #C88A22, transparent);
+      box-shadow: 0 0 12px #C88A22;
+      animation: scanBeam 1.3s infinite ease-in-out alternate;
+    }
+
+    @keyframes scanBeam {
+      0% { top: 10px; }
+      100% { top: 160px; }
+    }
   </style>
 </head>
 <body>
@@ -550,7 +596,7 @@
 
   <!-- ACTION BAR -->
   <footer class="action-bar">
-    <button class="btn-secondary" aria-label="Ask for staff assistance">
+    <button class="btn-secondary" id="btnStaffHelp" aria-label="Ask for staff assistance">
       <svg viewBox="0 0 24 24" fill="currentColor">
         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/>
       </svg>
@@ -564,6 +610,36 @@
       </svg>
     </button>
   </footer>
+
+  <!-- 1. Simulated Scanner Modal -->
+  <div id="scannerModal" class="kiosk-modal-overlay">
+    <div class="clay-surface" style="width: 100%; max-width: 580px; padding: 36px 32px; border-radius: var(--radius-card); display: flex; flex-direction: column; align-items: center; text-align: center; box-shadow: var(--shadow-card-elevated);">
+      <div class="scanner-beam-box">
+        <div class="scanner-beam-line"></div>
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity: 0.35; margin-bottom: 6px;">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <path d="M7 7h3v3H7zm7 0h3v3h-3zm-7 7h3v3H7zm7 3h3v-3h-3z"/>
+        </svg>
+        <span id="scanProgressLabel" style="font-size: 13px; letter-spacing: 0.08em; font-weight: 700;">[ SCANNING QR ]</span>
+      </div>
+      <h2 id="scanStatusTitle" style="font-family: var(--font-display); font-size: 28px; font-weight: 700; color: var(--primitive-teak-grey); margin: 0 0 8px;" data-i18n="scanningTitle">Scanning ABHA QR Code...</h2>
+      <p id="scanStatusSub" style="font-size: 18px; line-height: 1.45; color: var(--color-text-secondary); margin: 0;" data-i18n="scanningSub">Hold your card or phone steady under the scanner below.</p>
+    </div>
+  </div>
+
+  <!-- 2. Staff Assistance Modal -->
+  <div id="staffHelpModal" class="kiosk-modal-overlay">
+    <div class="clay-surface" style="width: 100%; max-width: 580px; padding: 36px 32px; border-radius: var(--radius-card); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px; box-shadow: var(--shadow-card-elevated);">
+      <div style="width: 72px; height: 72px; border-radius: 50%; background: #FAF1DF; border: 2px solid #DEC99B; color: var(--primitive-haritaki-deep); display: flex; align-items: center; justify-content: center;">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/>
+        </svg>
+      </div>
+      <h2 style="font-family: var(--font-display); font-size: 28px; font-weight: 700; color: var(--primitive-teak-grey); margin: 0;" data-i18n="staffModalTitle">OPD Assistant Alerted</h2>
+      <p style="font-size: 18px; line-height: 1.45; color: var(--color-text-secondary); margin: 0;" data-i18n="staffModalMsg">A staff member has been notified and will assist you shortly at Counter 1.</p>
+      <button class="btn-primary" id="btnStaffClose" style="height: 56px; min-width: 220px; border-radius: var(--radius-btn); margin-top: 10px;" data-i18n="btnStaffClose">Got It</button>
+    </div>
+  </div>
 
 </div>
 
@@ -587,7 +663,14 @@
       opt3Detail: "First visit without ABHA? Create a new hospital OPD slip",
       audioPrompt: "Tap the speaker icon above if you want audio instructions.",
       btnHelp: "Staff Help",
-      btnContinue: "Continue"
+      btnContinue: "Continue",
+      scanningTitle: "Scanning ABHA QR Code...",
+      scanningSub: "Hold your card or phone steady under the scanner below.",
+      scanSuccessTitle: "✓ ABHA Card Verified!",
+      scanSuccessSub: "Rajesh Sharma • ABHA: 91-4210-8891-2304",
+      staffModalTitle: "OPD Assistant Alerted",
+      staffModalMsg: "A staff member has been notified and will assist you shortly at Counter 1.",
+      btnStaffClose: "Got It"
     },
     hi: {
       topbarSub: "अखिल भारतीय आयुर्वेद संस्थान",
@@ -606,7 +689,14 @@
       opt3Detail: "आभा नहीं है? अस्पताल की नई ओपीडी पर्ची बनाएं",
       audioPrompt: "आवाज में सुनने के लिए ऊपर दिए गए स्पीकर को छुएं।",
       btnHelp: "कर्मचारी सहायता",
-      btnContinue: "आगे बढ़ें"
+      btnContinue: "आगे बढ़ें",
+      scanningTitle: "आभा क्यूआर कोड स्कैन हो रहा है...",
+      scanningSub: "अपना कार्ड या फोन नीचे स्कैनर के सामने स्थिर रखें।",
+      scanSuccessTitle: "✓ आभा कार्ड सत्यापित हुआ!",
+      scanSuccessSub: "राजेश शर्मा • आभा: ९१-४२१०-८८९१-२३०४",
+      staffModalTitle: "ओपीडी सहायक को सूचित किया गया",
+      staffModalMsg: "कर्मचारी को सूचित कर दिया गया है, काउंटर १ से कोई आपकी सहायता के लिए आ रहा है।",
+      btnStaffClose: "समझ गया"
     },
     mr: {
       topbarSub: "अखिल भारतीय आयुर्वेद संस्था",
@@ -625,12 +715,23 @@
       opt3Detail: "आभा नाही? हॉस्पिटलची नवीन ओपीडी स्लिप तयार करा",
       audioPrompt: "आवाज ऐकण्यासाठी वर दिलेल्या स्पीकर आयकॉनला स्पर्श करा.",
       btnHelp: "कर्मचारी मदत",
-      btnContinue: "पुढे जा"
+      btnContinue: "पुढे जा",
+      scanningTitle: "आभा क्यूआर कोड स्कॅन होत आहे...",
+      scanningSub: "आपले कार्ड किंवा फोन खालील स्कॅनरसमोर स्थिर ठेवा.",
+      scanSuccessTitle: "✓ आभा कार्ड सत्यापित झाले!",
+      scanSuccessSub: "राजेश शर्मा • आभा: ९१-४२१०-८८९१-२३०४",
+      staffModalTitle: "ओपीडी कर्मचाऱ्यांना कळवले आहे",
+      staffModalMsg: "कर्मचाऱ्यांना संदेश पाठवला आहे, काउंटर १ वरून कोणीतरी आपल्या मदतीस लवकरच येईल.",
+      btnStaffClose: "समजले"
     }
   };
 
+  let currentLang = 'en';
+
   function setLanguage(lang) {
     if (!i18n[lang]) return;
+    currentLang = lang;
+    try { localStorage.setItem('medikiosk_lang', lang); } catch(e){}
     document.documentElement.lang = lang;
 
     // Toggle chips
@@ -660,6 +761,7 @@
   // Card Selection click
   document.querySelectorAll('.id-card').forEach(card => {
     card.addEventListener('click', () => {
+      const prevOption = selectedOption;
       document.querySelectorAll('.id-card').forEach(c => {
         c.classList.remove('id-card--active');
         c.setAttribute('aria-checked', 'false');
@@ -667,19 +769,66 @@
       card.classList.add('id-card--active');
       card.setAttribute('aria-checked', 'true');
       selectedOption = card.getAttribute('data-option');
+
+      // If already active or tapped on scan directly, run simulated scan
+      if (selectedOption === 'scan' && prevOption === 'scan') {
+        triggerScanSimulation();
+      } else if (selectedOption === 'manual' && prevOption === 'manual') {
+        window.location.href = 'screen1a-manual-entry.html';
+      }
     });
   });
+
+  // Simulated Scan Sequence (1.5s scan beam -> 0.6s verified badge -> consent screen)
+  function triggerScanSimulation() {
+    const modal = document.getElementById('scannerModal');
+    const title = document.getElementById('scanStatusTitle');
+    const sub = document.getElementById('scanStatusSub');
+    const label = document.getElementById('scanProgressLabel');
+    if (!modal) return;
+
+    modal.style.display = 'flex';
+    const t = i18n[currentLang] || i18n.en;
+    title.textContent = t.scanningTitle;
+    sub.textContent = t.scanningSub;
+    label.textContent = '[ SCANNING QR ]';
+    label.style.color = 'var(--primitive-haritaki-deep)';
+
+    setTimeout(() => {
+      title.textContent = t.scanSuccessTitle;
+      title.style.color = 'var(--primitive-herbal-green)';
+      sub.textContent = t.scanSuccessSub;
+      label.textContent = '[ VERIFIED ✓ ]';
+      label.style.color = 'var(--primitive-herbal-green)';
+
+      setTimeout(() => {
+        window.location.href = 'screen1b-consent.html';
+      }, 700);
+    }, 1500);
+  }
 
   document.getElementById('btnContinue')?.addEventListener('click', () => {
     if (selectedOption === 'manual') {
       window.location.href = 'screen1a-manual-entry.html';
+    } else if (selectedOption === 'scan') {
+      triggerScanSimulation();
     } else {
       window.location.href = 'screen1b-consent.html';
     }
   });
 
+  // Staff Help Modal Handlers
+  document.getElementById('btnStaffHelp')?.addEventListener('click', () => {
+    document.getElementById('staffHelpModal').style.display = 'flex';
+  });
+
+  document.getElementById('btnStaffClose')?.addEventListener('click', () => {
+    document.getElementById('staffHelpModal').style.display = 'none';
+  });
+
   // Default Language
-  setLanguage('en');
+  const savedLang = (function(){ try { return localStorage.getItem('medikiosk_lang'); } catch(e){ return null; } })() || 'en';
+  setLanguage(savedLang);
 </script>
 </body>
 </html>

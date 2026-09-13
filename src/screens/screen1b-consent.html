@@ -509,7 +509,7 @@
           <span data-i18n="btnAgree">I Agree &amp; Continue</span>
         </button>
 
-        <button class="btn-decline" onclick="alert('OPD staff assistance notified.');">
+        <button class="btn-decline" onclick="document.getElementById('declineModal').style.display='flex';">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/>
           </svg>
@@ -520,6 +520,22 @@
     </div>
 
   </main>
+
+  
+  <!-- Staff Assistance / Consent Declined Modal Overlay -->
+  <div id="declineModal" style="display: none; position: absolute; inset: 0; background: rgba(44,37,32,0.65); backdrop-filter: blur(4px); z-index: 100; align-items: center; justify-content: center; padding: 32px; box-sizing: border-box;">
+    <div class="clay-surface" style="width: 100%; max-width: 600px; padding: 32px; border-radius: var(--radius-card); display: flex; flex-direction: column; gap: 20px; text-align: center; box-shadow: var(--shadow-card-elevated);">
+      <div style="width: 72px; height: 72px; border-radius: 50%; background: #FAF1DF; border: 2px solid #DEC99B; color: var(--primitive-haritaki-deep); display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/></svg>
+      </div>
+      <h2 style="font-family: var(--font-display); font-size: 28px; font-weight: 700; color: var(--primitive-teak-grey); margin: 0;" data-i18n="declineModalTitle">OPD Helper Notified</h2>
+      <p style="font-size: 18px; line-height: 1.45; color: var(--color-text-secondary); margin: 0;" data-i18n="declineModalMsg">A kiosk assistance representative has been notified and will assist you with registration at Counter 1. You can also proceed whenever you feel comfortable.</p>
+      <div style="display: flex; gap: 14px; justify-content: center;">
+        <button class="btn-secondary" onclick="document.getElementById('declineModal').style.display='none';" style="flex: 1; height: 60px; border-radius: var(--radius-btn);" data-i18n="btnBackToConsent">Review Consent</button>
+        <button class="btn-primary" onclick="window.location.href='screen1a-identity.html';" style="flex: 1; height: 60px; border-radius: var(--radius-btn);" data-i18n="btnCancelRegistration">Return to Start</button>
+      </div>
+    </div>
+  </div>
 
   <!-- ACTION BAR -->
   <footer class="action-bar">
@@ -555,6 +571,10 @@
       trust2: "Used exclusively for your doctor's appointment today",
       btnAgree: "I Agree & Continue",
       btnDecline: "Ask Staff for Help",
+            declineModalTitle: "OPD Staff Assistance Notified",
+      declineModalMsg: "A hospital helper at Desk 1 has been alerted to assist you in person. You may also review and agree whenever you are ready.",
+      btnBackToConsent: "Review Consent",
+      btnCancelRegistration: "Return to Start",
       btnBack: "Back",
       stepCounter: "Step 1 of 5"
     },
@@ -573,6 +593,10 @@
       trust2: "इसका उपयोग केवल आज डॉक्टर परामर्श के लिए होगा",
       btnAgree: "हाँ, मैं सहमत हूँ",
       btnDecline: "कर्मचारी की सहायता लें",
+            declineModalTitle: "ओपीडी सहायक को सूचित किया गया",
+      declineModalMsg: "डेस्क १ पर मौजूद सहायक को आपकी मदद के लिए सूचित कर दिया गया है। आप जब चाहें सहमति पढ़कर आगे भी बढ़ सकते हैं।",
+      btnBackToConsent: "सहमति दोबारा देखें",
+      btnCancelRegistration: "शुरुआत पर वापस जाएँ",
       btnBack: "पीछे",
       stepCounter: "चरण १ / ५"
     },
@@ -591,6 +615,10 @@
       trust2: "फक्त आजच्या डॉक्टर भेटीसाठीच वापरली जाईल",
       btnAgree: "होय, मी सहमत आहे",
       btnDecline: "कर्मचाऱ्यांची मदत घ्या",
+            declineModalTitle: "ओपीडी कर्मचाऱ्यांना कळवले आहे",
+      declineModalMsg: "डेस्क १ वरील मदतनीसांना आपल्या मदतीसाठी संदेश पाठवला आहे. आपण पुन्हा विचार करून संमती देऊ शकता.",
+      btnBackToConsent: "संमती पुन्हा वाचा",
+      btnCancelRegistration: "सुरुवातीला परत जा",
       btnBack: "मागे",
       stepCounter: "टप्पा १ / ५"
     }
@@ -598,6 +626,7 @@
 
   function setLanguage(lang) {
     if (!i18n[lang]) return;
+    try { localStorage.setItem('medikiosk_lang', lang); } catch(e){}
     document.documentElement.lang = lang;
 
     document.querySelectorAll('.lang-chip').forEach(chip => {
@@ -619,7 +648,8 @@
     });
   });
 
-  setLanguage('en');
+  const savedLang = (function(){ try { return localStorage.getItem('medikiosk_lang'); } catch(e){ return null; } })() || 'en';
+  setLanguage(savedLang);
 </script>
 </body>
 </html>

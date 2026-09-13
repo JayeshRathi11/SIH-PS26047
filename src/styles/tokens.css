@@ -1,18 +1,14 @@
-﻿/*
- * MediKiosk Design Token System (Light Ayurveda Theme)
+/*
+ * MediKiosk Design Token System (Claymorphic Light Ayurveda Theme)
  * All India Institute of Ayurveda — Patient Kiosk
  * ─────────────────────────────────────────────────
  *
- * PALETTE INVERSION:
- * Transitioned from dark Teak Grey to warm, approachable Kora Khadi (unbleached
- * cotton/aged parchment) background. The dark Teak tone becomes the primary ink text
- * with 13.8:1 AAA contrast for elderly patients. Haritaki Gold, Copper Patina,
- * and Manjistha Red are preserved with verified light-mode WCAG AA accessibility.
- *
- * Font stack:
- *   Display/Headers : Baloo 2 (wght 600–800) — Devanagari + Latin (verified)
- *   Body/Instructions: Noto Sans (wght 400–500) — Latin
- *                      Noto Sans Devanagari (wght 400–500) — Hindi / Marathi
+ * PALETTE & TACTILE CLAY SYSTEM:
+ * Retains authentic Ayurveda palette (Kora Khadi canvas, Teak Grey ink AAA text,
+ * Haritaki Gold, Manjistha Red alert, Herbal Green verified).
+ * Refined with soft, pillowy Claymorphism: multi-layered diffuse shadows,
+ * deep inner specular highlights, cushioned curves (28px card radius, 20px button radius),
+ * tactile touch-target depression micro-interactions, and recessed inset surfaces.
  */
 
 /* ─────────────────────────────────────────────────
@@ -20,26 +16,32 @@
    ───────────────────────────────────────────────── */
 :root {
   --primitive-kora-khadi:     #F7F4EB; /* Base canvas: unbleached cotton / warm herbal parchment */
-  --primitive-shweta-white:   #FFFFFF; /* Elevated card surface */
-  --primitive-teak-grey:      #2C2520; /* Primary text / dark ink (was dark bg) */
-  --primitive-teak-muted:     #63574E; /* Secondary text / captions (6.5:1 AA) */
-  --primitive-haritaki-gold:  #C88A22; /* Primary action button fill */
-  --primitive-haritaki-deep:  #8F5D12; /* Deep gold for text & active indicators on light bg */
+  --primitive-shweta-white:   #FCFAF6; /* Elevated clay card surface */
+  --primitive-cream-warm:     #F7EEDA; /* Selected clay card warm tint */
+  --primitive-cream-recess:   #EDE5D3; /* Recessed / inset clay surfaces */
+  --primitive-cream-neutral:  #FAF6EE; /* Neutral secondary button fill */
+  --primitive-teak-grey:      #2C2520; /* Primary text / dark ink (13.8:1 AAA) */
+  --primitive-teak-muted:     #64574D; /* Secondary text / captions (6.5:1 AA) */
+  --primitive-haritaki-gold:  #C8922A; /* Primary gold accent / border */
+  --primitive-haritaki-deep:  #8A5E12; /* Deep gold for text & active indicators on light bg */
   --primitive-copper-patina:  #8C7D6B; /* Muted copper accent / step indicator rings */
-  --primitive-copper-border:  #DDD5C5; /* Subtle border on light surfaces */
+  --primitive-copper-border:  #E3D7C1; /* Subtle border on light surfaces */
   --primitive-copper-track:   #D5CBBA; /* Step connector track on light bg */
-  --primitive-manjistha-red:  #B53826; /* Deep madder red for alerts (5.7:1 AA) */
+  --primitive-manjistha-red:  #B5402E; /* Deep madder red for alerts (5.7:1 AA) */
   --primitive-herbal-green:   #2E6B39; /* Deep herbal green for verified/success */
 }
 
 /* ─────────────────────────────────────────────────
-   2. SEMANTIC COLOR TOKENS (Light Mode)
+   2. SEMANTIC COLOR TOKENS (Claymorphic Light Mode)
    ───────────────────────────────────────────────── */
 :root {
   /* Surfaces */
   --color-bg:                 var(--primitive-kora-khadi);
   --color-surface:            var(--primitive-shweta-white);
   --color-surface-hover:      #FBF9F4;
+  --color-surface-recess:     var(--primitive-cream-recess);
+  --color-card-selected-bg:   var(--primitive-cream-warm);
+  --color-card-selected-border: var(--primitive-haritaki-gold);
   --color-border:             var(--primitive-copper-patina);
   --color-border-subtle:      var(--primitive-copper-border);
 
@@ -47,49 +49,47 @@
   --color-text-primary:       var(--primitive-teak-grey);  /* 13.8:1 contrast on #F7F4EB (AAA) */
   --color-text-secondary:     var(--primitive-teak-muted); /* 6.5:1 contrast on #F7F4EB (AA) */
   --color-text-disabled:      #A89E92;
-  --color-text-on-gold:       var(--primitive-teak-grey);  /* 5.8:1 contrast on gold button (AA) */
+  --color-text-on-gold:       #FFFFFF;
 
-  /* Primary action (Haritaki Gold) */
-  --color-btn-primary-bg:          var(--primitive-haritaki-gold);
-  --color-btn-primary-bg-pressed:  #B57A1B;
-  --color-btn-primary-text:        var(--primitive-teak-grey);
+  /* Primary action (Haritaki Gold Clay Gradient) */
+  --color-btn-primary-bg:          linear-gradient(145deg, #D49E34, #BE8722);
+  --color-btn-primary-bg-pressed:  linear-gradient(145deg, #BE8722, #A06D14);
+  --color-btn-primary-text:        #FFFFFF;
 
-  /* Secondary / Ghost button */
-  --color-btn-secondary-bg:        var(--primitive-shweta-white);
-  --color-btn-secondary-bg-hover:  #F2EDE2;
-  --color-btn-secondary-border:    var(--primitive-copper-patina);
+  /* Secondary / Neutral button (Clay Neutral) */
+  --color-btn-secondary-bg:        var(--primitive-cream-neutral);
+  --color-btn-secondary-bg-hover:  #FFFFFF;
+  --color-btn-secondary-border:    #E4DAC6;
   --color-btn-secondary-text:      var(--primitive-teak-grey);
 
   /* Status */
   --color-status-error:       var(--primitive-manjistha-red);
-  --color-status-error-bg:    rgba(181, 56, 38, 0.08);
+  --color-status-error-bg:    rgba(181, 64, 46, 0.08);
   --color-status-success:     var(--primitive-herbal-green);
   --color-status-success-bg:  rgba(46, 107, 57, 0.08);
 
-  /* 5-Step indicator */
-  --color-step-complete:      var(--primitive-haritaki-deep); /* Completed step */
-  --color-step-active:        var(--primitive-haritaki-gold); /* Current step */
-  --color-step-active-dot:    var(--primitive-teak-grey);     /* High-contrast inner dot */
-  --color-step-upcoming:      var(--primitive-copper-patina); /* Upcoming step ring */
-  --color-step-track:         var(--primitive-copper-track);  /* Track connector */
+  /* Step indicator */
+  --color-step-complete:      var(--primitive-haritaki-deep);
+  --color-step-active:        var(--primitive-haritaki-gold);
+  --color-step-active-dot:    var(--primitive-haritaki-gold);
+  --color-step-upcoming:      var(--primitive-copper-patina);
+  --color-step-track:         var(--primitive-copper-track);
 
   /* Audio control */
-  --color-audio-btn-bg:          rgba(200, 138, 34, 0.12);
-  --color-audio-btn-border:      var(--primitive-haritaki-deep);
+  --color-audio-btn-bg:          var(--primitive-cream-neutral);
+  --color-audio-btn-border:      #E4DAC6;
   --color-audio-btn-text:        var(--primitive-haritaki-deep);
   --color-audio-btn-active-bg:   var(--primitive-haritaki-gold);
-  --color-audio-btn-active-text: var(--primitive-teak-grey);
+  --color-audio-btn-active-text: #FFFFFF;
 
-  /* Top bar */
-  --color-topbar-bg:          #F2EFE6;
-  --color-topbar-border:      var(--primitive-copper-border);
+  /* Top bar & Action bar */
+  --color-topbar-bg:          #F5F0E6;
+  --color-topbar-border:      #E7DDC8;
+  --color-actionbar-bg:       #EDE6D4;
+  --color-actionbar-border:   #E1D6BF;
 
   /* Focus */
-  --color-focus-ring:         var(--primitive-haritaki-deep);
-
-  /* Action bar */
-  --color-actionbar-bg:       #F2EFE6;
-  --color-actionbar-border:   var(--primitive-copper-border);
+  --color-focus-ring:         var(--primitive-haritaki-gold);
 }
 
 /* ─────────────────────────────────────────────────
@@ -172,7 +172,7 @@
 }
 
 /* ─────────────────────────────────────────────────
-   6. LAYOUT — 800x1280 PORTRAIT KIOSK
+   6. CLAYMORPHIC RADII & LAYERED SHADOWS
    ───────────────────────────────────────────────── */
 :root {
   --viewport-w:       800px;
@@ -183,19 +183,80 @@
   --content-zone-h:   calc(var(--viewport-h) - var(--topbar-h) - var(--stepbar-h) - var(--actionbar-h));
 
   --page-px:          var(--space-4);
-  --radius-sm:        6px;
-  --radius-card:      10px;
-  --radius-btn:       8px;
+
+  /* Rounded Clay Radii */
+  --radius-sm:        14px;
+  --radius-card:      28px; /* Large pillowy corners */
+  --radius-btn:       20px; /* Soft pillowy button corners */
+  --radius-pill:      9999px; /* Fully rounded pills & badges */
   --radius-circle:    50%;
 
-  --shadow-card:      0 2px 10px rgba(44, 37, 32, 0.06);
-  --shadow-card-elevated: 0 4px 16px rgba(44, 37, 32, 0.10);
-  --shadow-actionbar: 0 -2px 12px rgba(44, 37, 32, 0.08);
-  --transition-tap:   120ms ease-out;
+  /* Claymorphic 3D Layered Shadows */
+  --shadow-card: 
+    10px 16px 28px rgba(44, 37, 32, 0.09),
+    2px 4px 10px rgba(44, 37, 32, 0.04),
+    inset 4px 4px 8px rgba(255, 255, 255, 0.9),
+    inset -4px -4px 8px rgba(195, 179, 155, 0.22);
+
+  --shadow-card-elevated: 
+    12px 20px 34px rgba(44, 37, 32, 0.12),
+    4px 6px 14px rgba(44, 37, 32, 0.06),
+    inset 4px 4px 8px rgba(255, 255, 255, 0.95),
+    inset -4px -4px 8px rgba(195, 179, 155, 0.25);
+
+  --shadow-card-selected: 
+    8px 14px 24px rgba(200, 146, 42, 0.18),
+    inset 3px 3px 6px rgba(255, 255, 255, 0.9),
+    inset -4px -4px 8px rgba(184, 131, 28, 0.25);
+
+  --shadow-card-unselected: 
+    8px 14px 24px rgba(44, 37, 32, 0.06),
+    inset 3px 3px 6px rgba(255, 255, 255, 0.85),
+    inset -3px -3px 6px rgba(195, 180, 158, 0.2);
+
+  --shadow-pill: 
+    4px 6px 12px rgba(44, 37, 32, 0.07),
+    inset 2px 2px 4px rgba(255, 255, 255, 0.85),
+    inset -2px -2px 4px rgba(195, 180, 158, 0.2);
+
+  --shadow-inset-recess: 
+    inset 3px 3px 6px rgba(44, 37, 32, 0.12),
+    inset -2px -2px 5px rgba(255, 255, 255, 0.9),
+    0 1px 2px rgba(255, 255, 255, 0.6);
+
+  --shadow-btn-gold: 
+    6px 10px 20px rgba(176, 123, 30, 0.38),
+    inset 3px 3px 6px rgba(255, 255, 255, 0.45),
+    inset -4px -4px 8px rgba(114, 76, 10, 0.35);
+
+  --shadow-btn-neutral: 
+    6px 10px 18px rgba(44, 37, 32, 0.08),
+    inset 3px 3px 6px rgba(255, 255, 255, 0.95),
+    inset -3px -3px 6px rgba(195, 180, 158, 0.25);
+
+  --shadow-check-disk: 
+    3px 4px 8px rgba(176, 123, 30, 0.4),
+    inset 2px 2px 4px rgba(255, 255, 255, 0.5),
+    inset -2px -2px 4px rgba(114, 76, 10, 0.35);
+
+  --shadow-concave-disc: 
+    inset 2.5px 2.5px 5px rgba(44, 37, 32, 0.16),
+    inset -2px -2px 4px rgba(255, 255, 255, 0.85);
+
+  --shadow-mic-dome: 
+    8px 14px 24px rgba(176, 123, 30, 0.45),
+    inset 4px 4px 8px rgba(255, 255, 255, 0.55),
+    inset -5px -5px 10px rgba(114, 76, 10, 0.4);
+
+  --shadow-actionbar: inset 0 3px 6px rgba(255, 255, 255, 0.7);
+
+  /* Tactile transition curves */
+  --transition-tap:     0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --transition-tactile: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease;
 }
 
 /* ─────────────────────────────────────────────────
-   7. KIOSK BASE RESET
+   7. KIOSK BASE RESET & TACTILE MICRO-INTERACTIONS
    ───────────────────────────────────────────────── */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -218,4 +279,311 @@ html, body {
   line-height: var(--text-lh-body);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+/* Tactile touch press depression */
+.touch-target,
+.btn-primary,
+.btn-secondary,
+.btn-back,
+.btn-agree,
+.btn-decline,
+.btn-skip,
+.btn-proceed,
+.btn-mistake,
+.id-card,
+.option-card,
+.action-card,
+.key-btn,
+.audio-btn,
+.lang-chip,
+.mic-button,
+.btn-repeat-audio {
+  transition: var(--transition-tactile) !important;
+}
+
+.touch-target:active,
+.btn-primary:active,
+.btn-secondary:active,
+.btn-back:active,
+.btn-agree:active,
+.btn-decline:active,
+.btn-skip:active,
+.btn-proceed:active,
+.btn-mistake:active,
+.id-card:active,
+.option-card:active,
+.action-card:active,
+.key-btn:active,
+.audio-btn:active,
+.lang-chip:active,
+.mic-button:active,
+.btn-repeat-audio:active {
+  transform: scale(0.97) translateY(2px) !important;
+}
+
+/* ─────────────────────────────────────────────────
+   8. REUSABLE CLAYMORPHIC COMPONENT SYSTEM
+   ───────────────────────────────────────────────── */
+
+/* Pillowy Clay Surface Container */
+.clay-surface {
+  background: var(--primitive-shweta-white);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--primitive-copper-border);
+}
+
+/* Primary Button (Gold Clay 3D) */
+.btn-primary,
+.btn-agree,
+.clay-btn-gold {
+  background: linear-gradient(145deg, #D49E34, #BE8722) !important;
+  color: #FFFFFF !important;
+  border-radius: var(--radius-btn) !important;
+  border: none !important;
+  box-shadow: var(--shadow-btn-gold) !important;
+  font-family: var(--font-display) !important;
+  font-weight: 700 !important;
+}
+
+/* Secondary / Back / Neutral Button (Cream Clay) */
+.btn-secondary,
+.btn-back,
+.btn-decline,
+.btn-skip,
+.btn-proceed,
+.btn-mistake,
+.clay-btn-neutral {
+  background: var(--primitive-cream-neutral) !important;
+  border: 1.5px solid #E4DAC6 !important;
+  border-radius: var(--radius-btn) !important;
+  color: var(--primitive-teak-grey) !important;
+  box-shadow: var(--shadow-btn-neutral) !important;
+  font-weight: 600 !important;
+}
+
+/* Unselected Clay Card (Option / Identity / Action) */
+.clay-card-unselected,
+.id-card,
+.option-card,
+.action-card {
+  background: #FBF9F4 !important;
+  border: 1.5px solid #EBE2D2 !important;
+  border-radius: var(--radius-card) !important;
+  box-shadow: var(--shadow-card-unselected) !important;
+}
+
+/* Selected Clay Card (Warm Cream + Gold Glow) */
+.clay-card-selected,
+.id-card--active,
+.option-card--selected,
+.action-card--selected {
+  background: var(--primitive-cream-warm) !important;
+  border: 2.5px solid var(--primitive-haritaki-gold) !important;
+  box-shadow: var(--shadow-card-selected) !important;
+}
+
+/* Check Disks */
+.clay-check-disk {
+  background: linear-gradient(135deg, #D7A23A, #B47F20) !important;
+  box-shadow: var(--shadow-check-disk) !important;
+  color: #FFFFFF !important;
+}
+
+.clay-concave-disc {
+  background: var(--primitive-cream-recess) !important;
+  box-shadow: var(--shadow-concave-disc) !important;
+  border: 1px solid #D5C9B3 !important;
+}
+
+/* Recessed Inset Surface */
+.clay-inset-recess {
+  background: var(--primitive-cream-recess) !important;
+  box-shadow: var(--shadow-inset-recess) !important;
+}
+
+/* Clay Badge / Pill */
+.clay-pill,
+.clinical-tag,
+.ayush-badge,
+.ai-state-pill,
+.ocr-status-pill,
+.status-badge,
+.voice-live-badge {
+  border-radius: var(--radius-pill) !important;
+  box-shadow: var(--shadow-pill) !important;
+}
+
+/* 3D Dome Mic Button */
+.clay-mic-dome,
+.mic-button {
+  background: radial-gradient(circle at 35% 30%, #E3AC43, #B8811E) !important;
+  border: 2px solid #E7AF44 !important;
+  box-shadow: var(--shadow-mic-dome) !important;
+  color: #FFFFFF !important;
+}
+
+/* ─────────────────────────────────────────────────
+   9. SHARED 5-STEP PROGRESS BAR (Tactile Clay)
+   ───────────────────────────────────────────────── */
+.stepbar {
+  flex: 0 0 var(--stepbar-h) !important;
+  background: #EFE8D6 !important;
+  border-bottom: 1px solid #E8DEC7 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 0 32px !important;
+}
+
+.step-item {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 3px !important;
+}
+
+/* Dashed / segmented recessed connector track */
+.step-track {
+  flex: 1 !important;
+  height: 6px !important;
+  background: #EDE5D3 !important;
+  border-radius: var(--radius-pill) !important;
+  box-shadow: var(--shadow-inset-recess) !important;
+  margin: 0 8px 18px 8px !important;
+  border: 1px dashed #D5CBBA !important;
+}
+
+.step-track--done,
+.step-track--complete {
+  background: linear-gradient(90deg, #D49E34, #BE8722) !important;
+  border: none !important;
+  box-shadow: 0 1px 4px rgba(200, 146, 42, 0.4) !important;
+}
+
+.step-dot {
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 50% !important;
+  flex-shrink: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.step-dot--complete {
+  background: linear-gradient(135deg, #D7A23A, #B47F20) !important;
+  color: #FFFFFF !important;
+  box-shadow: var(--shadow-check-disk) !important;
+  border: none !important;
+}
+
+.step-dot--complete svg {
+  width: 14px !important;
+  height: 14px !important;
+  fill: currentColor !important;
+}
+
+.step-dot--active {
+  width: 26px !important;
+  height: 26px !important;
+  background: #FCFAF6 !important;
+  border: 2.5px solid #C8922A !important;
+  box-shadow: 0 2px 8px rgba(44, 37, 32, 0.12), inset 2px 2px 4px rgba(255, 255, 255, 0.9) !important;
+  position: relative !important;
+}
+
+.step-dot--active::after {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #C8922A;
+  box-shadow: 0 1px 3px rgba(200, 146, 42, 0.5);
+}
+
+.step-dot--upcoming {
+  background: #EDE5D3 !important;
+  box-shadow: var(--shadow-concave-disc) !important;
+  border: 1px solid #D5C9B3 !important;
+}
+
+.step-label {
+  font-family: var(--font-body) !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+}
+
+.step-label--complete { color: var(--primitive-haritaki-deep) !important; font-weight: 700 !important; }
+.step-label--active   { color: var(--color-text-primary) !important; font-weight: 700 !important; }
+.step-label--upcoming { color: var(--color-text-secondary) !important; opacity: 0.75 !important; }
+
+/* Pulse animation for voice input and acoustic rings */
+@keyframes pulseDot {
+  0% { transform: scale(0.9); opacity: 0.7; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.7; }
+}
+
+@keyframes wavePulse {
+  0% { transform: scaleY(0.4); }
+  100% { transform: scaleY(1.15); }
+}
+
+@keyframes clayAcousticExpand {
+  0% { transform: scale(0.92); opacity: 0.5; }
+  50% { opacity: 0.25; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+
+.clay-pulse-wave {
+  animation: clayAcousticExpand 2.4s infinite ease-out;
+}
+
+
+/* Red Flag & Special Action Buttons */
+.assistance-btn {
+  border-radius: var(--radius-card) !important;
+  box-shadow: var(--shadow-card) !important;
+  transition: var(--transition-tactile) !important;
+}
+
+.assistance-btn--primary {
+  background: linear-gradient(145deg, #D49E34, #BE8722) !important;
+  color: #FFFFFF !important;
+  border: none !important;
+  box-shadow: var(--shadow-btn-gold) !important;
+}
+
+.assistance-btn--secondary {
+  background: #FAF6EE !important;
+  border: 2px solid var(--primitive-manjistha-red) !important;
+  box-shadow: var(--shadow-btn-neutral) !important;
+}
+
+.reassurance-card {
+  border-radius: var(--radius-card) !important;
+  box-shadow: var(--shadow-card-elevated) !important;
+}
+
+.dispatch-status-box {
+  border-radius: var(--radius-card) !important;
+  box-shadow: var(--shadow-card) !important;
+}
+
+.destination-card {
+  border-radius: var(--radius-card) !important;
+  box-shadow: var(--shadow-card-elevated) !important;
+}
+
+/* Keypad keys tactile feedback */
+.key-btn {
+  border-radius: var(--radius-btn) !important;
+  box-shadow: var(--shadow-btn-neutral) !important;
+}
+
+.key-btn:active {
+  transform: scale(0.96) translateY(2px) !important;
 }

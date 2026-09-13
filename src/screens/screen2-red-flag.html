@@ -620,6 +620,13 @@
       <span data-i18n="btn_mistake">I tapped by mistake</span>
     </button>
 
+    <button class="btn-proceed" id="btnProceedDocs" onclick="window.location.href='screen3-documents.html'" style="height: 56px; padding: 0 22px; border-radius: var(--radius-btn); background: var(--color-btn-primary-bg); border: none; color: var(--color-btn-primary-text); font-family: var(--font-display); font-size: 19px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 8px rgba(200, 138, 34, 0.25);">
+      <span data-i18n="btn_proceed_docs">Staff Attended • Proceed</span>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M5 13h11.86l-5.43 5.43 1.42 1.42L21 12l-8.15-7.85-1.42 1.42L16.86 11H5v2z"/>
+      </svg>
+    </button>
+
     <div class="station-contact">
       <span class="station-contact__title" data-i18n="contact_title">OPD Emergency Desk</span>
       <span class="station-contact__num">Ext: 2204 • Direct Call</span>
@@ -649,7 +656,8 @@
       btn2_title: "I Feel Faint / Need Wheelchair",
       btn2_sub: "Requests immediate wheelchair and stretcher support",
       btn_mistake: "I tapped by mistake",
-      contact_title: "OPD Emergency Desk"
+      contact_title: "OPD Emergency Desk",
+      btn_proceed_docs: "Staff Attended • Proceed"
     },
     hi: {
       topbar_title: "अखिल भारतीय आयुर्वेद संस्थान",
@@ -669,7 +677,8 @@
       btn2_title: "मुझे चक्कर आ रहे हैं / व्हीलचेयर चाहिए",
       btn2_sub: "तत्काल व्हीलचेयर और स्ट्रेचर सहायता मांगें",
       btn_mistake: "गलती से दबा दिया था",
-      contact_title: "ओपीडी आपातकालीन डेस्क"
+      contact_title: "ओपीडी आपातकालीन डेस्क",
+      btn_proceed_docs: "स्टाफ उपस्थित • आगे बढ़ें"
     },
     mr: {
       topbar_title: "अखिल भारतीय आयुर्वेद संस्था",
@@ -689,7 +698,8 @@
       btn2_title: "मला चक्कर येत आहे / व्हीलचेअर हवी",
       btn2_sub: "तातडीची व्हीलचेअर व स्ट्रेचर मदत मागवा",
       btn_mistake: "चुकून दाबले गेले",
-      contact_title: "ओपीडी तातडीचा कक्ष"
+      contact_title: "ओपीडी तातडीचा कक्ष",
+      btn_proceed_docs: "कर्मचारी उपस्थित • पुढे जा"
     }
   };
 
@@ -697,6 +707,7 @@
 
   function setLanguage(lang) {
     if (!i18n[lang]) return;
+    try { localStorage.setItem('medikiosk_lang', lang); } catch(e){}
     currentLang = lang;
 
     document.querySelectorAll('.lang-chip').forEach(chip => {
@@ -743,6 +754,8 @@
   document.getElementById('btnReplayComfort').addEventListener('click', function() {
     console.log(`[Sarvam TTS Hook]: Playing comforting audio message in language ${currentLang}...`);
   });
+  const savedLang = (function(){ try { return localStorage.getItem('medikiosk_lang'); } catch(e){ return null; } })() || 'en';
+  setLanguage(savedLang);
 </script>
 
 </body>

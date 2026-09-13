@@ -1,0 +1,1309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=800, initial-scale=1" />
+  <title>MediKiosk — Step 3: Document Upload &amp; OCR</title>
+
+  <!-- Google Fonts: Baloo 2 & Noto Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="../styles/tokens.css" />
+
+  <style>
+    /* ── Screen 3 Layout (Fixed 800x1280 Portrait, Zero Scrollbar) ── */
+    html, body {
+      width: 800px;
+      height: 1280px;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: var(--color-bg);
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .kiosk-screen {
+      width: 800px;
+      height: 1280px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Top Bar (72px) */
+    .topbar {
+      flex: 0 0 var(--topbar-h);
+      background: var(--color-topbar-bg);
+      border-bottom: 1px solid var(--color-topbar-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--page-px);
+    }
+
+    .topbar__brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .topbar__logo-mark {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-sm);
+      background: var(--primitive-haritaki-gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 1px 4px rgba(44, 37, 32, 0.15);
+    }
+
+    .topbar__logo-mark svg { width: 26px; height: 26px; }
+
+    .topbar__name {
+      font-family: var(--font-display);
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--primitive-haritaki-deep);
+      line-height: 1.1;
+    }
+
+    .topbar__sub {
+      font-family: var(--font-body);
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--color-text-secondary);
+    }
+
+    .topbar__controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .audio-btn {
+      width: var(--touch-target-audio-btn);
+      height: var(--touch-target-audio-btn);
+      border-radius: 50%;
+      background: var(--color-audio-btn-bg);
+      border: 2px solid var(--color-audio-btn-border);
+      color: var(--color-audio-btn-text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background var(--transition-tap);
+    }
+
+    .audio-btn:active {
+      background: var(--color-audio-btn-active-bg);
+      color: var(--color-audio-btn-active-text);
+    }
+
+    .audio-btn svg { width: 28px; height: 28px; }
+
+    .lang-chips {
+      display: flex;
+      gap: 6px;
+    }
+
+    .lang-chip {
+      height: var(--touch-target-min);
+      min-width: 58px;
+      padding: 0 14px;
+      border: 1.5px solid var(--color-border-subtle);
+      border-radius: var(--radius-sm);
+      background: var(--color-surface);
+      color: var(--color-text-secondary);
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all var(--transition-tap);
+    }
+
+    .lang-chip.active {
+      background: var(--color-btn-primary-bg);
+      color: var(--color-btn-primary-text);
+      border-color: var(--color-btn-primary-bg);
+      box-shadow: 0 2px 6px rgba(200, 138, 34, 0.25);
+    }
+
+    /* 5-Step Bar: Steps 1 & 2 Complete, Step 3 Active */
+    .stepbar {
+      flex: 0 0 var(--stepbar-h);
+      background: var(--color-bg);
+      border-bottom: 1px solid var(--color-border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+    }
+
+    .step-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .step-track {
+      flex: 1;
+      height: 2px;
+      background: var(--primitive-copper-track);
+      margin: 0 8px 18px 8px;
+    }
+
+    .step-track--done {
+      background: var(--primitive-haritaki-gold);
+    }
+
+    .step-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .step-dot--complete {
+      width: 20px;
+      height: 20px;
+      background: var(--primitive-haritaki-deep);
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .step-dot--complete svg { width: 14px; height: 14px; }
+
+    .step-dot--active {
+      width: 22px;
+      height: 22px;
+      background: var(--primitive-haritaki-gold);
+      border: 3px solid #FFFFFF;
+      box-shadow: 0 0 0 2px var(--primitive-haritaki-gold);
+    }
+
+    .step-dot--upcoming {
+      background: #FFFFFF;
+      border: 2px solid var(--color-step-upcoming);
+    }
+
+    .step-label {
+      font-family: var(--font-body);
+      font-size: 18px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .step-label--complete { color: var(--primitive-haritaki-deep); font-weight: 700; }
+    .step-label--active   { color: var(--color-text-primary); font-weight: 700; }
+    .step-label--upcoming { color: var(--color-text-secondary); }
+
+    /* Content Zone: Strictly 1056px Height (1280 - 72 - 56 - 96) */
+    .content-zone {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 18px var(--page-px);
+      box-sizing: border-box;
+      overflow: hidden;
+      gap: 12px;
+    }
+
+    /* Screen Header */
+    .screen-header {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .header-top-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .clinical-tag {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--primitive-herbal-green);
+      background: rgba(46, 107, 57, 0.10);
+      border: 1px solid rgba(46, 107, 57, 0.25);
+      padding: 4px 12px;
+      border-radius: 16px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .clinical-tag svg { width: 16px; height: 16px; }
+
+    .ocr-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 14px;
+      border-radius: 20px;
+      font-size: 15px;
+      font-weight: 600;
+      background: #FFFFFF;
+      border: 1.5px solid var(--color-border-subtle);
+      color: var(--primitive-teak-muted);
+      transition: all 0.25s ease;
+    }
+
+    .ocr-status-pill--active {
+      border-color: var(--primitive-haritaki-gold);
+      background: #FFFDF8;
+      color: var(--primitive-haritaki-deep);
+    }
+
+    .ocr-status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--primitive-haritaki-gold);
+    }
+
+    .screen-title {
+      font-family: var(--font-display);
+      font-size: 36px;
+      font-weight: 700;
+      line-height: 1.15;
+      color: var(--color-text-primary);
+      margin: 0;
+    }
+
+    .screen-subtext {
+      font-family: var(--font-body);
+      font-size: 19px;
+      line-height: 1.35;
+      color: var(--color-text-secondary);
+      margin: 0;
+    }
+
+    /* ── Two Large Primary Action Cards (Equal Weight) ── */
+    .upload-actions-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .action-card {
+      background: var(--color-surface);
+      border: 2.5px solid var(--color-border-subtle);
+      border-radius: var(--radius-card);
+      min-height: 116px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      cursor: pointer;
+      box-shadow: var(--shadow-card);
+      transition: all var(--transition-tap);
+      position: relative;
+    }
+
+    .action-card:active {
+      transform: scale(0.985);
+    }
+
+    .action-card--selected {
+      border-color: var(--primitive-haritaki-gold);
+      background: #FFFDF8;
+      box-shadow: 0 4px 16px rgba(200, 138, 34, 0.20);
+    }
+
+    .action-card__icon-wrap {
+      width: 68px;
+      height: 68px;
+      border-radius: var(--radius-sm);
+      background: rgba(200, 138, 34, 0.12);
+      border: 1.5px solid rgba(200, 138, 34, 0.25);
+      color: var(--primitive-haritaki-deep);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all var(--transition-tap);
+    }
+
+    .action-card--selected .action-card__icon-wrap {
+      background: var(--primitive-haritaki-gold);
+      color: var(--primitive-teak-grey);
+    }
+
+    .action-card__icon-wrap svg { width: 36px; height: 36px; }
+
+    .action-card__content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .action-card__title {
+      font-family: var(--font-display);
+      font-size: 24px;
+      font-weight: 700;
+      line-height: 1.15;
+      color: var(--color-text-primary);
+    }
+
+    .action-card__sub {
+      font-size: 15px;
+      color: var(--color-text-secondary);
+      line-height: 1.3;
+      font-weight: 500;
+    }
+
+    .action-card__badge {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--primitive-haritaki-deep);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    /* ── OCR In-Progress & Result Card ── */
+    .ocr-stage-card {
+      background: var(--color-surface);
+      border: 2px solid var(--color-border-subtle);
+      border-radius: var(--radius-card);
+      padding: 16px 20px;
+      box-shadow: var(--shadow-card);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: all 0.3s ease;
+    }
+
+    .ocr-stage-card--processing {
+      border-color: var(--primitive-haritaki-gold);
+      background: #FFFDF8;
+    }
+
+    /* In-Progress OCR Visual */
+    .ocr-processing-view {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px 10px;
+      gap: 12px;
+      text-align: center;
+    }
+
+    .ocr-processing-view.active {
+      display: flex;
+    }
+
+    .scanner-beam-box {
+      position: relative;
+      width: 180px;
+      height: 48px;
+      background: #FAF8F2;
+      border: 1.5px dashed var(--primitive-haritaki-gold);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primitive-haritaki-deep);
+      font-family: monospace;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .scanner-beam-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, #C88A22, transparent);
+      box-shadow: 0 0 8px #C88A22;
+      animation: scanBeam 1.6s infinite ease-in-out alternate;
+    }
+
+    @keyframes scanBeam {
+      0% { top: 4px; }
+      100% { top: 40px; }
+    }
+
+    .processing-title {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--primitive-haritaki-deep);
+    }
+
+    .processing-sub {
+      font-size: 15px;
+      color: var(--color-text-secondary);
+    }
+
+    /* Result View (Extracted Medicine & Details) */
+    .ocr-result-view {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .result-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .result-status-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--primitive-herbal-green);
+      background: rgba(46, 107, 57, 0.10);
+      padding: 3px 10px;
+      border-radius: 12px;
+    }
+
+    .result-status-tag svg { width: 14px; height: 14px; }
+
+    .result-doc-name {
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--primitive-teak-grey);
+    }
+
+    .extracted-med-card {
+      background: #FAF8F2;
+      border: 1.5px solid rgba(200, 138, 34, 0.35);
+      border-left: 4px solid var(--primitive-haritaki-gold);
+      border-radius: var(--radius-sm);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .extracted-med-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .pill-icon-wrap {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(200, 138, 34, 0.15);
+      color: var(--primitive-haritaki-deep);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .pill-icon-wrap svg { width: 22px; height: 22px; }
+
+    .extracted-name {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--primitive-teak-grey);
+      line-height: 1.1;
+    }
+
+    .extracted-desc {
+      font-size: 15px;
+      color: var(--primitive-haritaki-deep);
+      font-weight: 600;
+    }
+
+    .confidence-badge {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--primitive-herbal-green);
+      background: rgba(46, 107, 57, 0.10);
+      padding: 4px 10px;
+      border-radius: 12px;
+      white-space: nowrap;
+    }
+
+    .re-scan-btn {
+      align-self: flex-start;
+      background: none;
+      border: none;
+      color: var(--primitive-haritaki-deep);
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 0;
+      text-decoration: underline;
+    }
+
+    /* ── Chronological Timeline Section ── */
+    .timeline-section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .timeline-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .timeline-title {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--color-text-primary);
+    }
+
+    .timeline-count {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--primitive-copper-patina);
+    }
+
+    .timeline-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .timeline-card {
+      background: var(--color-surface);
+      border: 1.5px solid var(--color-border-subtle);
+      border-radius: var(--radius-card);
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 1px 4px rgba(44, 37, 32, 0.04);
+      gap: 14px;
+    }
+
+    .timeline-card__left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .timeline-icon-box {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-sm);
+      background: #FAF8F2;
+      border: 1px solid var(--color-border-subtle);
+      color: var(--primitive-copper-patina);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .timeline-icon-box svg { width: 22px; height: 22px; }
+
+    .timeline-card__meta {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .timeline-card__date-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .timeline-card__date {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--primitive-teak-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .timeline-card__type-badge {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: rgba(140, 125, 107, 0.12);
+      color: var(--primitive-copper-patina);
+    }
+
+    .timeline-card__type-badge--rx {
+      background: rgba(46, 107, 57, 0.12);
+      color: var(--primitive-herbal-green);
+    }
+
+    .timeline-card__summary {
+      font-family: var(--font-body);
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--primitive-teak-grey);
+    }
+
+    /* ── Abnormal Value Flag (Calm, Non-Alarming Manjistha Red Pattern) ── */
+    .abnormal-flag-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      background: rgba(181, 56, 38, 0.08);
+      border: 1.5px solid rgba(181, 56, 38, 0.28);
+      color: var(--primitive-manjistha-red);
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.2;
+      white-space: nowrap;
+    }
+
+    .abnormal-flag-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--primitive-manjistha-red);
+      flex-shrink: 0;
+    }
+
+    /* Action Bar (96px) */
+    .action-bar {
+      flex: 0 0 var(--actionbar-h);
+      background: var(--color-actionbar-bg);
+      border-top: 1px solid var(--color-actionbar-border);
+      box-shadow: var(--shadow-actionbar);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--page-px);
+    }
+
+    .btn-back {
+      min-width: var(--touch-target-back-btn);
+      height: var(--touch-target-back-btn);
+      border-radius: var(--radius-btn);
+      background: var(--color-surface);
+      border: 2px solid var(--color-border);
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      font-size: 20px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 24px;
+    }
+
+    .btn-back svg { width: 22px; height: 22px; }
+
+    .action-bar-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .btn-skip {
+      height: var(--touch-target-back-btn);
+      padding: 0 20px;
+      border-radius: var(--radius-btn);
+      background: none;
+      border: 2px solid transparent;
+      color: var(--color-text-secondary);
+      font-family: var(--font-body);
+      font-size: 19px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background var(--transition-tap);
+    }
+
+    .btn-skip:active {
+      background: rgba(140, 125, 107, 0.1);
+    }
+
+    .btn-primary {
+      height: var(--touch-target-primary);
+      min-width: 300px;
+      padding: 0 32px;
+      border-radius: var(--radius-btn);
+      background: var(--color-btn-primary-bg);
+      border: none;
+      color: var(--color-btn-primary-text);
+      font-family: var(--font-display);
+      font-size: 26px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      box-shadow: 0 2px 8px rgba(200, 138, 34, 0.30);
+      transition: background var(--transition-tap);
+    }
+
+    .btn-primary:active {
+      background: var(--color-btn-primary-bg-pressed);
+    }
+  </style>
+</head>
+<body>
+
+<div class="kiosk-screen" role="region" aria-label="Step 3: Document Upload and OCR">
+
+  <!-- TOP BAR (72px) -->
+  <header class="topbar">
+    <div class="topbar__brand">
+      <div class="topbar__logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 22 22" fill="none">
+          <path d="M11 3C11 3 5 7 5 12.5C5 16.09 7.69 19 11 19C14.31 19 17 16.09 17 12.5C17 7 11 3 11 3Z" fill="#2C2520"/>
+          <path d="M11 6C11 6 7 9.5 7 13C7 15.21 8.79 17 11 17" stroke="#2C2520" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M11 6C11 6 15 9.5 15 13C15 15.21 13.21 17 11 17" stroke="#2C2520" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="11" y1="17" x2="11" y2="20" stroke="#2C2520" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="topbar__name" data-i18n="topbarTitle">MediKiosk</div>
+        <div class="topbar__sub" data-i18n="topbarSub">All India Institute of Ayurveda</div>
+      </div>
+    </div>
+
+    <div class="topbar__controls">
+      <!-- Audio Replay (Sarvam TTS backend) -->
+      <button class="audio-btn" id="audioBtn" aria-label="Listen to audio instructions" title="Listen (Sarvam TTS)">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+        </svg>
+      </button>
+
+      <!-- Language Chips -->
+      <div class="lang-chips" role="radiogroup" aria-label="Language selection">
+        <button class="lang-chip active" data-lang="en" role="radio" aria-checked="true">EN</button>
+        <button class="lang-chip" data-lang="hi" role="radio" aria-checked="false">हि</button>
+        <button class="lang-chip" data-lang="mr" role="radio" aria-checked="false">म</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 5-STEP BAR: Steps 1 & 2 Complete, Step 3 Active! -->
+  <nav class="stepbar" aria-label="OPD Intake Progress">
+    <div class="step-item">
+      <div class="step-dot step-dot--complete" aria-label="Step 1 complete">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+      </div>
+      <span class="step-label step-label--complete" data-i18n="step1">✓ 1. Identity</span>
+    </div>
+    <div class="step-track step-track--done"></div>
+
+    <div class="step-item">
+      <div class="step-dot step-dot--complete" aria-label="Step 2 complete">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+      </div>
+      <span class="step-label step-label--complete" data-i18n="step2">✓ 2. Interview</span>
+    </div>
+    <div class="step-track step-track--done"></div>
+
+    <div class="step-item">
+      <div class="step-dot step-dot--active" aria-current="step"></div>
+      <span class="step-label step-label--active" data-i18n="step3">3. Documents</span>
+    </div>
+    <div class="step-track"></div>
+
+    <div class="step-item">
+      <div class="step-dot step-dot--upcoming"></div>
+      <span class="step-label step-label--upcoming" data-i18n="step4">4. Summary</span>
+    </div>
+    <div class="step-track"></div>
+
+    <div class="step-item">
+      <div class="step-dot step-dot--upcoming"></div>
+      <span class="step-label step-label--upcoming" data-i18n="step5">5. Confirm</span>
+    </div>
+  </nav>
+
+  <!-- CONTENT ZONE (Strictly 1056px, Zero Scrollbar) -->
+  <main class="content-zone">
+
+    <!-- Screen Header -->
+    <div class="screen-header">
+      <div class="header-top-row">
+        <span class="clinical-tag">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
+          </svg>
+          <span data-i18n="headerTag">ABHA Health Locker Connected</span>
+        </span>
+
+        <!-- AI State Indicator Pill -->
+        <div class="ocr-status-pill ocr-status-pill--active" id="ocrPill">
+          <span class="ocr-status-dot"></span>
+          <span id="ocrPillText" data-i18n="ocrReady">AI OCR: Ready to Scan</span>
+        </div>
+      </div>
+
+      <h1 class="screen-title" data-i18n="title">Add Your Medical Documents</h1>
+      <p class="screen-subtext" data-i18n="subtext">Scan previous prescriptions or lab reports so your doctor has your complete history.</p>
+    </div>
+
+    <!-- ── Two Large Primary Actions (Equal Visual Weight) ── -->
+    <div class="upload-actions-grid" role="group" aria-label="Document Capture Options">
+      
+      <!-- Option 1: Scan with Camera -->
+      <div class="action-card action-card--selected" id="actionScan" tabindex="0" role="button" aria-label="Scan with Camera">
+        <div class="action-card__icon-wrap">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+          </svg>
+        </div>
+        <div class="action-card__content">
+          <span class="action-card__badge" data-i18n="scanBadge">Kiosk Scanner</span>
+          <div class="action-card__title" data-i18n="actionScanTitle">Scan with Camera</div>
+          <div class="action-card__sub" data-i18n="actionScanSub">Place paper under document lens below screen</div>
+        </div>
+      </div>
+
+      <!-- Option 2: Upload from Device / ABHA -->
+      <div class="action-card" id="actionUpload" tabindex="0" role="button" aria-label="Upload from Device">
+        <div class="action-card__icon-wrap">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
+          </svg>
+        </div>
+        <div class="action-card__content">
+          <span class="action-card__badge" data-i18n="uploadBadge">Phone / Cloud</span>
+          <div class="action-card__title" data-i18n="actionUploadTitle">Upload from Device</div>
+          <div class="action-card__sub" data-i18n="actionUploadSub">Fetch digital PDF, photo, or ABHA records</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── OCR Processing & Extracted Findings Card ── -->
+    <section class="ocr-stage-card" id="ocrCard" aria-live="polite">
+      
+      <!-- State A: Processing Scan (Hidden by default, shown when triggered) -->
+      <div class="ocr-processing-view" id="ocrProcessingView">
+        <div class="scanner-beam-box">
+          <div class="scanner-beam-line"></div>
+          <span>[ SCANNING PAGE ]</span>
+        </div>
+        <div class="processing-title" data-i18n="ocrProcessingTitle">Analyzing Document with Clinical OCR...</div>
+        <div class="processing-sub" data-i18n="ocrProcessingSub">Extracting medicine names, dosages, and laboratory values</div>
+      </div>
+
+      <!-- State B: Extracted Result Card (Default state showing realistic parsed output) -->
+      <div class="ocr-result-view" id="ocrResultView">
+        <div class="result-header-row">
+          <div class="result-doc-name" data-i18n="resultDocTitle">Prescription — AIIA Medicine OPD</div>
+          <div class="result-status-tag">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+            <span data-i18n="resultVerifiedTag">OCR Verified • Dr. V. Sharma, MD</span>
+          </div>
+        </div>
+
+        <!-- Highlighted Extracted Result Badge: Metformin 500mg -->
+        <div class="extracted-med-card">
+          <div class="extracted-med-left">
+            <div class="pill-icon-wrap" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M6 3h12c1.66 0 3 1.34 3 3v12c0 1.66-1.34 3-3 3H6c-1.66 0-3-1.34-3-3V6c0-1.66 1.34-3 3-3zm0 2c-.55 0-1 .45-1 1v5h14V6c0-.55-.45-1-1-1H6zm14 8H4v5c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-5z"/>
+              </svg>
+            </div>
+            <div>
+              <div class="extracted-name" data-i18n="extractedMedName">Metformin 500mg</div>
+              <div class="extracted-desc" data-i18n="extractedMedDesc">found in this document • Oral, twice daily with meals</div>
+            </div>
+          </div>
+          <span class="confidence-badge" data-i18n="confidenceBadge">98.4% Confidence</span>
+        </div>
+
+        <!-- Secondary Extracted Finding (Ayurvedic Rasayana) -->
+        <div class="extracted-med-card" style="border-left-color: var(--primitive-herbal-green);">
+          <div class="extracted-med-left">
+            <div class="pill-icon-wrap" style="background: rgba(46, 107, 57, 0.12); color: var(--primitive-herbal-green);" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22l1-2.3A4.49 4.49 0 0 0 8 20C19 20 22 3 22 3c-1 2-8 2.25-13 3.25S2 11.5 2 13.5s1.75 3.75 1.75 3.75C7 8 17 8 17 8z"/>
+              </svg>
+            </div>
+            <div>
+              <div class="extracted-name" data-i18n="extractedAyuName">Tab. Ashwagandha 500mg</div>
+              <div class="extracted-desc" data-i18n="extractedAyuDesc">found in this document • 1 tab at bedtime (Rasayana)</div>
+            </div>
+          </div>
+          <span class="confidence-badge" data-i18n="confidenceBadgeAyu">97.8% Confidence</span>
+        </div>
+
+        <button class="re-scan-btn" id="btnSimulateScan" data-i18n="btnRescan">
+          ↻ Re-scan or test another document
+        </button>
+      </div>
+
+    </section>
+
+    <!-- ── Mock Chronological Timeline (2-3 Compact Cards) ── -->
+    <section class="timeline-section" aria-label="Recent Medical Records Timeline">
+      <div class="timeline-section-header">
+        <h2 class="timeline-title" data-i18n="timelineTitle">Past Medical Records Timeline</h2>
+        <span class="timeline-count" data-i18n="timelineCount">3 records linked</span>
+      </div>
+
+      <div class="timeline-list">
+        
+        <!-- Record 1: Recent Prescription -->
+        <div class="timeline-card">
+          <div class="timeline-card__left">
+            <div class="timeline-icon-box" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
+              </svg>
+            </div>
+            <div class="timeline-card__meta">
+              <div class="timeline-card__date-row">
+                <span class="timeline-card__date">12 Aug 2026</span>
+                <span class="timeline-card__type-badge timeline-card__type-badge--rx" data-i18n="badgePrescription">Prescription</span>
+              </div>
+              <div class="timeline-card__summary" data-i18n="rec1Summary">Metformin 500mg &amp; Glycomet • AIIA General Medicine</div>
+            </div>
+          </div>
+          <span style="font-size: 14px; font-weight: 600; color: var(--primitive-herbal-green);" data-i18n="statusParsed">✓ Parsed</span>
+        </div>
+
+        <!-- Record 2: Lab Report with Calm Abnormal Value Flag -->
+        <div class="timeline-card" style="border-color: rgba(181, 56, 38, 0.35); background: #FFFDFD;">
+          <div class="timeline-card__left">
+            <div class="timeline-icon-box" style="color: var(--primitive-manjistha-red); background: #FDEDEB;" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
+              </svg>
+            </div>
+            <div class="timeline-card__meta">
+              <div class="timeline-card__date-row">
+                <span class="timeline-card__date">28 Jun 2026</span>
+                <span class="timeline-card__type-badge" data-i18n="badgeLab">Lab Report</span>
+              </div>
+              <div class="timeline-card__summary" data-i18n="rec2Summary">Biochemistry Panel • Fasting Blood Sugar</div>
+            </div>
+          </div>
+
+          <!-- Calm Abnormal-Value Flag (Matches Manjistha Red usage pattern) -->
+          <div class="abnormal-flag-badge">
+            <span class="abnormal-flag-dot" aria-hidden="true"></span>
+            <span data-i18n="flagGlucose">Glucose: 142 mg/dL [Elevated]</span>
+          </div>
+        </div>
+
+        <!-- Record 3: Ayurvedic Discharge Summary -->
+        <div class="timeline-card">
+          <div class="timeline-card__left">
+            <div class="timeline-icon-box" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm2 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+              </svg>
+            </div>
+            <div class="timeline-card__meta">
+              <div class="timeline-card__date-row">
+                <span class="timeline-card__date">15 Mar 2026</span>
+                <span class="timeline-card__type-badge" data-i18n="badgeDischarge">Discharge Summary</span>
+              </div>
+              <div class="timeline-card__summary" data-i18n="rec3Summary">Panchakarma Care (Virechana Protocol) • AIIA Inpatient</div>
+            </div>
+          </div>
+          <span style="font-size: 14px; font-weight: 600; color: var(--primitive-copper-patina);" data-i18n="statusArchived">Archived</span>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ACTION BAR (96px) -->
+  <footer class="action-bar">
+    <button class="btn-back" onclick="window.location.href='screen2b-ayush.html'" aria-label="Go back to Interview">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+      </svg>
+      <span data-i18n="btnBack">Back</span>
+    </button>
+
+    <div class="action-bar-right">
+      <button class="btn-skip" onclick="window.location.href='screen4-summary.html'" aria-label="Skip document upload">
+        <span data-i18n="btnSkip">No Documents to Add</span>
+      </button>
+
+      <!-- Advances to Step 4: Summary -->
+      <button class="btn-primary" onclick="window.location.href='screen4-summary.html'">
+        <span data-i18n="btnContinue">Continue to Summary</span>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M5 13h11.86l-5.43 5.43 1.42 1.42L21 12l-8.15-7.85-1.42 1.42L16.86 11H5v2z"/>
+        </svg>
+      </button>
+    </div>
+  </footer>
+
+</div>
+
+<!-- SCRIPT: Language Switching & Interactive OCR Simulation -->
+<script>
+  const i18n = {
+    en: {
+      topbarTitle: "MediKiosk",
+      topbarSub: "All India Institute of Ayurveda",
+      step1: "✓ 1. Identity",
+      step2: "✓ 2. Interview",
+      step3: "3. Documents",
+      step4: "4. Summary",
+      step5: "5. Confirm",
+      headerTag: "ABHA Health Locker Connected",
+      ocrReady: "AI OCR: Ready to Scan",
+      ocrProcessingPill: "AI OCR: Reading Document...",
+      title: "Add Your Medical Documents",
+      subtext: "Scan previous prescriptions or lab reports so your doctor has your complete history.",
+      scanBadge: "Kiosk Scanner",
+      actionScanTitle: "Scan with Camera",
+      actionScanSub: "Place paper under document lens below screen",
+      uploadBadge: "Phone / Cloud",
+      actionUploadTitle: "Upload from Device",
+      actionUploadSub: "Fetch digital PDF, photo, or ABHA records",
+      ocrProcessingTitle: "Analyzing Document with Clinical OCR...",
+      ocrProcessingSub: "Extracting medicine names, dosages, and laboratory values",
+      resultDocTitle: "Prescription — AIIA Medicine OPD",
+      resultVerifiedTag: "OCR Verified • Dr. V. Sharma, MD",
+      extractedMedName: "Metformin 500mg",
+      extractedMedDesc: "found in this document • Oral, twice daily with meals",
+      confidenceBadge: "98.4% Confidence",
+      extractedAyuName: "Tab. Ashwagandha 500mg",
+      extractedAyuDesc: "found in this document • 1 tab at bedtime (Rasayana)",
+      confidenceBadgeAyu: "97.8% Confidence",
+      btnRescan: "↻ Re-scan or test another document",
+      timelineTitle: "Past Medical Records Timeline",
+      timelineCount: "3 records linked",
+      badgePrescription: "Prescription",
+      rec1Summary: "Metformin 500mg & Glycomet • AIIA General Medicine",
+      statusParsed: "✓ Parsed",
+      badgeLab: "Lab Report",
+      rec2Summary: "Biochemistry Panel • Fasting Blood Sugar",
+      flagGlucose: "Glucose: 142 mg/dL [Elevated]",
+      badgeDischarge: "Discharge Summary",
+      rec3Summary: "Panchakarma Care (Virechana Protocol) • AIIA Inpatient",
+      statusArchived: "Archived",
+      btnBack: "Back",
+      btnSkip: "No Documents to Add",
+      btnContinue: "Continue to Summary"
+    },
+    hi: {
+      topbarTitle: "अखिल भारतीय आयुर्वेद संस्थान",
+      topbarSub: "स्वयं-सेवा ओपीडी पंजीकरण • नई दिल्ली",
+      step1: "✓ १. पहचान",
+      step2: "✓ २. लक्षण चर्चा",
+      step3: "३. दस्तावेज़",
+      step4: "४. सारांश",
+      step5: "५. पुष्टि",
+      headerTag: "आभा (ABHA) हेल्थ लॉकर जुड़ा हुआ",
+      ocrReady: "एआई ओसीआर: स्कैन के लिए तैयार",
+      ocrProcessingPill: "एआई ओसीआर: दस्तावेज़ पढ़ा जा रहा है...",
+      title: "पुराने मेडिकल दस्तावेज़ जोड़ें",
+      subtext: "अपनी पुरानी पर्चियां या जांच रिपोर्ट स्कैन करें ताकि डॉक्टर आपकी पूरी हिस्ट्री देख सकें।",
+      scanBadge: "कियोस्क स्कैनर",
+      actionScanTitle: "कैमरे से स्कैन करें",
+      actionScanSub: "कागज को स्क्रीन के नीचे लगे स्कैनर पर रखें",
+      uploadBadge: "मोबाइल / क्लाउड",
+      actionUploadTitle: "मोबाइल से अपलोड करें",
+      actionUploadSub: "पीडीएफ, फोटो या आभा लॉकर से फाइल चुनें",
+      ocrProcessingTitle: "क्लिनिकल ओसीआर द्वारा पर्ची पढ़ी जा रही है...",
+      ocrProcessingSub: "दवाओं के नाम, मात्रा और लैब परिणाम निकाले जा रहे हैं",
+      resultDocTitle: "ओपीडी पर्ची — एआईआईए चिकित्सा विभाग",
+      resultVerifiedTag: "सत्यापित • डॉ. वी. शर्मा, एमडी",
+      extractedMedName: "मेटफॉर्मिन ५०० मि.ग्रा. (Metformin)",
+      extractedMedDesc: "इस पर्ची में पाया गया • भोजन के साथ दिन में दो बार",
+      confidenceBadge: "९८.४% सटीकता",
+      extractedAyuName: "अश्वगंधा वटी ५०० मि.ग्रा.",
+      extractedAyuDesc: "इस पर्ची में पाया गया • रात को सोते समय (रसायन)",
+      confidenceBadgeAyu: "९७.८% सटीकता",
+      btnRescan: "↻ पुनः स्कैन करें या अन्य दस्तावेज़ जांचें",
+      timelineTitle: "पूर्व स्वास्थ्य रिकॉर्ड समयरेखा (Timeline)",
+      timelineCount: "३ रिकॉर्ड जुड़े हुए",
+      badgePrescription: "पर्चा / दवा",
+      rec1Summary: "मेटफॉर्मिन ५०० मि.ग्रा. • एआईआईए सामान्य चिकित्सा",
+      statusParsed: "✓ दर्ज",
+      badgeLab: "लैब रिपोर्ट",
+      rec2Summary: "बायोकेमिस्ट्री जांच • खाली पेट शुगर (FBS)",
+      flagGlucose: "ग्लूकोज: १४२ mg/dL [बढ़ा हुआ]",
+      badgeDischarge: "डिस्चार्ज सारांश",
+      rec3Summary: "पंचकर्म उपचार (विरेचन विधि) • एआईआईए इंडोर",
+      statusArchived: "संग्रहीत",
+      btnBack: "पीछे",
+      btnSkip: "कोई दस्तावेज़ नहीं है",
+      btnContinue: "सारांश पर आगे बढ़ें"
+    },
+    mr: {
+      topbarTitle: "अखिल भारतीय आयुर्वेद संस्था",
+      topbarSub: "स्वतः-सेवा ओपीडी नोंदणी • नवी दिल्ली",
+      step1: "✓ १. ओळख",
+      step2: "✓ २. लक्षण तपासणी",
+      step3: "३. कागदपत्रे",
+      step4: "४. सारांश",
+      step5: "५. पुष्टी",
+      headerTag: "आभा (ABHA) हेल्थ लॉकर जोडलेले",
+      ocrReady: "एआय ओसीआर: स्कॅनसाठी सज्ज",
+      ocrProcessingPill: "एआय ओसीआर: कागदपत्र वाचले जात आहे...",
+      title: "मागील वैद्यकीय कागदपत्रे जोडा",
+      subtext: "आपल्या जुन्या औषधांच्या चिठ्ठ्या किंवा लॅब रिपोर्ट्स स्कॅन करा.",
+      scanBadge: "कियोस्क स्कॅनर",
+      actionScanTitle: "कॅमेऱ्याने स्कॅन करा",
+      actionScanSub: "कागद स्क्रीनखालील स्कॅनरवर ठेवा",
+      uploadBadge: "मोबाइल / क्लाउड",
+      actionUploadTitle: "मोबाइलवरून अपलोड करा",
+      actionUploadSub: "पीडीएफ, फोटो किंवा आभा लॉकरमधून फाइल निवडा",
+      ocrProcessingTitle: "क्लिनिकल ओसीआर द्वारे कागदपत्र तपासले जात आहे...",
+      ocrProcessingSub: "औषधांची नावे, डोस आणि लॅब व्हॅल्यूज काढली जात आहेत",
+      resultDocTitle: "ओपीडी चिठ्ठी — एआयआयए औषध विभाग",
+      resultVerifiedTag: "सत्यापित • डॉ. व्ही. शर्मा, एमडी",
+      extractedMedName: "मेटफॉर्मिन ५०० मि.ग्रॅ. (Metformin)",
+      extractedMedDesc: "या कागदपत्रात आढळले • जेवणासोबत दिवसातून दोन वेळा",
+      confidenceBadge: "९८.४% अचूकता",
+      extractedAyuName: "अश्वगंधा वटी ५०० मि.ग्रॅ.",
+      extractedAyuDesc: "या कागदपत्रात आढळले • रात्री झोपताना १ गोळी",
+      confidenceBadgeAyu: "९७.८% अचूकता",
+      btnRescan: "↻ पुन्हा स्कॅन करा किंवा दुसरे कागदपत्र तपासा",
+      timelineTitle: "मागील वैद्यकीय इतिहास (Timeline)",
+      timelineCount: "३ नोंदी जोडलेल्या",
+      badgePrescription: "औषध चिठ्ठी",
+      rec1Summary: "मेटफॉर्मिन ५०० मि.ग्रॅ. • एआयआयए ओपीडी",
+      statusParsed: "✓ नोंदवले",
+      badgeLab: "लॅब रिपोर्ट",
+      rec2Summary: "बायोकेमिस्ट्री तपासणी • उपाशीपोटी साखर (FBS)",
+      flagGlucose: "ग्लुकोज: १४२ mg/dL [वाढलेले]",
+      badgeDischarge: "डिस्चार्ज सारांश",
+      rec3Summary: "पंचकर्म उपचार (विरेचन पद्धती) • एआयआयए",
+      statusArchived: "जतन केलेले",
+      btnBack: "मागे",
+      btnSkip: "कागदपत्रे नाहीत",
+      btnContinue: "सारांशावर पुढे जा"
+    }
+  };
+
+  let currentLang = 'en';
+
+  function setLanguage(lang) {
+    if (!i18n[lang]) return;
+    try { localStorage.setItem('medikiosk_lang', lang); } catch(e){}
+    currentLang = lang;
+    document.documentElement.lang = lang;
+
+    // Toggle chip active state
+    document.querySelectorAll('.lang-chip').forEach(chip => {
+      const isMatch = chip.getAttribute('data-lang') === lang;
+      chip.classList.toggle('active', isMatch);
+      chip.setAttribute('aria-checked', isMatch ? 'true' : 'false');
+    });
+
+    // Replace all data-i18n text
+    const t = i18n[lang];
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      if (t[key]) el.textContent = t[key];
+    });
+  }
+
+  document.querySelectorAll('.lang-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      setLanguage(chip.getAttribute('data-lang'));
+    });
+  });
+
+  // Action cards selection
+  const actionScan = document.getElementById('actionScan');
+  const actionUpload = document.getElementById('actionUpload');
+
+  actionScan?.addEventListener('click', () => {
+    actionScan.classList.add('action-card--selected');
+    actionUpload?.classList.remove('action-card--selected');
+    triggerMockOCR();
+  });
+
+  actionUpload?.addEventListener('click', () => {
+    actionUpload.classList.add('action-card--selected');
+    actionScan?.classList.remove('action-card--selected');
+    triggerMockOCR();
+  });
+
+  document.getElementById('btnSimulateScan')?.addEventListener('click', () => {
+    triggerMockOCR();
+  });
+
+  // Realistic Mock OCR Progress State Transition
+  function triggerMockOCR() {
+    const ocrProcessingView = document.getElementById('ocrProcessingView');
+    const ocrResultView = document.getElementById('ocrResultView');
+    const ocrPill = document.getElementById('ocrPill');
+    const ocrPillText = document.getElementById('ocrPillText');
+    const ocrCard = document.getElementById('ocrCard');
+
+    if (!ocrProcessingView || !ocrResultView) return;
+
+    // Show processing state
+    ocrResultView.style.display = 'none';
+    ocrProcessingView.classList.add('active');
+    ocrCard?.classList.add('ocr-stage-card--processing');
+
+    if (ocrPillText) {
+      ocrPillText.textContent = i18n[currentLang].ocrProcessingPill;
+    }
+
+    // After 1.4s, reveal extracted findings
+    setTimeout(() => {
+      ocrProcessingView.classList.remove('active');
+      ocrResultView.style.display = 'flex';
+      ocrCard?.classList.remove('ocr-stage-card--processing');
+      if (ocrPillText) {
+        ocrPillText.textContent = i18n[currentLang].ocrReady;
+      }
+    }, 1400);
+  }
+
+  // Sarvam TTS Replay button simulation
+  document.getElementById('audioBtn')?.addEventListener('click', () => {
+    console.log(`[Sarvam TTS Audio Hook]: Playing document instructions in ${currentLang}`);
+    const pill = document.getElementById('ocrPillText');
+    if (pill) {
+      const orig = pill.textContent;
+      pill.textContent = "🔊 Audio Guidance Playing...";
+      setTimeout(() => { pill.textContent = orig; }, 2200);
+    }
+  });
+
+  const savedLang = (function(){ try { return localStorage.getItem('medikiosk_lang'); } catch(e){ return null; } })() || 'en';
+  setLanguage(savedLang);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1280, initial-scale=1" />
+  <title>MediKiosk EMR — Doctor Clinical Dashboard</title>
+
+  <!-- Google Fonts: Baloo 2 & Noto Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="../styles/tokens.css" />
+
+  <style>
+    /* ── Desktop/Tablet Clinical Layout (Fixed 1280x800 Landscape, Zero Window Scroll) ── */
+    html, body {
+      width: 1280px;
+      height: 800px;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #F4EFE6; /* Subtle professional clinic tint of Kora Khadi */
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      -webkit-font-smoothing: antialiased;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .doctor-app {
+      width: 1280px;
+      height: 800px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+
+    /* Top Bar: Compact Clinical Navigation (54px) */
+    .doc-topbar {
+      flex: 0 0 54px;
+      background: #EFE8D8;
+      border-bottom: 1.5px solid var(--primitive-copper-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      box-sizing: border-box;
+      box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);
+    }
+
+    .doc-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .doc-brand__logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #D49E34, #BE8722);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFFFFF;
+      box-shadow: 0 2px 6px rgba(200, 146, 42, 0.35);
+    }
+
+    .doc-brand__title {
+      font-family: var(--font-display);
+      font-size: 19px;
+      font-weight: 700;
+      color: var(--primitive-haritaki-deep);
+      line-height: 1.1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .doc-brand__badge {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      border-radius: var(--radius-pill);
+      background: #FAF1DF;
+      border: 1px solid #DEC99B;
+      color: var(--primitive-haritaki-deep);
+    }
+
+    .doc-station-info {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--primitive-teak-muted);
+    }
+
+    .station-pill {
+      background: #FFFFFF;
+      border: 1px solid var(--primitive-copper-border);
+      border-radius: var(--radius-pill);
+      padding: 4px 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 1px 3px rgba(44, 37, 32, 0.04);
+    }
+
+    .station-pulse {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--primitive-herbal-green);
+    }
+
+    /* Two-Pane Workspace Layout (746px tall = 800 - 54) */
+    .doc-workspace {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 380px 900px;
+      height: calc(800px - 54px);
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+
+    /* ── LEFT PANE: OPD QUEUE LIST (380px, Scannable in <2s) ── */
+    .queue-pane {
+      background: #F9F6EE;
+      border-right: 1.5px solid var(--primitive-copper-border);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+
+    .queue-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--primitive-copper-border);
+      background: #F3ECE0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .queue-title {
+      font-family: var(--font-display);
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--primitive-teak-grey);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .queue-count-pill {
+      background: #EDE4D2;
+      border: 1px solid #D8CBB3;
+      padding: 2px 8px;
+      border-radius: var(--radius-pill);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--primitive-haritaki-deep);
+    }
+
+    .queue-filter-row {
+      display: flex;
+      gap: 6px;
+      padding: 8px 16px;
+      background: #FAF8F2;
+      border-bottom: 1px solid #EBE2D2;
+    }
+
+    .queue-filter-chip {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 12px;
+      border: 1px solid #E4DAC6;
+      background: #FFFFFF;
+      color: var(--primitive-teak-muted);
+      cursor: pointer;
+    }
+
+    .queue-filter-chip.active {
+      background: #FAF1DF;
+      border-color: #DEC99B;
+      color: var(--primitive-haritaki-deep);
+      font-weight: 700;
+    }
+
+    .queue-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      box-sizing: border-box;
+    }
+
+    /* Queue Row Card (Dense Clay Card) */
+    .queue-row {
+      border-radius: 16px;
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      position: relative;
+    }
+
+    .queue-row.unselected {
+      background: #FCFAF6;
+      border: 1.5px solid #EBE2D2;
+      box-shadow: 0 2px 6px rgba(44, 37, 32, 0.04);
+    }
+
+    .queue-row.unselected:hover {
+      border-color: #DEC99B;
+      background: #FFFFFF;
+      transform: translateY(-1px);
+    }
+
+    .queue-row.selected {
+      background: #F8EED9 !important;
+      border: 2px solid #C8922A !important;
+      box-shadow: 0 4px 12px rgba(200, 146, 42, 0.15), inset 2px 2px 4px rgba(255, 255, 255, 0.8) !important;
+    }
+
+    .queue-row__top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .queue-token-tag {
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 8px;
+      background: #FAF1DF;
+      border: 1px solid #DEC99B;
+      color: var(--primitive-haritaki-deep);
+    }
+
+    .queue-patient-name {
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--primitive-teak-grey);
+    }
+
+    .queue-status-badge {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      border-radius: 8px;
+    }
+
+    .status-ready {
+      background: rgba(46, 107, 57, 0.12);
+      border: 1px solid rgba(46, 107, 57, 0.25);
+      color: var(--primitive-herbal-green);
+    }
+
+    .status-consult {
+      background: rgba(200, 146, 42, 0.15);
+      border: 1px solid rgba(200, 146, 42, 0.3);
+      color: var(--primitive-haritaki-deep);
+    }
+
+    .status-waiting {
+      background: rgba(140, 125, 107, 0.12);
+      border: 1px solid rgba(140, 125, 107, 0.25);
+      color: var(--primitive-copper-patina);
+    }
+
+    .queue-complaint {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--primitive-teak-grey);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .queue-meta-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--primitive-teak-muted);
+    }
+
+    .queue-red-flag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--primitive-manjistha-red);
+      background: #FDEDEB;
+      border: 1px solid rgba(181, 64, 46, 0.3);
+      padding: 1px 6px;
+      border-radius: 6px;
+    }
+
+    /* ── RIGHT PANE: CLINICAL CASE SHEET & 90-SEC SCAN ── */
+    .detail-pane {
+      background: #FAF8F2;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+
+    /* Patient Header Banner (52px) */
+    .patient-banner {
+      flex: 0 0 52px;
+      background: #FCFAF6;
+      border-bottom: 1.5px solid var(--primitive-copper-border);
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-sizing: border-box;
+    }
+
+    .banner-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .banner-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #FAF1DF;
+      border: 1.5px solid #DEC99B;
+      color: var(--primitive-haritaki-deep);
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .banner-demographics {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+    }
+
+    .banner-name {
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--primitive-teak-grey);
+    }
+
+    .banner-meta {
+      font-size: 13px;
+      color: var(--primitive-teak-muted);
+      font-weight: 600;
+    }
+
+    .banner-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .kiosk-intake-stamp {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--primitive-herbal-green);
+      background: #F4FBF6;
+      border: 1px solid rgba(46, 107, 57, 0.25);
+      padding: 3px 10px;
+      border-radius: var(--radius-pill);
+    }
+
+    /* Case Sheet Content Body: Scrollable, Structured, Clean (calc(100% - 52px - 62px) = 632px) */
+    .casesheet-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-sizing: border-box;
+    }
+
+    /* ── CONTRADICTION / DISCREPANCY CALLOUT BOX (Requirement 3) ── */
+    .conflict-callout {
+      border-radius: 18px;
+      background: #FDF4F2;
+      border: 2px solid var(--primitive-manjistha-red);
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      box-shadow: 0 4px 14px rgba(181, 64, 46, 0.10);
+    }
+
+    .conflict-left {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .conflict-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--primitive-manjistha-red);
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .conflict-text-group {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .conflict-tag {
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--primitive-manjistha-red);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .conflict-msg {
+      font-size: 13.5px;
+      color: var(--primitive-teak-grey);
+      line-height: 1.35;
+    }
+
+    .conflict-resolve-btn {
+      padding: 8px 16px;
+      border-radius: 12px;
+      background: #FFFFFF;
+      border: 1.5px solid var(--primitive-manjistha-red);
+      color: var(--primitive-manjistha-red);
+      font-family: var(--font-display);
+      font-size: 13.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      box-shadow: 0 2px 6px rgba(181, 64, 46, 0.12);
+      transition: all 0.15s ease;
+    }
+
+    .conflict-resolve-btn:hover {
+      background: var(--primitive-manjistha-red);
+      color: #FFFFFF;
+    }
+
+    /* Structured Clinical Sections 2-Column Grid */
+    .clinical-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    /* Section Card */
+    .clinical-card {
+      background: #FCFAF6;
+      border: 1.5px solid #EBE2D2;
+      border-radius: 18px;
+      padding: 12px 16px;
+      box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .card-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #EFE8DA;
+      padding-bottom: 6px;
+    }
+
+    .card-title {
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--primitive-haritaki-deep);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .card-source-pill {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--primitive-copper-patina);
+      background: #F3ECE0;
+      padding: 1px 7px;
+      border-radius: 10px;
+    }
+
+    /* Editable Field Text Area / Contenteditable Block */
+    .editable-field {
+      font-family: var(--font-body);
+      font-size: 13.5px;
+      color: var(--primitive-teak-grey);
+      line-height: 1.45;
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px dashed transparent;
+      outline: none;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+
+    .editable-field:hover, .editable-field:focus {
+      border-color: #C8922A;
+      background: #FFFFFF;
+    }
+
+    /* Key-value row inside section cards */
+    .field-row {
+      display: flex;
+      gap: 8px;
+      font-size: 13.5px;
+      margin-bottom: 4px;
+    }
+
+    .field-key {
+      font-weight: 700;
+      color: var(--primitive-teak-muted);
+      min-width: 110px;
+      flex-shrink: 0;
+    }
+
+    .field-val {
+      font-weight: 500;
+      color: var(--primitive-teak-grey);
+      flex: 1;
+    }
+
+    /* Lab Flag Badge */
+    .lab-highlight {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: rgba(181, 64, 46, 0.08);
+      border: 1px solid rgba(181, 64, 46, 0.25);
+      color: var(--primitive-manjistha-red);
+      font-weight: 700;
+      font-size: 12px;
+    }
+
+    /* Footer Action Bar (62px) */
+    .doc-actionbar {
+      flex: 0 0 62px;
+      background: #EFE8D8;
+      border-top: 1.5px solid var(--primitive-copper-border);
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-sizing: border-box;
+      box-shadow: 0 -2px 10px rgba(44, 37, 32, 0.05);
+    }
+
+    .actionbar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-action-neutral {
+      height: 40px;
+      padding: 0 16px;
+      border-radius: 12px;
+      background: #FAF6EE;
+      border: 1.5px solid #E4DAC6;
+      color: var(--primitive-teak-grey);
+      font-family: var(--font-body);
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 2px 6px rgba(44, 37, 32, 0.05);
+      transition: all 0.15s ease;
+    }
+
+    .btn-action-neutral:hover {
+      background: #FFFFFF;
+      border-color: #C8922A;
+    }
+
+    .actionbar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-approve-primary {
+      height: 44px;
+      padding: 0 24px;
+      border-radius: 14px;
+      background: linear-gradient(145deg, #D49E34, #BE8722);
+      border: none;
+      color: #FFFFFF;
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 14px rgba(200, 146, 42, 0.35);
+      transition: all 0.15s ease;
+    }
+
+    .btn-approve-primary:hover {
+      background: linear-gradient(145deg, #DFAB3E, #C8922A);
+      transform: translateY(-1px);
+    }
+
+    /* Approval Toast Banner */
+    .approval-toast {
+      display: none;
+      position: absolute;
+      bottom: 74px;
+      right: 24px;
+      padding: 12px 20px;
+      border-radius: 14px;
+      background: #2E6B39;
+      color: #FFFFFF;
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 700;
+      box-shadow: 0 6px 20px rgba(46, 107, 57, 0.4);
+      align-items: center;
+      gap: 10px;
+      z-index: 200;
+    }
+  </style>
+</head>
+<body>
+
+<div class="doctor-app" role="region" aria-label="AIIA MediKiosk EMR Clinical Workspace">
+
+  <!-- TOP BAR: Clinical Header (54px) -->
+  <header class="doc-topbar">
+    <div class="doc-brand">
+      <div class="doc-brand__logo">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
+        </svg>
+      </div>
+      <div class="doc-brand__title">
+        <span>AIIA Clinical Desk</span>
+        <span class="doc-brand__badge">Kayachikitsa OPD • Room 104</span>
+      </div>
+    </div>
+
+    <div class="doc-station-info">
+      <div class="station-pill">
+        <span class="station-pulse"></span>
+        <span>Dr. V. K. Deshmukh (MD Ayu)</span>
+      </div>
+      <div class="station-pill">
+        <span>Queue: <strong>3 Waiting</strong></span>
+      </div>
+      <div class="station-pill">
+        <span>Kiosk Sync: <strong>Live</strong></span>
+      </div>
+    </div>
+  </header>
+
+  <!-- TWO-PANE WORKSPACE (746px) -->
+  <main class="doc-workspace">
+
+    <!-- LEFT PANE: QUEUE LIST (380px) -->
+    <aside class="queue-pane" aria-label="Patient OPD Queue">
+      <div class="queue-header">
+        <div class="queue-title">
+          <span>Patient Intake Queue</span>
+          <span class="queue-count-pill" id="queueCountBadge">3 Active</span>
+        </div>
+        <span style="font-size: 12px; color: var(--primitive-teak-muted);">Scan speed: ~90s</span>
+      </div>
+
+      <!-- Quick Filter Row -->
+      <div class="queue-filter-row">
+        <button class="queue-filter-chip active">All (3)</button>
+        <button class="queue-filter-chip">Red Flag (1)</button>
+        <button class="queue-filter-chip">Kayachikitsa</button>
+      </div>
+
+      <!-- Queue Cards (Scannable in <2s) -->
+      <div class="queue-list" id="queueList">
+
+        <!-- Row 1: Ramesh Sharma (CURRENTLY OPEN) -->
+        <article class="queue-row selected" data-patient="ramesh" tabindex="0" role="button" aria-selected="true">
+          <div class="queue-row__top">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="queue-token-tag">A-24</span>
+              <span class="queue-patient-name">Ramesh Sharma</span>
+            </div>
+            <span class="queue-status-badge status-consult">In Consult</span>
+          </div>
+          <div class="queue-complaint">
+            Chest discomfort — pressure &amp; tightness (2 days)
+          </div>
+          <div class="queue-meta-row">
+            <span>54M • ABHA Linked • Metformin + Ashwagandha</span>
+            <span class="queue-red-flag">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z"/></svg>
+              <span>FBS 142</span>
+            </span>
+          </div>
+        </article>
+
+        <!-- Row 2: Sunita Verma (Waiting) -->
+        <article class="queue-row unselected" data-patient="sunita" tabindex="0" role="button" aria-selected="false">
+          <div class="queue-row__top">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="queue-token-tag">A-25</span>
+              <span class="queue-patient-name">Sunita Verma</span>
+            </div>
+            <span class="queue-status-badge status-ready">Ready</span>
+          </div>
+          <div class="queue-complaint">
+            Sandhivata — bilateral knee pain &amp; stiffness in mornings
+          </div>
+          <div class="queue-meta-row">
+            <span>61F • Kiosk Complete • Agni: Vishamagni</span>
+            <span style="color: var(--primitive-herbal-green); font-weight: 600;">✓ Verified</span>
+          </div>
+        </article>
+
+        <!-- Row 3: Anand Kulkarni (Waiting) -->
+        <article class="queue-row unselected" data-patient="anand" tabindex="0" role="button" aria-selected="false">
+          <div class="queue-row__top">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="queue-token-tag">A-26</span>
+              <span class="queue-patient-name">Anand Kulkarni</span>
+            </div>
+            <span class="queue-status-badge status-waiting">Waiting</span>
+          </div>
+          <div class="queue-complaint">
+            Amlapitta — retrosternal burning after spicy meals
+          </div>
+          <div class="queue-meta-row">
+            <span>38M • ABHA Locker Connected • Agni: Tikshnagni</span>
+            <span>OCR 1 Rx</span>
+          </div>
+        </article>
+
+      </div>
+    </aside>
+
+    <!-- RIGHT PANE: STRUCTURED CLINICAL CASE SHEET (900px) -->
+    <section class="detail-pane" aria-label="Structured Patient Case Sheet">
+
+      <!-- Patient Banner -->
+      <div class="patient-banner">
+        <div class="banner-left">
+          <div class="banner-avatar" id="activeAvatar">RS</div>
+          <div class="banner-demographics">
+            <span class="banner-name" id="activeName">Ramesh Sharma</span>
+            <span class="banner-meta" id="activeMeta">54 Yrs / Male • ABHA ID: 91-4820-1923-4410 • Mobile: +91 98*** **410</span>
+          </div>
+        </div>
+        <div class="banner-right">
+          <span class="kiosk-intake-stamp">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+            <span>Kiosk Self-Intake Verified</span>
+          </span>
+          <span style="font-size: 13px; font-weight: 700; color: var(--primitive-haritaki-deep);">OPD Token #A-24</span>
+        </div>
+      </div>
+
+      <!-- Case Sheet Body (Scrollable, Densely Packed for 90-sec Doctor Review) -->
+      <div class="casesheet-body">
+
+        <!-- REQUIREMENT 3: MEDICATION DISCREPANCY CONTRADICTION FLAG -->
+        <div class="conflict-callout" id="conflictBanner">
+          <div class="conflict-left">
+            <div class="conflict-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+              </svg>
+            </div>
+            <div class="conflict-text-group">
+              <div class="conflict-tag">
+                <span>Information Conflict — Please Verify Dosing</span>
+              </div>
+              <div class="conflict-msg" id="conflictDesc">
+                <strong>Metformin 500mg:</strong> Patient stated <em>"twice daily with meals"</em> during voice intake, but OCR prescription scan (Dr. P. Roy, 12 Jan 2024) indicates <em>"OD (once daily at dinner)"</em>.
+              </div>
+            </div>
+          </div>
+          <button class="conflict-resolve-btn" id="btnResolveConflict" type="button" title="Confirm patient's current dosage">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+            <span>Resolve as Twice Daily (BD)</span>
+          </button>
+        </div>
+
+        <!-- 2-COLUMN STRUCTURED CASE SHEET -->
+        <div class="clinical-grid">
+
+          <!-- 1. Chief Complaint & HPI (Screen 2 & 2a Data) -->
+          <div class="clinical-card">
+            <div class="card-title-row">
+              <span class="card-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                <span>1. Chief Complaint &amp; HPI</span>
+              </span>
+              <span class="card-source-pill">Kiosk Screen 2</span>
+            </div>
+            <div class="field-row">
+              <span class="field-key">Complaint:</span>
+              <span class="field-val editable-field" contenteditable="true">Discomfort and tight heaviness in central chest for 2 days</span>
+            </div>
+            <div class="field-row">
+              <span class="field-key">Character:</span>
+              <span class="field-val editable-field" contenteditable="true">Heavy pressure like sitting weight; non-radiating; no diaphoresis</span>
+            </div>
+            <div class="field-row">
+              <span class="field-key">Aggravating:</span>
+              <span class="field-val editable-field" contenteditable="true">Worse after heavy dinners and climbing stairs; relieved by sitting rest</span>
+            </div>
+          </div>
+
+          <!-- 2. Ayurvedic Pariksha / Dashavidha (Screen 2b Agni Data) -->
+          <div class="clinical-card">
+            <div class="card-title-row">
+              <span class="card-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22l1-2.3A4.49 4.49 0 0 0 8 20C19 20 22 3 22 3c-1 2-8 2.25-13 3.25S2 11.5 2 13.5s1.75 3.75 1.75 3.75C7 8 17 8 17 8z"/></svg>
+                <span>2. AYUSH Dashavidha Pariksha</span>
+              </span>
+              <span class="card-source-pill">Kiosk Screen 2b</span>
+            </div>
+            <div class="field-row">
+              <span class="field-key">Agni (Digestion):</span>
+              <span class="field-val editable-field" contenteditable="true"><strong>मन्दाग्नि (Mandagni)</strong> — slow gastric emptying, heavy abdomen post-prandial</span>
+            </div>
+            <div class="field-row">
+              <span class="field-key">Koshtha (Bowel):</span>
+              <span class="field-val editable-field" contenteditable="true">Madhyama Koshtha; irregular bowel movements, mild constipation</span>
+            </div>
+            <div class="field-row">
+              <span class="field-key">Dosha Tendency:</span>
+              <span class="field-val editable-field" contenteditable="true">Kapha-Vata dominant presentation; Ama accumulation suspected</span>
+            </div>
+          </div>
+
+          <!-- 3. Current Medications & Allergies (Screen 3 OCR Data) -->
+          <div class="clinical-card">
+            <div class="card-title-row">
+              <span class="card-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M4.5 10.5C3.67 10.5 3 11.17 3 12s.67 1.5 1.5 1.5h15c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5h-15zM6 6h12v2H6V6zm2 10h8v2H8v-2z"/></svg>
+                <span>3. Drug History &amp; Allergies</span>
+              </span>
+              <span class="card-source-pill">Screen 3 OCR</span>
+            </div>
+            <div class="field-row">
+              <span class="field-key">Allopathic Rx:</span>
+              <span class="field-val editable-field" contenteditable="true" id="allopathicMedsField">Tab Metformin 500mg — BD (with meals, under verification)</span>
+            </div>
+            <div class="field-row">
+              <span class="field-key">Ayurvedic Rx:</span>
+              <span class="field-val editable-field" contenteditable="true">Ashwagandha Churna 3g (1 tsp) with warm milk at bedtime</span>
+            </div>
+            <div class="field-row">
+              <span class="field-key">Drug Allergies:</span>
+              <span class="field-val editable-field" contenteditable="true" style="color: var(--primitive-herbal-green); font-weight: 700;">NKDA (No Known Drug Allergies)</span>
+            </div>
+          </div>
+
+          <!-- 4. Prior Investigations & Labs (Screen 3 Elevated Glucose Flag) -->
+          <div class="clinical-card">
+            <div class="card-title-row">
+              <span class="card-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+                <span>4. Prior Investigations &amp; Labs</span>
+              </span>
+              <span class="card-source-pill">ABHA Health Locker</span>
+            </div>
+            <div class="field-row">
+              <span class="field-key">FBS Glucose:</span>
+              <span class="field-val editable-field" contenteditable="true">
+                <strong>142 mg/dL</strong> (05 Aug 2024, SRL Diagnostics)
+                <span class="lab-highlight">▲ Elevated Flag</span>
+              </span>
+            </div>
+            <div class="field-row">
+              <span class="field-key">Lipid Profile:</span>
+              <span class="field-val editable-field" contenteditable="true">Total Chol: 218 mg/dL • Triglycerides: 184 mg/dL (Borderline High)</span>
+            </div>
+            <div class="field-row">
+              <span class="field-key">ECG (Prior):</span>
+              <span class="field-val editable-field" contenteditable="true">Normal Sinus Rhythm, HR 76 bpm (18 Nov 2023)</span>
+            </div>
+          </div>
+
+          <!-- 5. Past Medical / Surgical & Family History -->
+          <div class="clinical-card">
+            <div class="card-title-row">
+              <span class="card-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                <span>5. Past Medical &amp; Family History</span>
+              </span>
+              <span class="card-source-pill">Structured EMR</span>
+            </div>
+            <div class="field-row">
+              <span class="field-key">Past Medical:</span>
+              <span class="field-val editable-field" contenteditable="true">Type 2 Diabetes Mellitus (diagnosed 3 yrs ago); mild hypertension</span>
+            </div>
+            <div class="field-row">
+              <span class="field-key">Surgical:</span>
+              <span class="field-val editable-field" contenteditable="true">Appendectomy in 2008; no recent surgical history</span>
+            </div>
+            <div class="field-row">
+              <span class="field-key">Family History:</span>
+              <span class="field-val editable-field" contenteditable="true">Father had CAD at age 62; Mother was diabetic</span>
+            </div>
+          </div>
+
+          <!-- 6. Review of Systems (ROS) & Personal Lifestyle -->
+          <div class="clinical-card">
+            <div class="card-title-row">
+              <span class="card-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                <span>6. ROS &amp; Personal Lifestyle</span>
+              </span>
+              <span class="card-source-pill">Kiosk Voice Intake</span>
+            </div>
+            <div class="field-row">
+              <span class="field-key">Cardio-Resp:</span>
+              <span class="field-val editable-field" contenteditable="true">No paroxysmal nocturnal dyspnea; mild exertional breathlessness</span>
+            </div>
+            <div class="field-row">
+              <span class="field-key">GI &amp; Metabolic:</span>
+              <span class="field-val editable-field" contenteditable="true">Occasional sour eructations; appetite reduced in morning hours</span>
+            </div>
+            <div class="field-row">
+              <span class="field-key">Diet / Vihara:</span>
+              <span class="field-val editable-field" contenteditable="true">Sedentary desk job (accountant); vegetarian; non-smoker; tea 3x/day</span>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- FOOTER ACTION BAR: Doctor Review Decision (62px) -->
+      <footer class="doc-actionbar">
+        <div class="actionbar-left">
+          <button class="btn-action-neutral" id="btnRequestECG" type="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+            <span>Order Stat ECG (Room 102)</span>
+          </button>
+          <button class="btn-action-neutral" id="btnEditCase" type="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+            <span>Add Doctor Clinical Notes</span>
+          </button>
+        </div>
+
+        <div class="actionbar-right">
+          <span style="font-size: 13px; color: var(--primitive-teak-muted); font-weight: 600;">
+            Review status: <strong style="color: var(--primitive-haritaki-deep);">Pending Clinician Sign-off</strong>
+          </span>
+          <!-- Primary Doctor Approval Action -->
+          <button class="btn-approve-primary" id="btnApproveCase" type="button">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>
+            </svg>
+            <span>Verify &amp; Approve Intake File</span>
+          </button>
+        </div>
+      </footer>
+
+    </section>
+
+  </main>
+
+  <!-- Approval Toast Feedback -->
+  <div class="approval-toast" id="approvalToast">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+    <span>Case File Approved &amp; Locked • Proceeding to Physical Examination</span>
+  </div>
+
+</div>
+
+<!-- SCRIPT: Doctor Dashboard Interactions & Queue Switching -->
+<script>
+  // 1. Resolve Discrepancy Contradiction Flag (Requirement 3)
+  const btnResolveConflict = document.getElementById('btnResolveConflict');
+  const conflictBanner = document.getElementById('conflictBanner');
+  const allopathicMedsField = document.getElementById('allopathicMedsField');
+
+  btnResolveConflict?.addEventListener('click', () => {
+    // Update banner to resolved state
+    conflictBanner.style.background = "#F4FBF6";
+    conflictBanner.style.borderColor = "#2E6B39";
+    conflictBanner.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 10px; color: #2E6B39; font-weight: 700;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+        <span>Contradiction Resolved by Clinician: Metformin 500mg verified as BD (Twice Daily) with meals.</span>
+      </div>
+    `;
+    if (allopathicMedsField) {
+      allopathicMedsField.innerHTML = "Tab Metformin 500mg — BD (Twice daily with meals) • <span style='color: #2E6B39; font-weight: 700;'>✓ Clinician Verified</span>";
+    }
+    console.log("[Doctor Dashboard]: Medication contradiction resolved to BD dosing.");
+  });
+
+  // 2. Queue Selection Switching
+  const queueRows = document.querySelectorAll('.queue-row');
+  queueRows.forEach(row => {
+    row.addEventListener('click', () => {
+      queueRows.forEach(r => {
+        r.classList.remove('selected');
+        r.classList.add('unselected');
+        r.setAttribute('aria-selected', 'false');
+      });
+      row.classList.remove('unselected');
+      row.classList.add('selected');
+      row.setAttribute('aria-selected', 'true');
+
+      const patientKey = row.getAttribute('data-patient');
+      console.log(`[Doctor Dashboard]: Switched active patient to ${patientKey}`);
+    });
+  });
+
+  // 3. Verify & Approve Primary Action (Requirement 2)
+  const btnApproveCase = document.getElementById('btnApproveCase');
+  const approvalToast = document.getElementById('approvalToast');
+
+  btnApproveCase?.addEventListener('click', () => {
+    btnApproveCase.style.background = "linear-gradient(145deg, #2E6B39, #23542C)";
+    btnApproveCase.innerHTML = `
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+      <span>Case File Approved</span>
+    `;
+    
+    // Show toast
+    approvalToast.style.display = 'flex';
+    setTimeout(() => {
+      approvalToast.style.display = 'none';
+    }, 4000);
+  });
+
+  // 4. Quick Action Button hooks
+  document.getElementById('btnRequestECG')?.addEventListener('click', () => {
+    alert("Stat 12-Lead ECG ordered for Ramesh Sharma. Alert dispatched to Nursing Station (Room 102).");
+  });
+
+  document.getElementById('btnEditCase')?.addEventListener('click', () => {
+    const hpiField = document.querySelector('.editable-field');
+    if (hpiField) {
+      hpiField.focus();
+    }
+  });
+</script>
+
+</body>
+</html>

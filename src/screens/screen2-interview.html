@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -456,6 +456,13 @@
     <div class="step-counter" data-i18n="stepCounter">
       Step 2 of 5
     </div>
+
+    <button class="btn-primary" onclick="window.location.href='screen2a-standard.html'" style="height: var(--touch-target-primary); min-width: 260px; padding: 0 32px; border-radius: var(--radius-btn); background: var(--color-btn-primary-bg); border: none; color: var(--color-btn-primary-text); font-family: var(--font-display); font-size: 26px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px; box-shadow: 0 2px 8px rgba(200, 138, 34, 0.30);">
+      <span data-i18n="btnStart">Start Interview</span>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M5 13h11.86l-5.43 5.43 1.42 1.42L21 12l-8.15-7.85-1.42 1.42L16.86 11H5v2z"/>
+      </svg>
+    </button>
   </footer>
 
 </div>
@@ -478,7 +485,8 @@
       comingSoon: "Ready for Screen 2 Implementation",
       comingSub: "Triage questions • Chief complaints (Vata/Pitta/Kapha triage) • Duration",
       btnBack: "Back to Consent",
-      stepCounter: "Step 2 of 5"
+      stepCounter: "Step 2 of 5",
+      btnStart: "Start Interview"
     },
     hi: {
       topbarSub: "अखिल भारतीय आयुर्वेद संस्थान",
@@ -495,7 +503,8 @@
       comingSoon: "स्क्रीन २ निर्माण के लिए तैयार",
       comingSub: "लक्षण प्रश्नोत्तरी • मुख्य समस्या (वात/पित्त/कफ ट्राइएज) • समयावधि",
       btnBack: "सहमति पर वापस",
-      stepCounter: "चरण २ / ५"
+      stepCounter: "चरण २ / ५",
+      btnStart: "बातचीत शुरू करें"
     },
     mr: {
       topbarSub: "अखिल भारतीय आयुर्वेद संस्था",
@@ -512,12 +521,14 @@
       comingSoon: "स्क्रीन २ तयार करण्यासाठी सज्ज",
       comingSub: "लक्षण प्रश्नावली • मुख्य तक्रारी (वात/पित्त/कफ ट्राइएज) • कालावधी",
       btnBack: "संमतीवर परत",
-      stepCounter: "टप्पा २ / ५"
+      stepCounter: "टप्पा २ / ५",
+      btnStart: "संवाद सुरू करा"
     }
   };
 
   function setLanguage(lang) {
     if (!i18n[lang]) return;
+    try { localStorage.setItem('medikiosk_lang', lang); } catch(e){}
     document.documentElement.lang = lang;
 
     document.querySelectorAll('.lang-chip').forEach(chip => {
@@ -539,7 +550,8 @@
     });
   });
 
-  setLanguage('en');
+  const savedLang = (function(){ try { return localStorage.getItem('medikiosk_lang'); } catch(e){ return null; } })() || 'en';
+  setLanguage(savedLang);
 </script>
 </body>
 </html>
