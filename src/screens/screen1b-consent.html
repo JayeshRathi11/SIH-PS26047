@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=800, initial-scale=1" />
+  <title>MediKiosk — Step 1b: Patient Consent</title>
+
+  <!-- Google Fonts: Baloo 2 & Noto Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="../styles/tokens.css" />
+
+  <style>
+    /* ── Step 1b Layout (Fixed 800x1280, No Scrollbar) ── */
+    html, body {
+      width: 800px;
+      height: 1280px;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: var(--color-bg);
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .kiosk-screen {
+      width: 800px;
+      height: 1280px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Top Bar (72px) */
+    .topbar {
+      flex: 0 0 var(--topbar-h);
+      background: var(--color-topbar-bg);
+      border-bottom: 1px solid var(--color-topbar-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--page-px);
+    }
+
+    .topbar__brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .topbar__logo-mark {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-sm);
+      background: var(--primitive-haritaki-gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 1px 4px rgba(44, 37, 32, 0.15);
+    }
+
+    .topbar__logo-mark svg { width: 26px; height: 26px; }
+
+    .topbar__name {
+      font-family: var(--font-display);
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--primitive-haritaki-deep);
+      line-height: 1.1;
+    }
+
+    .topbar__sub {
+      font-family: var(--font-body);
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--color-text-secondary);
+    }
+
+    .topbar__controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .audio-btn {
+      width: var(--touch-target-audio-btn);
+      height: var(--touch-target-audio-btn);
+      border-radius: 50%;
+      background: var(--color-audio-btn-bg);
+      border: 2px solid var(--color-audio-btn-border);
+      color: var(--color-audio-btn-text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background var(--transition-tap);
+    }
+
+    .audio-btn:active {
+      background: var(--color-audio-btn-active-bg);
+      color: var(--color-audio-btn-active-text);
+    }
+
+    .audio-btn svg { width: 28px; height: 28px; }
+
+    .lang-chips {
+      display: flex;
+      gap: 6px;
+    }
+
+    .lang-chip {
+      height: var(--touch-target-min);
+      min-width: 58px;
+      padding: 0 14px;
+      border: 1.5px solid var(--color-border-subtle);
+      border-radius: var(--radius-sm);
+      background: var(--color-surface);
+      color: var(--color-text-secondary);
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all var(--transition-tap);
+    }
+
+    .lang-chip.active {
+      background: var(--color-btn-primary-bg);
+      color: var(--color-btn-primary-text);
+      border-color: var(--color-btn-primary-bg);
+      box-shadow: 0 2px 6px rgba(200, 138, 34, 0.25);
+    }
+
+    /* 5-Step Bar (56px) */
+    .stepbar {
+      flex: 0 0 var(--stepbar-h);
+      background: var(--color-bg);
+      border-bottom: 1px solid var(--color-border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+    }
+
+    .step-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .step-track {
+      flex: 1;
+      height: 2px;
+      background: var(--primitive-copper-track);
+      margin: 0 8px 18px 8px;
+    }
+
+    .step-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .step-dot--active {
+      width: 22px;
+      height: 22px;
+      background: var(--primitive-haritaki-gold);
+      border: 3px solid #FFFFFF;
+      box-shadow: 0 0 0 2px var(--primitive-haritaki-gold);
+    }
+
+    .step-dot--upcoming {
+      background: #FFFFFF;
+      border: 2px solid var(--color-step-upcoming);
+    }
+
+    .step-label {
+      font-family: var(--font-body);
+      font-size: 18px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .step-label--active { color: var(--color-text-primary); font-weight: 700; }
+    .step-label--upcoming { color: var(--color-text-secondary); }
+
+    /* Content Zone (1056px, fully fits without overflow) */
+    .content-zone {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 36px var(--page-px);
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+
+    .screen-header {
+      text-align: left;
+    }
+
+    .screen-title {
+      font-family: var(--font-display);
+      font-size: 44px;
+      font-weight: 700;
+      line-height: 1.15;
+      color: var(--color-text-primary);
+      margin: 0 0 8px 0;
+    }
+
+    .screen-subtext {
+      font-family: var(--font-body);
+      font-size: 24px;
+      line-height: 1.4;
+      color: var(--color-text-secondary);
+      margin: 0;
+    }
+
+    /* Consent Card Container */
+    .consent-box {
+      background: var(--color-surface);
+      border: 2px solid var(--color-border-subtle);
+      border-radius: var(--radius-card);
+      padding: 32px 32px;
+      box-shadow: var(--shadow-card);
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      margin: auto 0;
+    }
+
+    /* Prominent Audio Trigger for Low-Literacy */
+    .consent-audio-trigger {
+      height: 68px;
+      border-radius: 34px;
+      background: rgba(200, 138, 34, 0.14);
+      border: 2px solid var(--primitive-haritaki-deep);
+      color: var(--primitive-haritaki-deep);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      font-family: var(--font-display);
+      font-size: 24px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(200, 138, 34, 0.15);
+      transition: background var(--transition-tap);
+    }
+
+    .consent-audio-trigger:active {
+      background: var(--primitive-haritaki-gold);
+      color: var(--primitive-teak-grey);
+    }
+
+    .consent-audio-trigger svg { width: 30px; height: 30px; }
+
+    /* Consent Statement (Large readable font) */
+    .consent-statement {
+      font-family: var(--font-body);
+      font-size: 24px;
+      line-height: 1.55;
+      color: var(--color-text-primary);
+      background: #FAF8F2;
+      padding: 22px 24px;
+      border-radius: var(--radius-sm);
+      border-left: 4px solid var(--primitive-haritaki-gold);
+    }
+
+    /* Trust Assurance Points */
+    .trust-points {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .trust-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 20px;
+      color: var(--color-text-secondary);
+      font-weight: 500;
+    }
+
+    .trust-item svg {
+      width: 26px;
+      height: 26px;
+      color: var(--primitive-herbal-green);
+      flex-shrink: 0;
+    }
+
+    /* Direct Consent Action Buttons */
+    .consent-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-top: 8px;
+    }
+
+    .btn-agree {
+      height: 84px;
+      border-radius: var(--radius-btn);
+      background: var(--color-btn-primary-bg);
+      border: none;
+      color: var(--color-btn-primary-text);
+      font-family: var(--font-display);
+      font-size: 28px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      box-shadow: 0 4px 14px rgba(200, 138, 34, 0.35);
+      transition: background var(--transition-tap);
+    }
+
+    .btn-agree:active {
+      background: var(--color-btn-primary-bg-pressed);
+    }
+
+    .btn-agree svg { width: 28px; height: 28px; }
+
+    .btn-decline {
+      height: 68px;
+      border-radius: var(--radius-btn);
+      background: var(--color-surface);
+      border: 2px solid var(--color-border);
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      font-size: 21px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: background var(--transition-tap);
+    }
+
+    .btn-decline:active {
+      background: #EFE9DC;
+    }
+
+    /* Action Bar (96px) */
+    .action-bar {
+      flex: 0 0 var(--actionbar-h);
+      background: var(--color-actionbar-bg);
+      border-top: 1px solid var(--color-actionbar-border);
+      box-shadow: var(--shadow-actionbar);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--page-px);
+    }
+
+    .btn-back {
+      min-width: var(--touch-target-back-btn);
+      height: var(--touch-target-back-btn);
+      border-radius: var(--radius-btn);
+      background: var(--color-surface);
+      border: 2px solid var(--color-border);
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      font-size: 20px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 24px;
+      box-shadow: 0 1px 4px rgba(44, 37, 32, 0.05);
+    }
+
+    .btn-back svg { width: 22px; height: 22px; }
+
+    .step-counter {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--primitive-teak-muted);
+    }
+  </style>
+</head>
+<body>
+<div class="kiosk-screen">
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="topbar__brand">
+      <div class="topbar__logo-mark">
+        <svg viewBox="0 0 22 22" fill="none">
+          <path d="M11 3C11 3 5 7 5 12.5C5 16.09 7.69 19 11 19C14.31 19 17 16.09 17 12.5C17 7 11 3 11 3Z" fill="#2C2520"/>
+          <path d="M11 6C11 6 7 9.5 7 13C7 15.21 8.79 17 11 17" stroke="#2C2520" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M11 6C11 6 15 9.5 15 13C15 15.21 13.21 17 11 17" stroke="#2C2520" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="11" y1="17" x2="11" y2="20" stroke="#2C2520" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="topbar__name">MediKiosk</div>
+        <div class="topbar__sub" data-i18n="topbarSub">All India Institute of Ayurveda</div>
+      </div>
+    </div>
+
+    <div class="topbar__controls">
+      <button class="audio-btn" id="audioBtn" aria-label="Replay audio" title="Listen (Sarvam TTS)">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+        </svg>
+      </button>
+
+      <div class="lang-chips" role="radiogroup" aria-label="Language selection">
+        <button class="lang-chip active" data-lang="en" role="radio" aria-checked="true">EN</button>
+        <button class="lang-chip" data-lang="hi" role="radio" aria-checked="false">हि</button>
+        <button class="lang-chip" data-lang="mr" role="radio" aria-checked="false">म</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 5-STEP BAR (Step 1 Still Active) -->
+  <nav class="stepbar" aria-label="OPD Progress">
+    <div class="step-item">
+      <div class="step-dot step-dot--active"></div>
+      <span class="step-label step-label--active" data-i18n="step1">1. Consent</span>
+    </div>
+    <div class="step-track"></div>
+
+    <div class="step-item">
+      <div class="step-dot step-dot--upcoming"></div>
+      <span class="step-label step-label--upcoming" data-i18n="step2">2. Interview</span>
+    </div>
+    <div class="step-track"></div>
+
+    <div class="step-item">
+      <div class="step-dot step-dot--upcoming"></div>
+      <span class="step-label step-label--upcoming" data-i18n="step3">3. Documents</span>
+    </div>
+    <div class="step-track"></div>
+
+    <div class="step-item">
+      <div class="step-dot step-dot--upcoming"></div>
+      <span class="step-label step-label--upcoming" data-i18n="step4">4. Summary</span>
+    </div>
+    <div class="step-track"></div>
+
+    <div class="step-item">
+      <div class="step-dot step-dot--upcoming"></div>
+      <span class="step-label step-label--upcoming" data-i18n="step5">5. Confirm</span>
+    </div>
+  </nav>
+
+  <!-- CONTENT ZONE (Consent Only — spacious, zero scroll) -->
+  <main class="content-zone">
+
+    <div class="screen-header">
+      <h1 class="screen-title" data-i18n="title">Patient Care Consent</h1>
+      <p class="screen-subtext" data-i18n="subtext">Please confirm permission to register your OPD visit today.</p>
+    </div>
+
+    <!-- Central Dedicated Consent Card -->
+    <div class="consent-box">
+
+      <!-- Big Audio Listen Trigger -->
+      <button class="consent-audio-trigger" id="listenAudioBtn" aria-label="Listen to consent explanation">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M8 5v14l11-7z"/>
+        </svg>
+        <span data-i18n="audioTrigger">Listen to Consent (Audio)</span>
+      </button>
+
+      <!-- Plain First-Person Consent Text -->
+      <div class="consent-statement" data-i18n="statement">
+        "I voluntarily permit the doctors and staff at All India Institute of Ayurveda to access my health records and record my symptoms for today's OPD consultation."
+      </div>
+
+      <!-- Trust Assurances -->
+      <div class="trust-points">
+        <div class="trust-item">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/>
+          </svg>
+          <span data-i18n="trust1">Your health details remain private and confidential</span>
+        </div>
+        <div class="trust-item">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
+          </svg>
+          <span data-i18n="trust2">Used exclusively for your doctor's appointment today</span>
+        </div>
+      </div>
+
+      <!-- Clear Large Action Buttons -->
+      <div class="consent-buttons">
+        <button class="btn-agree" onclick="window.location.href='screen2-interview.html';">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>
+          </svg>
+          <span data-i18n="btnAgree">I Agree &amp; Continue</span>
+        </button>
+
+        <button class="btn-decline" onclick="alert('OPD staff assistance notified.');">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/>
+          </svg>
+          <span data-i18n="btnDecline">Ask Staff for Help</span>
+        </button>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ACTION BAR -->
+  <footer class="action-bar">
+    <button class="btn-back" onclick="window.location.href='screen1a-identity.html'" aria-label="Go Back to Identity">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+      </svg>
+      <span data-i18n="btnBack">Back</span>
+    </button>
+
+    <div class="step-counter" data-i18n="stepCounter">
+      Step 1 of 5
+    </div>
+  </footer>
+
+</div>
+
+<!-- SCRIPT: Language Switching -->
+<script>
+  const i18n = {
+    en: {
+      topbarSub: "All India Institute of Ayurveda",
+      step1: "1. Consent",
+      step2: "2. Interview",
+      step3: "3. Documents",
+      step4: "4. Summary",
+      step5: "5. Confirm",
+      title: "Patient Care Consent",
+      subtext: "Please confirm permission to register your OPD visit today.",
+      audioTrigger: "Listen to Consent (Audio)",
+      statement: "\"I voluntarily permit the doctors and staff at All India Institute of Ayurveda to access my health records and record my symptoms for today's OPD consultation.\"",
+      trust1: "Your health details remain private and confidential",
+      trust2: "Used exclusively for your doctor's appointment today",
+      btnAgree: "I Agree & Continue",
+      btnDecline: "Ask Staff for Help",
+      btnBack: "Back",
+      stepCounter: "Step 1 of 5"
+    },
+    hi: {
+      topbarSub: "अखिल भारतीय आयुर्वेद संस्थान",
+      step1: "१. सहमति",
+      step2: "२. लक्षण चर्चा",
+      step3: "३. दस्तावेज़",
+      step4: "४. सारांश",
+      step5: "५. पुष्टि",
+      title: "रोगी उपचार सहमति",
+      subtext: "कृपया आज अपनी ओपीडी पर्ची बनाने के लिए अनुमति दें।",
+      audioTrigger: "सहमति बोलकर सुनें (ऑडियो)",
+      statement: "\"मैं स्वेच्छा से अखिल भारतीय आयुर्वेद संस्थान के चिकित्सकों को मेरे स्वास्थ्य रिकॉर्ड देखने और आज मेरे लक्षणों की जांच करने की अनुमति देता/देती हूँ।\"",
+      trust1: "आपकी स्वास्थ्य जानकारी सुरक्षित और गोपनीय रहेगी",
+      trust2: "इसका उपयोग केवल आज डॉक्टर परामर्श के लिए होगा",
+      btnAgree: "हाँ, मैं सहमत हूँ",
+      btnDecline: "कर्मचारी की सहायता लें",
+      btnBack: "पीछे",
+      stepCounter: "चरण १ / ५"
+    },
+    mr: {
+      topbarSub: "अखिल भारतीय आयुर्वेद संस्था",
+      step1: "१. संमती",
+      step2: "२. लक्षण तपासणी",
+      step3: "३. कागदपत्रे",
+      step4: "४. सारांश",
+      step5: "५. पुष्टी",
+      title: "रुग्ण उपचार संमती",
+      subtext: "कृपया आज आपली ओपीडी नोंदणी करण्यासाठी परवानगी द्या.",
+      audioTrigger: "संमती ऐका (ऑडिओ)",
+      statement: "\"मी स्वेच्छेने अखिल भारतीय आयुर्वेद संस्थेच्या डॉक्टरांना माझे आरोग्य रेकॉर्ड तपासण्याची आणि आज लक्षणांची नोंद घेण्याची परवानगी देतो/देते.\"",
+      trust1: "आपली माहिती पूर्णपणे सुरक्षित आणि गोपनीय राहील",
+      trust2: "फक्त आजच्या डॉक्टर भेटीसाठीच वापरली जाईल",
+      btnAgree: "होय, मी सहमत आहे",
+      btnDecline: "कर्मचाऱ्यांची मदत घ्या",
+      btnBack: "मागे",
+      stepCounter: "टप्पा १ / ५"
+    }
+  };
+
+  function setLanguage(lang) {
+    if (!i18n[lang]) return;
+    document.documentElement.lang = lang;
+
+    document.querySelectorAll('.lang-chip').forEach(chip => {
+      const isMatch = chip.getAttribute('data-lang') === lang;
+      chip.classList.toggle('active', isMatch);
+      chip.setAttribute('aria-checked', isMatch ? 'true' : 'false');
+    });
+
+    const t = i18n[lang];
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      if (t[key]) el.textContent = t[key];
+    });
+  }
+
+  document.querySelectorAll('.lang-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      setLanguage(chip.getAttribute('data-lang'));
+    });
+  });
+
+  setLanguage('en');
+</script>
+</body>
+</html>

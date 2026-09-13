@@ -1,0 +1,705 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=800, initial-scale=1" />
+  <title>MediKiosk — Light Shell Sanity Check (5 Steps)</title>
+
+  <!-- Google Fonts: Baloo 2 (headers/Devanagari) + Noto Sans (body) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Noto+Sans:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── Light Ayurveda Theme Tokens ── */
+    :root {
+      /* Primitives */
+      --primitive-kora-khadi:     #F7F4EB; /* Unbleached cotton / warm herbal parchment */
+      --primitive-shweta-white:   #FFFFFF; /* Elevated card surface */
+      --primitive-teak-grey:      #2C2520; /* Primary text / dark ink (13.8:1 AAA) */
+      --primitive-teak-muted:     #63574E; /* Secondary text / captions (6.5:1 AA) */
+      --primitive-haritaki-gold:  #C88A22; /* Primary action button fill */
+      --primitive-haritaki-deep:  #8F5D12; /* Deep gold for text & active indicators (5.4:1 AA) */
+      --primitive-copper-patina:  #8C7D6B; /* Muted copper accent / step rings */
+      --primitive-copper-border:  #DDD5C5; /* Subtle border on light surfaces */
+      --primitive-copper-track:   #D5CBBA; /* Step connector track */
+      --primitive-manjistha-red:  #B53826; /* Deep madder red for alerts (5.7:1 AA) */
+      --primitive-herbal-green:   #2E6B39; /* Deep herbal green */
+
+      /* Semantic Roles */
+      --color-bg:                 var(--primitive-kora-khadi);
+      --color-surface:            var(--primitive-shweta-white);
+      --color-surface-hover:      #FBF9F4;
+      --color-border:             var(--primitive-copper-patina);
+      --color-border-subtle:      var(--primitive-copper-border);
+
+      --color-text-primary:       var(--primitive-teak-grey);
+      --color-text-secondary:     var(--primitive-teak-muted);
+      --color-text-on-gold:       var(--primitive-teak-grey);
+
+      --color-btn-primary-bg:          var(--primitive-haritaki-gold);
+      --color-btn-primary-bg-pressed:  #B57A1B;
+      --color-btn-primary-text:        var(--primitive-teak-grey);
+
+      --color-btn-secondary-bg:        var(--primitive-shweta-white);
+      --color-btn-secondary-bg-hover:  #EFE9DC;
+      --color-btn-secondary-border:    var(--primitive-copper-patina);
+      --color-btn-secondary-text:      var(--primitive-teak-grey);
+
+      --color-step-active:        var(--primitive-haritaki-gold);
+      --color-step-active-dot:    var(--primitive-teak-grey);
+      --color-step-upcoming:      var(--primitive-copper-patina);
+      --color-step-track:         var(--primitive-copper-track);
+
+      --color-audio-btn-bg:       rgba(200, 138, 34, 0.12);
+      --color-audio-btn-border:   var(--primitive-haritaki-deep);
+      --color-audio-btn-text:     var(--primitive-haritaki-deep);
+      --color-audio-btn-active-bg:   var(--primitive-haritaki-gold);
+      --color-audio-btn-active-text: var(--primitive-teak-grey);
+
+      --color-topbar-bg:          #EFEBE0;
+      --color-topbar-border:      var(--primitive-copper-border);
+      --color-actionbar-bg:       #EFEBE0;
+      --color-actionbar-border:   var(--primitive-copper-border);
+
+      /* Typography */
+      --font-display: 'Baloo 2', 'Noto Sans Devanagari', sans-serif;
+      --font-body:    'Noto Sans', 'Noto Sans Devanagari', sans-serif;
+
+      /* Touch targets & layout */
+      --touch-target-min:       64px;
+      --touch-target-primary:   80px;
+      --touch-target-back-btn:  72px;
+      --touch-target-audio-btn: 72px;
+      --viewport-w:   800px;
+      --viewport-h:   1280px;
+      --topbar-h:      72px;
+      --stepbar-h:     56px;
+      --actionbar-h:   96px;
+      --page-px:       32px;
+      --radius-sm:     6px;
+      --radius-card:   10px;
+      --radius-btn:    8px;
+      --shadow-card:   0 2px 12px rgba(44, 37, 32, 0.07);
+      --shadow-actionbar: 0 -3px 14px rgba(44, 37, 32, 0.06);
+      --transition-tap: 120ms ease-out;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box; margin: 0; padding: 0;
+      -webkit-user-select: none; user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    html, body {
+      width: var(--viewport-w);
+      height: var(--viewport-h);
+      overflow: hidden;
+      background-color: var(--color-bg);
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      font-size: 22px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    .kiosk-root {
+      width: var(--viewport-w);
+      height: var(--viewport-h);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* TOP BAR */
+    .topbar {
+      flex: 0 0 var(--topbar-h);
+      background: var(--color-topbar-bg);
+      border-bottom: 1px solid var(--color-topbar-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--page-px);
+    }
+
+    .topbar__brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .topbar__logo-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: var(--radius-sm);
+      background: var(--primitive-haritaki-gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 1px 4px rgba(44, 37, 32, 0.15);
+    }
+
+    .topbar__logo-mark svg { width: 24px; height: 24px; }
+
+    .topbar__name {
+      font-family: var(--font-display);
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--primitive-haritaki-deep);
+      line-height: 1.1;
+    }
+
+    .topbar__sub {
+      font-family: var(--font-body);
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--color-text-secondary);
+    }
+
+    .topbar__controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .audio-btn {
+      width: var(--touch-target-audio-btn);
+      height: var(--touch-target-audio-btn);
+      border-radius: 50%;
+      background: var(--color-audio-btn-bg);
+      border: 2px solid var(--color-audio-btn-border);
+      color: var(--color-audio-btn-text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background var(--transition-tap), color var(--transition-tap);
+      flex-shrink: 0;
+    }
+
+    .audio-btn:active {
+      background: var(--color-audio-btn-active-bg);
+      color: var(--color-audio-btn-active-text);
+    }
+
+    .audio-btn svg { width: 28px; height: 28px; }
+
+    .lang-chips {
+      display: flex;
+      gap: 6px;
+    }
+
+    .lang-chip {
+      height: var(--touch-target-min);
+      min-width: 58px;
+      padding: 0 14px;
+      border: 1.5px solid var(--color-border-subtle);
+      border-radius: var(--radius-sm);
+      background: var(--color-surface);
+      color: var(--color-text-secondary);
+      font-family: var(--font-display);
+      font-size: 19px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all var(--transition-tap);
+    }
+
+    .lang-chip.active {
+      background: var(--color-btn-primary-bg);
+      color: var(--color-btn-primary-text);
+      border-color: var(--color-btn-primary-bg);
+      box-shadow: 0 2px 6px rgba(200, 138, 34, 0.25);
+    }
+
+    /* 5-STEP BAR */
+    .stepbar {
+      flex: 0 0 var(--stepbar-h);
+      background: var(--color-bg);
+      border-bottom: 1px solid var(--color-border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+    }
+
+    .step-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .step-track {
+      flex: 1;
+      height: 2px;
+      background: var(--color-step-track);
+      margin: 0 8px 18px 8px;
+    }
+
+    .step-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .step-dot--active {
+      width: 22px;
+      height: 22px;
+      background: var(--primitive-haritaki-gold);
+      border: 3px solid #FFFFFF;
+      box-shadow: 0 0 0 2px var(--primitive-haritaki-gold);
+    }
+
+    .step-dot--upcoming {
+      background: #FFFFFF;
+      border: 2px solid var(--color-step-upcoming);
+    }
+
+    .step-label {
+      font-family: var(--font-body);
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+    }
+
+    .step-label--active   { color: var(--color-text-primary); font-weight: 700; }
+    .step-label--upcoming { color: var(--color-text-secondary); }
+
+    /* CONTENT ZONE */
+    .content-zone {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 28px var(--page-px);
+      gap: 20px;
+      overflow: hidden;
+    }
+
+    /* Token strip for light palette */
+    .token-strip {
+      width: 100%;
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+      padding: 10px 16px;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border-subtle);
+      border-radius: var(--radius-card);
+      box-shadow: var(--shadow-card);
+    }
+
+    .swatch {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .swatch__block {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--color-border-subtle);
+    }
+
+    .swatch__name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-text-secondary);
+      text-align: center;
+      max-width: 80px;
+      line-height: 1.2;
+    }
+
+    /* Type specimen card */
+    .type-specimen {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 22px 24px;
+      background: var(--color-surface);
+      border-radius: var(--radius-card);
+      border: 1px solid var(--color-border-subtle);
+      box-shadow: var(--shadow-card);
+    }
+
+    .spec-row {
+      display: flex;
+      align-items: baseline;
+      gap: 18px;
+    }
+
+    .spec-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--color-text-secondary);
+      width: 150px;
+      flex-shrink: 0;
+      font-family: monospace;
+    }
+
+    .spec-sample {
+      color: var(--color-text-primary);
+    }
+
+    .divider {
+      width: 100%;
+      height: 1px;
+      background: var(--color-border-subtle);
+    }
+
+    /* Empty content placeholder */
+    .content-placeholder {
+      width: 100%;
+      flex: 1;
+      border: 2px dashed var(--color-border-subtle);
+      border-radius: var(--radius-card);
+      background: rgba(255, 255, 255, 0.4);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      color: var(--color-text-secondary);
+    }
+
+    .content-placeholder__label {
+      font-family: var(--font-display);
+      font-size: 34px;
+      font-weight: 700;
+      color: var(--color-text-secondary);
+      opacity: 0.6;
+    }
+
+    .content-placeholder__sub {
+      font-size: 20px;
+      color: var(--color-text-secondary);
+      opacity: 0.5;
+    }
+
+    /* ACTION BAR */
+    .action-bar {
+      flex: 0 0 var(--actionbar-h);
+      background: var(--color-actionbar-bg);
+      border-top: 1px solid var(--color-actionbar-border);
+      box-shadow: var(--shadow-actionbar);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--page-px);
+    }
+
+    .btn-back {
+      min-width: var(--touch-target-back-btn);
+      height: var(--touch-target-back-btn);
+      border-radius: var(--radius-btn);
+      background: var(--color-btn-secondary-bg);
+      border: 2px solid var(--color-btn-secondary-border);
+      color: var(--color-btn-secondary-text);
+      font-family: var(--font-body);
+      font-size: 20px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 24px;
+      box-shadow: 0 1px 4px rgba(44, 37, 32, 0.05);
+      transition: background var(--transition-tap);
+    }
+
+    .btn-back:active {
+      background: var(--color-btn-secondary-bg-hover);
+    }
+
+    .btn-back svg { width: 22px; height: 22px; }
+
+    .btn-primary {
+      height: var(--touch-target-primary);
+      min-width: 320px;
+      padding: 0 36px;
+      border-radius: var(--radius-btn);
+      background: var(--color-btn-primary-bg);
+      border: none;
+      color: var(--color-btn-primary-text);
+      font-family: var(--font-display);
+      font-size: 26px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      box-shadow: 0 2px 8px rgba(200, 138, 34, 0.30);
+      transition: background var(--transition-tap);
+    }
+
+    .btn-primary:active {
+      background: var(--color-btn-primary-bg-pressed);
+    }
+  </style>
+</head>
+<body>
+<div class="kiosk-root">
+
+  <!-- ════════════════════════════════════
+       TOP BAR
+       ════════════════════════════════════ -->
+  <header class="topbar">
+    <div class="topbar__brand">
+      <div class="topbar__logo-mark">
+        <svg viewBox="0 0 22 22" fill="none">
+          <path d="M11 3C11 3 5 7 5 12.5C5 16.09 7.69 19 11 19C14.31 19 17 16.09 17 12.5C17 7 11 3 11 3Z" fill="#2C2520"/>
+          <path d="M11 6C11 6 7 9.5 7 13C7 15.21 8.79 17 11 17" stroke="#2C2520" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M11 6C11 6 15 9.5 15 13C15 15.21 13.21 17 11 17" stroke="#2C2520" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="11" y1="17" x2="11" y2="20" stroke="#2C2520" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="topbar__name">MediKiosk</div>
+        <div class="topbar__sub" data-i18n="topbarSub">All India Institute of Ayurveda</div>
+      </div>
+    </div>
+
+    <div class="topbar__controls">
+      <!-- Audio Replay (Sarvam TTS backend) -->
+      <button class="audio-btn" id="audioBtn" aria-label="Replay Audio" title="Audio instruction (Sarvam TTS)">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+        </svg>
+      </button>
+
+      <!-- Language Toggle Chips (EN / हि / म) -->
+      <div class="lang-chips" role="radiogroup" aria-label="Language selection">
+        <button class="lang-chip active" id="chipEn" data-lang="en" role="radio" aria-checked="true">EN</button>
+        <button class="lang-chip" id="chipHi" data-lang="hi" role="radio" aria-checked="false">हि</button>
+        <button class="lang-chip" id="chipMr" data-lang="mr" role="radio" aria-checked="false">म</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ════════════════════════════════════
+       5-STEP PROGRESS BAR (Step 1 Active)
+       ════════════════════════════════════ -->
+  <nav class="stepbar" aria-label="Kiosk Progress">
+    <div class="step-item">
+      <div class="step-dot step-dot--active"></div>
+      <span class="step-label step-label--active" data-i18n="step1">1. Language</span>
+    </div>
+    <div class="step-track"></div>
+
+    <div class="step-item">
+      <div class="step-dot step-dot--upcoming"></div>
+      <span class="step-label step-label--upcoming" data-i18n="step2">2. Interview</span>
+    </div>
+    <div class="step-track"></div>
+
+    <div class="step-item">
+      <div class="step-dot step-dot--upcoming"></div>
+      <span class="step-label step-label--upcoming" data-i18n="step3">3. Documents</span>
+    </div>
+    <div class="step-track"></div>
+
+    <div class="step-item">
+      <div class="step-dot step-dot--upcoming"></div>
+      <span class="step-label step-label--upcoming" data-i18n="step4">4. Summary</span>
+    </div>
+    <div class="step-track"></div>
+
+    <div class="step-item">
+      <div class="step-dot step-dot--upcoming"></div>
+      <span class="step-label step-label--upcoming" data-i18n="step5">5. Confirm</span>
+    </div>
+  </nav>
+
+  <!-- ════════════════════════════════════
+       CONTENT ZONE
+       ════════════════════════════════════ -->
+  <main class="content-zone">
+
+    <!-- Swatches Row (6 Roles in Light Ayurveda Palette) -->
+    <div class="token-strip">
+      <div class="swatch">
+        <div class="swatch__block" style="background:#F7F4EB;"></div>
+        <div class="swatch__name">1. bg<br>#F7F4EB</div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__block" style="background:#FFFFFF; box-shadow: inset 0 0 0 1px #DDD5C5;"></div>
+        <div class="swatch__name">2. surface<br>#FFFFFF</div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__block" style="background:#C88A22;"></div>
+        <div class="swatch__name">3. primary<br>#C88A22</div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__block" style="background:#8C7D6B;"></div>
+        <div class="swatch__name">4. border<br>#8C7D6B</div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__block" style="background:#2C2520;"></div>
+        <div class="swatch__name">5. text<br>#2C2520</div>
+      </div>
+      <div class="swatch">
+        <div class="swatch__block" style="background:#B53826;"></div>
+        <div class="swatch__name">6. alert<br>#B53826</div>
+      </div>
+    </div>
+
+    <!-- Type Specimen Card -->
+    <div class="type-specimen">
+      <div class="spec-row">
+        <span class="spec-label">Baloo 2 Display</span>
+        <span class="spec-sample" id="specHeader" style="font-family:'Baloo 2',sans-serif; font-size:34px; font-weight:700; color:#8F5D12;">
+          Baloo 2 — अ आ इ ई उ ऊ ए ओ (700)
+        </span>
+      </div>
+      <div class="divider"></div>
+      <div class="spec-row">
+        <span class="spec-label">Noto Sans Body</span>
+        <span class="spec-sample" id="specBody" style="font-family:'Noto Sans','Noto Sans Devanagari',sans-serif; font-size:22px; font-weight:400; color:#2C2520;">
+          Noto Sans — आपका स्वागत है / Welcome to AIIA (400)
+        </span>
+      </div>
+      <div class="divider"></div>
+      <div class="spec-row">
+        <span class="spec-label">Screen Title</span>
+        <span class="spec-sample" id="specTitle" style="font-family:'Baloo 2',sans-serif; font-size:42px; font-weight:700; color:#2C2520; line-height:1.15;" data-i18n="titleSample">
+          Select Language • भाषा चयन
+        </span>
+      </div>
+    </div>
+
+    <!-- Empty Content Zone Placeholder -->
+    <div class="content-placeholder">
+      <svg width="46" height="46" viewBox="0 0 24 24" fill="none" opacity="0.35">
+        <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M9 12h6M12 9v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <div class="content-placeholder__label" data-i18n="placeholderLabel">Content Zone (Light Theme)</div>
+      <div class="content-placeholder__sub">1056px × 736px — screens mount here</div>
+    </div>
+
+  </main>
+
+  <!-- ════════════════════════════════════
+       ACTION BAR
+       ════════════════════════════════════ -->
+  <footer class="action-bar">
+    <button class="btn-back" aria-label="Go Back">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+      </svg>
+      <span data-i18n="btnBack">Back</span>
+    </button>
+
+    <button class="btn-primary" id="confirmBtn">
+      <span data-i18n="btnConfirm">Confirm &amp; Continue</span>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M5 13h11.86l-5.43 5.43 1.42 1.42L21 12l-8.15-7.85-1.42 1.42L16.86 11H5v2z"/>
+      </svg>
+    </button>
+  </footer>
+
+</div>
+
+<!-- ════════════════════════════════════
+     INTERACTIVE MULTILINGUAL SCRIPT
+     ════════════════════════════════════ -->
+<script>
+  const i18n = {
+    en: {
+      topbarSub: "All India Institute of Ayurveda",
+      step1: "1. Language",
+      step2: "2. Interview",
+      step3: "3. Documents",
+      step4: "4. Summary",
+      step5: "5. Confirm",
+      titleSample: "Select Language • भाषा चयन",
+      placeholderLabel: "Content Zone (Light Theme)",
+      btnBack: "Back",
+      btnConfirm: "Confirm & Continue",
+      specHeader: "Baloo 2 — अ आ इ ई उ ऊ ए ओ (700)",
+      specBody: "Noto Sans — Welcome to AIIA OPD Self-Service (400)"
+    },
+    hi: {
+      topbarSub: "अखिल भारतीय आयुर्वेद संस्थान",
+      step1: "१. भाषा चयन",
+      step2: "२. लक्षण चर्चा",
+      step3: "३. दस्तावेज़",
+      step4: "४. सारांश",
+      step5: "५. पुष्टि",
+      titleSample: "भाषा चुनें (Select Language)",
+      placeholderLabel: "सामग्री क्षेत्र (लाइट थीम)",
+      btnBack: "पीछे",
+      btnConfirm: "पुष्टि करें व आगे बढ़ें",
+      specHeader: "बालू २ — अ आ इ ई उ ऊ ए ओ (७००)",
+      specBody: "नोटो सेन्स — एआईआईए ओपीडी में आपका स्वागत है (४००)"
+    },
+    mr: {
+      topbarSub: "अखिल भारतीय आयुर्वेद संस्था",
+      step1: "१. भाषा निवड",
+      step2: "२. लक्षण तपासणी",
+      step3: "३. कागदपत्रे",
+      step4: "४. सारांश",
+      step5: "५. पुष्टी",
+      titleSample: "भाषा निवडा (Select Language)",
+      placeholderLabel: "सामग्री क्षेत्र (लाइट थीम)",
+      btnBack: "मागे",
+      btnConfirm: "पुष्टी करा व पुढे जा",
+      specHeader: "बालू २ — अ आ इ ई उ ऊ ए ओ (७००)",
+      specBody: "नोटो सेन्स — एआयआयए ओपीडीमध्ये आपले स्वागत आहे (४००)"
+    }
+  };
+
+  function setLanguage(lang) {
+    if (!i18n[lang]) return;
+    document.documentElement.lang = lang;
+
+    // A. Toggle visual chip active state
+    document.querySelectorAll('.lang-chip').forEach(chip => {
+      const isMatch = chip.getAttribute('data-lang') === lang;
+      chip.classList.toggle('active', isMatch);
+      chip.setAttribute('aria-checked', isMatch ? 'true' : 'false');
+    });
+
+    // B. Swap all data-i18n texts
+    const t = i18n[lang];
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      if (t[key]) el.textContent = t[key];
+    });
+
+    const specH = document.getElementById('specHeader');
+    const specB = document.getElementById('specBody');
+    if (specH) specH.textContent = t.specHeader;
+    if (specB) specB.textContent = t.specBody;
+
+    console.log(`[Shell Kiosk] Language switched to: ${lang}`);
+  }
+
+  document.querySelectorAll('.lang-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const lang = chip.getAttribute('data-lang');
+      if (lang) setLanguage(lang);
+    });
+  });
+
+  // Default initialize English
+  setLanguage('en');
+</script>
+</body>
+</html>

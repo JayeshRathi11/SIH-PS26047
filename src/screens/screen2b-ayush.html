@@ -1,0 +1,821 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=800, initial-scale=1" />
+  <title>MediKiosk — Screen 2b: AYUSH Clinical Intake (Dashavidha Pariksha)</title>
+
+  <!-- Google Fonts: Baloo 2 & Noto Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="../styles/tokens.css" />
+
+  <style>
+    /* ── Screen 2b Layout (Fixed 800x1280, No Scrollbar) ── */
+    html, body {
+      width: 800px;
+      height: 1280px;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: var(--color-bg);
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .kiosk-screen {
+      width: 800px;
+      height: 1280px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Top Bar (72px) */
+    .topbar {
+      flex: 0 0 var(--topbar-h);
+      background: var(--color-topbar-bg);
+      border-bottom: 1px solid var(--color-topbar-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--page-px);
+    }
+
+    .topbar__brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .topbar__logo-mark {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-sm);
+      background: var(--primitive-haritaki-gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 1px 4px rgba(44, 37, 32, 0.15);
+    }
+
+    .topbar__logo-mark svg { width: 26px; height: 26px; }
+
+    .topbar__name {
+      font-family: var(--font-display);
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--primitive-haritaki-deep);
+      line-height: 1.1;
+    }
+
+    .topbar__sub {
+      font-family: var(--font-body);
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--color-text-secondary);
+    }
+
+    .topbar__controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .lang-chips {
+      display: flex;
+      gap: 6px;
+    }
+
+    .lang-chip {
+      height: var(--touch-target-min);
+      min-width: 58px;
+      padding: 0 14px;
+      border: 1.5px solid var(--color-border-subtle);
+      border-radius: var(--radius-sm);
+      background: var(--color-surface);
+      color: var(--color-text-secondary);
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .lang-chip.active {
+      background: var(--color-btn-primary-bg);
+      color: var(--color-btn-primary-text);
+      border-color: var(--color-btn-primary-bg);
+    }
+
+    /* 5-Step Bar (Step 1 Complete, Step 2 Active) */
+    .stepbar {
+      flex: 0 0 var(--stepbar-h);
+      background: var(--color-bg);
+      border-bottom: 1px solid var(--color-border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+    }
+
+    .step-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .step-track {
+      flex: 1;
+      height: 2px;
+      background: var(--primitive-copper-track);
+      margin: 0 8px 18px 8px;
+    }
+
+    .step-track--done {
+      background: var(--primitive-haritaki-gold);
+    }
+
+    .step-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .step-dot--complete {
+      width: 20px;
+      height: 20px;
+      background: var(--primitive-haritaki-deep);
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .step-dot--complete svg { width: 14px; height: 14px; }
+
+    .step-dot--active {
+      width: 22px;
+      height: 22px;
+      background: var(--primitive-haritaki-gold);
+      border: 3px solid #FFFFFF;
+      box-shadow: 0 0 0 2px var(--primitive-haritaki-gold);
+    }
+
+    .step-dot--upcoming {
+      background: #FFFFFF;
+      border: 2px solid var(--color-step-upcoming);
+    }
+
+    .step-label {
+      font-family: var(--font-body);
+      font-size: 18px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .step-label--complete { color: var(--primitive-haritaki-deep); font-weight: 700; }
+    .step-label--active   { color: var(--color-text-primary); font-weight: 700; }
+    .step-label--upcoming { color: var(--color-text-secondary); }
+
+    /* Content Zone (1056px, fits zero scrollbar) */
+    .content-zone {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 24px var(--page-px);
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+
+    .question-header {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Distinctive AYUSH Dashavidha Pariksha Badge */
+    .ayush-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 16px;
+      border-radius: 20px;
+      background: rgba(46, 107, 57, 0.12);
+      border: 1.5px solid rgba(46, 107, 57, 0.30);
+      color: var(--primitive-herbal-green);
+      font-family: var(--font-body);
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .ayush-badge svg { width: 18px; height: 18px; }
+
+    .ai-state-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 16px;
+      font-weight: 600;
+      background: #FFFFFF;
+      border: 1.5px solid var(--color-border-subtle);
+      color: var(--primitive-teak-muted);
+    }
+
+    .ai-state-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--primitive-herbal-green);
+    }
+
+    /* Question Card with Audio Trigger */
+    .question-card {
+      background: var(--color-surface);
+      border: 2px solid var(--color-border-subtle);
+      border-radius: var(--radius-card);
+      padding: 22px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      box-shadow: var(--shadow-card);
+    }
+
+    .question-text {
+      font-family: var(--font-display);
+      font-size: 34px;
+      font-weight: 700;
+      line-height: 1.25;
+      color: var(--color-text-primary);
+      margin: 0;
+    }
+
+    .btn-repeat-audio {
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      background: rgba(200, 138, 34, 0.12);
+      border: 2px solid var(--primitive-haritaki-deep);
+      color: var(--primitive-haritaki-deep);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      cursor: pointer;
+      flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(44, 37, 32, 0.08);
+      transition: all var(--transition-tap);
+    }
+
+    .btn-repeat-audio:active {
+      background: var(--primitive-haritaki-gold);
+      color: var(--primitive-teak-grey);
+    }
+
+    .btn-repeat-audio svg { width: 28px; height: 28px; }
+
+    .btn-repeat-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    /* Dual Input Section */
+    .dual-input-container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin: auto 0;
+    }
+
+    .voice-input-card {
+      background: var(--color-surface);
+      border: 2px solid var(--primitive-haritaki-gold);
+      border-radius: var(--radius-card);
+      padding: 18px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      box-shadow: 0 4px 14px rgba(200, 138, 34, 0.14);
+      cursor: pointer;
+      transition: all var(--transition-tap);
+    }
+
+    .voice-input-card:active {
+      transform: scale(0.99);
+    }
+
+    .voice-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .voice-title {
+      font-family: var(--font-display);
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--primitive-haritaki-deep);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .voice-hint {
+      font-size: 18px;
+      color: var(--color-text-secondary);
+      font-weight: 500;
+    }
+
+    .mic-button {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: var(--primitive-haritaki-gold);
+      color: var(--primitive-teak-grey);
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 2px 10px rgba(200, 138, 34, 0.35);
+    }
+
+    .mic-button svg { width: 34px; height: 34px; }
+
+    /* Touch Options (Agni Patterns in Plain Clinical Language) */
+    .touch-options-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+
+    .option-card {
+      background: var(--color-surface);
+      border: 2.5px solid var(--color-border-subtle);
+      border-radius: var(--radius-card);
+      min-height: 120px;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      box-shadow: var(--shadow-card);
+      transition: all var(--transition-tap);
+      position: relative;
+    }
+
+    .option-card:active {
+      transform: scale(0.98);
+    }
+
+    .option-card--selected {
+      border-color: var(--primitive-haritaki-gold);
+      background: #FFFDF8;
+      box-shadow: 0 4px 14px rgba(200, 138, 34, 0.18);
+    }
+
+    .option-card__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .option-card__title {
+      font-family: var(--font-display);
+      font-size: 25px;
+      font-weight: 700;
+      line-height: 1.2;
+      color: var(--color-text-primary);
+    }
+
+    .option-card__sanskrit {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--primitive-herbal-green);
+      background: rgba(46, 107, 57, 0.10);
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+
+    .option-card__sub {
+      font-size: 17px;
+      color: var(--color-text-secondary);
+      font-weight: 500;
+      line-height: 1.35;
+    }
+
+    .option-card__check {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2px solid var(--primitive-copper-patina);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: transparent;
+      transition: all var(--transition-tap);
+    }
+
+    .option-card--selected .option-card__check {
+      background: var(--primitive-haritaki-gold);
+      border-color: var(--primitive-haritaki-gold);
+      color: var(--primitive-teak-grey);
+    }
+
+    .option-card__check svg { width: 16px; height: 16px; }
+
+    /* Action Bar (96px) */
+    .action-bar {
+      flex: 0 0 var(--actionbar-h);
+      background: var(--color-actionbar-bg);
+      border-top: 1px solid var(--color-actionbar-border);
+      box-shadow: var(--shadow-actionbar);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--page-px);
+    }
+
+    .btn-back {
+      min-width: var(--touch-target-back-btn);
+      height: var(--touch-target-back-btn);
+      border-radius: var(--radius-btn);
+      background: var(--color-surface);
+      border: 2px solid var(--color-border);
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      font-size: 20px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 24px;
+    }
+
+    .btn-back svg { width: 22px; height: 22px; }
+
+    .btn-primary {
+      height: var(--touch-target-primary);
+      min-width: 280px;
+      padding: 0 32px;
+      border-radius: var(--radius-btn);
+      background: var(--color-btn-primary-bg);
+      border: none;
+      color: var(--color-btn-primary-text);
+      font-family: var(--font-display);
+      font-size: 26px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      box-shadow: 0 2px 8px rgba(200, 138, 34, 0.30);
+    }
+  </style>
+</head>
+<body>
+<div class="kiosk-screen">
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="topbar__brand">
+      <div class="topbar__logo-mark">
+        <svg viewBox="0 0 22 22" fill="none">
+          <path d="M11 3C11 3 5 7 5 12.5C5 16.09 7.69 19 11 19C14.31 19 17 16.09 17 12.5C17 7 11 3 11 3Z" fill="#2C2520"/>
+          <path d="M11 6C11 6 7 9.5 7 13C7 15.21 8.79 17 11 17" stroke="#2C2520" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M11 6C11 6 15 9.5 15 13C15 15.21 13.21 17 11 17" stroke="#2C2520" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="11" y1="17" x2="11" y2="20" stroke="#2C2520" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="topbar__name">MediKiosk</div>
+        <div class="topbar__sub" data-i18n="topbarSub">All India Institute of Ayurveda</div>
+      </div>
+    </div>
+
+    <div class="topbar__controls">
+      <div class="lang-chips" role="radiogroup" aria-label="Language selection">
+        <button class="lang-chip active" data-lang="en" role="radio" aria-checked="true">EN</button>
+        <button class="lang-chip" data-lang="hi" role="radio" aria-checked="false">हि</button>
+        <button class="lang-chip" data-lang="mr" role="radio" aria-checked="false">म</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 5-STEP BAR (Step 2 Active) -->
+  <nav class="stepbar" aria-label="OPD Progress">
+    <div class="step-item">
+      <div class="step-dot step-dot--complete">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+      </div>
+      <span class="step-label step-label--complete" data-i18n="step1">✓ 1. Identity</span>
+    </div>
+    <div class="step-track step-track--done"></div>
+
+    <div class="step-item">
+      <div class="step-dot step-dot--active"></div>
+      <span class="step-label step-label--active" data-i18n="step2">2. Interview</span>
+    </div>
+    <div class="step-track"></div>
+
+    <div class="step-item">
+      <div class="step-dot step-dot--upcoming"></div>
+      <span class="step-label step-label--upcoming" data-i18n="step3">3. Documents</span>
+    </div>
+    <div class="step-track"></div>
+
+    <div class="step-item">
+      <div class="step-dot step-dot--upcoming"></div>
+      <span class="step-label step-label--upcoming" data-i18n="step4">4. Summary</span>
+    </div>
+    <div class="step-track"></div>
+
+    <div class="step-item">
+      <div class="step-dot step-dot--upcoming"></div>
+      <span class="step-label step-label--upcoming" data-i18n="step5">5. Confirm</span>
+    </div>
+  </nav>
+
+  <!-- CONTENT ZONE -->
+  <main class="content-zone">
+
+    <div class="question-header">
+      <div class="status-row">
+        <!-- AYUSH Examination Mode Indicator -->
+        <span class="ayush-badge" data-i18n="badgeAyush">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22l1-2.3A4.49 4.49 0 0 0 8 20C19 20 22 3 22 3c-1 2-8 2.25-13 3.25S2 11.5 2 13.5s1.75 3.75 1.75 3.75C7 8 17 8 17 8z"/>
+          </svg>
+          <span data-i18n="ayushTitle">AYUSH Assessment • दशविध परीक्षा (Agni)</span>
+        </span>
+
+        <div class="ai-state-pill" id="aiStatePill">
+          <span class="ai-state-dot"></span>
+          <span id="aiStateLabel" data-i18n="aiReady">AI: Ready for Answer</span>
+        </div>
+      </div>
+
+      <!-- Main Question with Audio Replay Button -->
+      <div class="question-card">
+        <h1 class="question-text" data-i18n="question">
+          How is your daily appetite and digestive capacity (Agni)?
+        </h1>
+
+        <button class="btn-repeat-audio" id="btnRepeatAudio" aria-label="Replay Question Audio" title="Listen (Sarvam TTS)">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+          </svg>
+          <span class="btn-repeat-label" data-i18n="replay">Replay</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- DUAL INPUT SECTION: SPEAK OR TAP -->
+    <div class="dual-input-container">
+
+      <!-- INPUT 1: VOICE ANSWER -->
+      <div class="voice-input-card" id="voiceCard" tabindex="0" role="button" aria-label="Speak your answer aloud">
+        <div class="voice-info">
+          <div class="voice-title" data-i18n="voiceTitle">
+            <span>Speak Your Answer</span>
+          </div>
+          <div class="voice-hint" id="voiceHint" data-i18n="voiceHint">
+            Speak about when you feel hungry and how your stomach feels after meals
+          </div>
+        </div>
+
+        <button class="mic-button" id="micBtn" aria-label="Toggle voice recording">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.91-3c-.49 0-.9.36-.98.85C16.52 14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15c-.08-.49-.49-.85-.98-.85-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91 5.78V20c0 .55.45 1 1 1s1-.45 1-1v-2.08c3.02-.43 5.42-2.78 5.91-5.78.1-.6-.39-1.14-1-1.14z"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- INPUT 2: TOUCH CHOICE (4 Classical Agni Types in Plain Language) -->
+      <div class="touch-options-grid" role="radiogroup" aria-label="Digestion Patterns">
+        
+        <!-- Mandagni -->
+        <div class="option-card option-card--selected" data-value="manda" tabindex="0" role="radio" aria-checked="true">
+          <div class="option-card__header">
+            <div class="option-card__title" data-i18n="opt1Title">Weak / Slow Digestion</div>
+            <span class="option-card__sanskrit">मन्दाग्नि</span>
+          </div>
+          <div class="option-card__sub" data-i18n="opt1Sub">Low hunger, food sits heavy, bloating after small meals</div>
+          <div class="option-card__check">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+          </div>
+        </div>
+
+        <!-- Tikshnagni -->
+        <div class="option-card" data-value="tikshna" tabindex="0" role="radio" aria-checked="false">
+          <div class="option-card__header">
+            <div class="option-card__title" data-i18n="opt2Title">Sharp / Excessive Hunger</div>
+            <span class="option-card__sanskrit">तीक्ष्णाग्नि</span>
+          </div>
+          <div class="option-card__sub" data-i18n="opt2Sub">Very frequent hunger, acid burning, restlessness if meal delayed</div>
+          <div class="option-card__check">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+          </div>
+        </div>
+
+        <!-- Vishamagni -->
+        <div class="option-card" data-value="vishama" tabindex="0" role="radio" aria-checked="false">
+          <div class="option-card__header">
+            <div class="option-card__title" data-i18n="opt3Title">Irregular / Variable</div>
+            <span class="option-card__sanskrit">विषमाग्नि</span>
+          </div>
+          <div class="option-card__sub" data-i18n="opt3Sub">Unpredictable appetite — hungry some days, no appetite on others</div>
+          <div class="option-card__check">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+          </div>
+        </div>
+
+        <!-- Samagni -->
+        <div class="option-card" data-value="sama" tabindex="0" role="radio" aria-checked="false">
+          <div class="option-card__header">
+            <div class="option-card__title" data-i18n="opt4Title">Balanced / Normal</div>
+            <span class="option-card__sanskrit">समाग्नि</span>
+          </div>
+          <div class="option-card__sub" data-i18n="opt4Sub">Steady hunger 2–3 times a day, smooth comfortable digestion</div>
+          <div class="option-card__check">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ACTION BAR -->
+  <footer class="action-bar">
+    <button class="btn-back" onclick="window.location.href='screen2a-standard.html'" aria-label="Go Back">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+      </svg>
+      <span data-i18n="btnBack">Back</span>
+    </button>
+
+    <div style="font-size: 19px; font-weight: 600; color: var(--primitive-teak-muted);" data-i18n="progress">
+      Dashavidha Pariksha • Question 2 of 4
+    </div>
+
+    <!-- Leads to Red-Flag Emergency Demo or Step 3 -->
+    <button class="btn-primary" onclick="window.location.href='screen2-red-flag.html'">
+      <span data-i18n="btnNext">Continue</span>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M5 13h11.86l-5.43 5.43 1.42 1.42L21 12l-8.15-7.85-1.42 1.42L16.86 11H5v2z"/>
+      </svg>
+    </button>
+  </footer>
+
+</div>
+
+<!-- SCRIPT: Language Switching & Interaction -->
+<script>
+  const i18n = {
+    en: {
+      topbarSub: "All India Institute of Ayurveda",
+      step1: "✓ 1. Identity",
+      step2: "2. Interview",
+      step3: "3. Documents",
+      step4: "4. Summary",
+      step5: "5. Confirm",
+      ayushTitle: "AYUSH Assessment • Dashavidha Pariksha (Agni)",
+      aiReady: "AI: Ready for Answer",
+      question: "How is your daily appetite and digestive capacity (Agni)?",
+      replay: "Replay",
+      voiceTitle: "Speak Your Answer",
+      voiceHint: "Speak about when you feel hungry and how your stomach feels after meals",
+      opt1Title: "Weak / Slow Digestion",
+      opt1Sub: "Low hunger, food sits heavy, bloating after small meals",
+      opt2Title: "Sharp / Excessive Hunger",
+      opt2Sub: "Very frequent hunger, acid burning, restlessness if meal delayed",
+      opt3Title: "Irregular / Variable",
+      opt3Sub: "Unpredictable appetite — hungry some days, no appetite on others",
+      opt4Title: "Balanced / Normal",
+      opt4Sub: "Steady hunger 2–3 times a day, smooth comfortable digestion",
+      btnBack: "Back",
+      progress: "Dashavidha Pariksha • Question 2 of 4",
+      btnNext: "Continue"
+    },
+    hi: {
+      topbarSub: "अखिल भारतीय आयुर्वेद संस्थान",
+      step1: "✓ १. पहचान",
+      step2: "२. लक्षण चर्चा",
+      step3: "३. दस्तावेज़",
+      step4: "४. सारांश",
+      step5: "५. पुष्टि",
+      ayushTitle: "आयुष परीक्षण • दशविध परीक्षा (अग्नि)",
+      aiReady: "एआई: उत्तर के लिए तैयार",
+      question: "आपकी दैनिक भूख और पाचन शक्ति (अग्नि) कैसी रहती है?",
+      replay: "सुनें",
+      voiceTitle: "बोलकर उत्तर दें",
+      voiceHint: "बताएं कि आपको कब भूख लगती है और भोजन के बाद पेट कैसा रहता है",
+      opt1Title: "कम / मंद पाचन शक्ति",
+      opt1Sub: "भूख कम लगती है, भोजन देर से पचता है, पेट भारी रहता है",
+      opt2Title: "तीव्र / अधिक भूख",
+      opt2Sub: "बार-बार भूख, समय पर न खाने से बेचैनी या जलन",
+      opt3Title: "अनियमित / कभी कम कभी ज्यादा",
+      opt3Sub: "भूख का कोई तय समय नहीं, कभी बहुत तेज, कभी बिल्कुल नहीं",
+      opt4Title: "संतुलित एवं नियमित",
+      opt4Sub: "दिन में २-३ बार सामान्य भूख, सहज पाचन",
+      btnBack: "पीछे",
+      progress: "दशविध परीक्षा • प्रश्न २ / ४",
+      btnNext: "आगे बढ़ें"
+    },
+    mr: {
+      topbarSub: "अखिल भारतीय आयुर्वेद संस्था",
+      step1: "✓ १. ओळख",
+      step2: "२. लक्षण तपासणी",
+      step3: "३. कागदपत्रे",
+      step4: "४. सारांश",
+      step5: "५. पुष्टी",
+      ayushTitle: "आयुष तपासणी • दशविध परीक्षा (अग्नि)",
+      aiReady: "एआय: उत्तरासाठी सज्ज",
+      question: "आपली दररोजची भूक आणि पचनक्षमता (अग्नी) कशी आहे?",
+      replay: "ऐका",
+      voiceTitle: "बोलून उत्तर द्या",
+      voiceHint: "सांगा की आपल्याला भूक कधी लागते आणि जेवणानंतर कसे वाटते",
+      opt1Title: "कमी / मंद पचन",
+      opt1Sub: "भूक मंद, थोडे खाल्ले तरी जड वाटते",
+      opt2Title: "तीव्र / खूप भूक",
+      opt2Sub: "वारंवार भूक लागणे, उशीर झाल्यास जळजळ",
+      opt3Title: "अनियमित / बदलते प्रमाण",
+      opt3Sub: "कधी खूप भूक, कधी अजिबात भूक नाही",
+      opt4Title: "संतुलित व नियमित",
+      opt4Sub: "दिवसातून २-३ वेळा वेळेवर भूक, सहज पचन",
+      btnBack: "मागे",
+      progress: "दशविध परीक्षा • प्रश्न २ / ४",
+      btnNext: "पुढे जा"
+    }
+  };
+
+  function setLanguage(lang) {
+    if (!i18n[lang]) return;
+    document.documentElement.lang = lang;
+
+    document.querySelectorAll('.lang-chip').forEach(chip => {
+      const isMatch = chip.getAttribute('data-lang') === lang;
+      chip.classList.toggle('active', isMatch);
+      chip.setAttribute('aria-checked', isMatch ? 'true' : 'false');
+    });
+
+    const t = i18n[lang];
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      if (t[key]) el.textContent = t[key];
+    });
+  }
+
+  document.querySelectorAll('.lang-chip').forEach(chip => {
+    chip.addEventListener('click', () => setLanguage(chip.getAttribute('data-lang')));
+  });
+
+  document.querySelectorAll('.option-card').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('.option-card').forEach(c => {
+        c.classList.remove('option-card--selected');
+        c.setAttribute('aria-checked', 'false');
+      });
+      card.classList.add('option-card--selected');
+      card.setAttribute('aria-checked', 'true');
+    });
+  });
+
+  setLanguage('en');
+</script>
+</body>
+</html>
