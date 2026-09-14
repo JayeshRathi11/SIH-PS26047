@@ -8,8 +8,13 @@ from app.schemas.case_summary import StructuredCaseSummary, SummarySourceRef
 class BilingualSummaryGenerateRequest(BaseModel):
     target_language_code: Optional[str] = Field(
         None,
+        min_length=2,
+        max_length=10,
         description="Target language code (e.g. 'mr', 'hi'). If omitted, falls back to interview/patient language.",
     )
+
+    model_config = ConfigDict(extra="forbid")
+
 
 
 class BilingualSectionItem(BaseModel):

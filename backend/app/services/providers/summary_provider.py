@@ -316,10 +316,39 @@ class MockCaseSummaryProvider(CaseSummaryProvider):
         return result
 
 
+from app.core.provider_errors import (
+    ProviderError,
+    ProviderConfigError,
+    ProviderAuthError,
+    ProviderNetworkError,
+    ProviderResponseError,
+    ProviderProcessingError,
+    execute_with_retry,
+    sanitize_secret,
+)
+
+
 class GeminiCaseSummaryProvider(CaseSummaryProvider):
-    def __init__(self, api_key: Optional[str] = None, model_name: str = "gemini-1.5-flash"):
-        self.api_key = api_key or settings.GEMINI_API_KEY
-        self.model_name = model_name
+    """
+    Case summary provider utilizing Google Gemini REST API.
+    Interacts via standard HTTPS REST request with structured JSON output enforcement.
+    """
+
+    BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
+
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        model_name: Optional[str] = None,
+        timeout_seconds: Optional[int] = None,
+    ):
+        self.api_key = api_key if api_key is not None else getattr(settings, "GEMINI_API_KEY", None)
+        self.model_name = (
+            model_name
+            or getattr(settings, "GEMINI_MODEL", None)
+            or getattr(settings, "GEMINI_MODEL_NAME", "gemini-2.5-flash")
+        )
+        self.timeout_seconds = timeout_seconds or getattr(settings, "GEMINI_TIMEOUT_SECONDS", 15)
 
     def generate_summary(
         self,
@@ -327,46 +356,297 @@ class GeminiCaseSummaryProvider(CaseSummaryProvider):
         language: str = "en",
     ) -> Dict[str, Any]:
         if not self.api_key:
-            # Fall back to mock if no API key is set
-            return MockCaseSummaryProvider().generate_summary(summary_input, language)
+            raise ProviderConfigError(
+                "GEMINI_API_KEY is not configured for GeminiCaseSummaryProvider.",
+                provider_name="gemini",
+            )
+
+        import requests
+        from app.schemas.case_summary import StructuredCaseSummary
+
+        prompt = (
+            "You are an expert clinical summarizer assisting an OPD doctor. "
+            "You must summarize ONLY the supplied source information into a structured case sheet.\n\n"
+            "CRITICAL SAFETY CONSTRAINTS:\n"
+            "- Do NOT diagnose the patient.\n"
+            "- Do NOT invent symptoms, medications, allergies, family history, dates, or lab values.\n"
+            "- Do NOT infer undocumented facts.\n"
+            "- Do NOT recommend treatment or prescribe medication.\n"
+            "- Do NOT resolve contradictory sources; present both source statements if conflict exists.\n"
+            "- Every populated item must include its exact source reference ('source_type', 'field_key', 'document_id', etc.) matching the input.\n"
+            "- If a section has no available data in the input, produce exactly one item with 'text': 'Not documented' and 'sources': [].\n"
+            "- Return valid JSON adhering strictly to this schema:\n"
+            "  {\n"
+            "    \"chief_complaint\": {\"items\": [{\"text\": string, \"sources\": [{\"source_type\": string, \"field_key\": string|null, \"document_id\": int|null, \"extraction_id\": int|null, \"source_page\": int|null, \"source_text\": string|null}], \"status\": string|null}]},\n"
+            "    \"history_of_present_illness\": {\"items\": [...]},\n"
+            "    \"past_medical_history\": {\"items\": [...]},\n"
+            "    \"medication_history\": {\"items\": [...]},\n"
+            "    \"allergy_history\": {\"items\": [...]},\n"
+            "    \"family_history\": {\"items\": [...]},\n"
+            "    \"personal_history\": {\"items\": [...]},\n"
+            "    \"review_of_systems\": {\"items\": [...]}\n"
+            "  }\n\n"
+            f"Language: {language}\n"
+            f"Source Data (JSON):\n{json.dumps(summary_input, indent=2)}\n"
+        )
+
+        url = f"{self.BASE_URL}/{self.model_name}:generateContent"
+        headers = {
+            "Content-Type": "application/json",
+            "x-goog-api-key": self.api_key,
+        }
+        body = {
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [{"text": prompt}],
+                }
+            ],
+            "generationConfig": {
+                "responseMimeType": "application/json",
+                "temperature": 0.0,
+            },
+        }
+
+        def _do_call():
+            try:
+                resp = requests.post(
+                    url,
+                    headers=headers,
+                    json=body,
+                    timeout=self.timeout_seconds,
+                )
+            except requests.Timeout as e:
+                raise ProviderNetworkError(
+                    f"Gemini API request timed out after {self.timeout_seconds}s.",
+                    "gemini",
+                    self.api_key,
+                ) from e
+            except requests.RequestException as e:
+                sanitized = sanitize_secret(str(e), self.api_key)
+                raise ProviderNetworkError(
+                    f"Gemini API network error: {sanitized}",
+                    "gemini",
+                    self.api_key,
+                ) from e
+
+            if resp.status_code != 200:
+                err_msg = sanitize_secret(resp.text, self.api_key)
+                try:
+                    err_json = resp.json()
+                    if "error" in err_json and "message" in err_json["error"]:
+                        err_msg = sanitize_secret(err_json["error"]["message"], self.api_key)
+                except Exception:
+                    pass
+
+                if resp.status_code in (401, 403):
+                    raise ProviderAuthError(
+                        f"Gemini API authentication failed (HTTP {resp.status_code}): {err_msg}",
+                        "gemini",
+                        self.api_key,
+                    )
+                elif resp.status_code >= 500 or resp.status_code == 429:
+                    raise ProviderProcessingError(
+                        f"Gemini API transient failure (HTTP {resp.status_code}): {err_msg}",
+                        "gemini",
+                        self.api_key,
+                    )
+                else:
+                    raise ProviderResponseError(
+                        f"Gemini API error (HTTP {resp.status_code}): {err_msg}",
+                        "gemini",
+                        self.api_key,
+                    )
+
+            try:
+                resp_data = resp.json()
+                candidates = resp_data.get("candidates", [])
+                if not candidates:
+                    raise ProviderResponseError("Gemini API returned no response candidates.", "gemini")
+                content_parts = candidates[0].get("content", {}).get("parts", [])
+                if not content_parts:
+                    raise ProviderResponseError("Gemini API candidate contained no content parts.", "gemini")
+                raw_text_content = content_parts[0].get("text", "")
+                data = json.loads(raw_text_content)
+                if not isinstance(data, dict):
+                    raise ProviderResponseError("Expected JSON object from provider response.", "gemini")
+
+                # Strict Pydantic schema validation
+                StructuredCaseSummary.model_validate(data)
+                return data
+            except (ProviderResponseError, ProviderAuthError, ProviderNetworkError, ProviderProcessingError):
+                raise
+            except Exception as e:
+                sanitized = sanitize_secret(str(e), self.api_key)
+                raise ProviderResponseError(
+                    f"Gemini Case Summary Provider response error: {sanitized}",
+                    "gemini",
+                    self.api_key,
+                ) from e
+
+        return execute_with_retry(_do_call, max_retries=2, provider_name="gemini_summary")
+
+
+class GroqCaseSummaryProvider(CaseSummaryProvider):
+    """
+    Groq LLM Case Summary Provider.
+    Used as an unassisted, controlled fallback provider when Gemini experiences transient failures.
+    """
+
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        model_name: Optional[str] = None,
+        timeout_seconds: Optional[int] = None,
+    ):
+        self.api_key = api_key or os.getenv("GROQ_API_KEY") or getattr(settings, "GROQ_API_KEY", None)
+        self.model_name = (
+            model_name
+            or os.getenv("GROQ_MODEL")
+            or getattr(settings, "GROQ_MODEL", None)
+            or getattr(settings, "GROQ_MODEL_NAME", "openai/gpt-oss-120b")
+        )
+        self.timeout_seconds = timeout_seconds or getattr(settings, "GROQ_TIMEOUT_SECONDS", 15)
+
+    def generate_summary(
+        self,
+        summary_input: Dict[str, Any],
+        language: str = "en",
+    ) -> Dict[str, Any]:
+        if not self.api_key:
+            raise ProviderConfigError("GROQ_API_KEY is not configured.", provider_name="groq")
+
+        from app.core.llm_fallback import call_groq_chat_completion
+        from app.schemas.case_summary import StructuredCaseSummary
+
+        system_prompt = (
+            "You are an expert clinical summarization engine for an outpatient medical kiosk.\n"
+            "Generate a comprehensive, structured clinical case summary adhering strictly to this JSON schema:\n"
+            "{\n"
+            '  "chief_complaint": {"display_label": "Chief Complaint", "items": [{"text": string, "sources": [{"source_type": string, "field_key": string|null}], "status": string|null}]},\n'
+            '  "history_of_present_illness": {"display_label": "History of Present Illness", "items": [{"text": string, "sources": [], "status": null}]},\n'
+            '  "past_medical_history": {"display_label": "Past Medical History", "items": [{"text": "Not documented", "sources": [], "status": null}]},\n'
+            '  "medication_history": {"display_label": "Medication History", "items": [{"text": "Not documented", "sources": [], "status": null}]},\n'
+            '  "allergy_history": {"display_label": "Allergy History", "items": [{"text": "Not documented", "sources": [], "status": null}]},\n'
+            '  "family_history": {"display_label": "Family History", "items": [{"text": "Not documented", "sources": [], "status": null}]},\n'
+            '  "personal_history": {"display_label": "Personal History", "items": [{"text": "Not documented", "sources": [], "status": null}]},\n'
+            '  "review_of_systems": {"display_label": "Review of Systems", "items": [{"text": "Not documented", "sources": [], "status": null}]}\n'
+            "}\n"
+            "CRITICAL CLINICAL RULES:\n"
+            '1. Missing information MUST have item text "Not documented".\n'
+            "2. Do NOT provide autonomous diagnoses or treatment recommendations.\n"
+            "3. Do NOT invent fabricated clinical facts."
+        )
+
+        user_prompt = (
+            f"Language: {language}\n"
+            f"Source Data (JSON):\n{json.dumps(summary_input, indent=2)}\n"
+        )
+
+        data = call_groq_chat_completion(
+            api_key=self.api_key,
+            model_name=self.model_name,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            timeout_seconds=self.timeout_seconds,
+            schema_name="StructuredCaseSummary",
+        )
+
+        if not isinstance(data, dict):
+            raise ProviderResponseError("Expected JSON object from Groq response.", "groq")
+
+        # Strict authoritative Pydantic validation
+        StructuredCaseSummary.model_validate(data)
+        return data
+
+
+class FallbackCaseSummaryProvider(CaseSummaryProvider):
+    """
+    Composite provider orchestrating primary Gemini provider with controlled Groq fallback.
+    Fallback only triggers on eligible transient availability failures when LLM_FALLBACK_ENABLED=true.
+    """
+
+    def __init__(
+        self,
+        primary: CaseSummaryProvider,
+        fallback: Optional[CaseSummaryProvider] = None,
+    ):
+        self.primary = primary
+        self.fallback = fallback
+
+    def generate_summary(
+        self,
+        summary_input: Dict[str, Any],
+        language: str = "en",
+    ) -> Dict[str, Any]:
+        from app.core.llm_fallback import is_transient_fallback_eligible, record_fallback_event
 
         try:
-            from google import genai
-            client = genai.Client(api_key=self.api_key)
-            prompt = (
-                "You are an expert clinical summarizer assisting an OPD doctor. "
-                "You must summarize ONLY the supplied source information into a structured case sheet. "
-                "CRITICAL SAFETY CONSTRAINTS:\n"
-                "- Do NOT diagnose the patient.\n"
-                "- Do NOT invent symptoms, medications, allergies, family history, dates, or lab values.\n"
-                "- Do NOT infer undocumented facts.\n"
-                "- Do NOT recommend treatment or prescribe medication.\n"
-                "- Do NOT resolve contradictory sources; present both source statements if conflict exists.\n"
-                "- Every populated item must include its exact source reference ('source_type', 'field_key', 'document_id', etc.) matching the input.\n"
-                "- If a section has no available data in the input, produce exactly one item with 'text': 'Not documented' and 'sources': [].\n"
-                "- Return valid JSON adhering to the required schema with keys: chief_complaint, history_of_present_illness, "
-                "past_medical_history, medication_history, allergy_history, family_history, personal_history, review_of_systems.\n\n"
-                f"Source Data (JSON):\n{json.dumps(summary_input, indent=2)}\n"
-            )
-            response = client.models.generate_content(
-                model=self.model_name,
-                contents=prompt,
-                config={"response_mime_type": "application/json"},
-            )
-            return json.loads(response.text)
-        except Exception as e:
-            # Re-raise or fallback safely
-            raise RuntimeError(f"Gemini Case Summary Provider failed: {str(e)}")
+            return self.primary.generate_summary(summary_input, language)
+        except Exception as primary_err:
+            fallback_enabled = getattr(settings, "LLM_FALLBACK_ENABLED", False)
+            if (
+                self.fallback is not None
+                and fallback_enabled
+                and is_transient_fallback_eligible(primary_err)
+            ):
+                record_fallback_event(
+                    operation="case_summary",
+                    primary="gemini",
+                    fallback="groq",
+                    reason=type(primary_err).__name__,
+                    status="triggered",
+                )
+                try:
+                    result = self.fallback.generate_summary(summary_input, language)
+                    record_fallback_event(
+                        operation="case_summary",
+                        primary="gemini",
+                        fallback="groq",
+                        reason=type(primary_err).__name__,
+                        status="success",
+                    )
+                    return result
+                except Exception as fallback_err:
+                    record_fallback_event(
+                        operation="case_summary",
+                        primary="gemini",
+                        fallback="groq",
+                        reason=type(fallback_err).__name__,
+                        status="failure",
+                    )
+                    raise fallback_err
+            raise primary_err
 
 
 def get_case_summary_provider() -> CaseSummaryProvider:
-    provider_name = (settings.SUMMARY_PROVIDER or "mock").lower()
-    if provider_name == "gemini" and settings.GEMINI_API_KEY:
-        return GeminiCaseSummaryProvider(
-            api_key=settings.GEMINI_API_KEY,
-            model_name=settings.GEMINI_MODEL_NAME,
+    """
+    Factory resolving case summary provider based on configuration.
+    - 'mock': MockCaseSummaryProvider (default)
+    - 'gemini': GeminiCaseSummaryProvider (with controlled Groq fallback if enabled)
+    - other: raises ProviderConfigError configuration error
+    """
+    provider_name = (getattr(settings, "SUMMARY_PROVIDER", None) or "mock").lower().strip()
+    if provider_name == "gemini":
+        api_key = getattr(settings, "GEMINI_API_KEY", None)
+        if not api_key:
+            raise ProviderConfigError(
+                "GEMINI_API_KEY must be configured when SUMMARY_PROVIDER is 'gemini'.",
+                provider_name="gemini",
+            )
+        gemini_provider = GeminiCaseSummaryProvider()
+        if getattr(settings, "LLM_FALLBACK_ENABLED", False) and getattr(settings, "GROQ_API_KEY", None):
+            groq_provider = GroqCaseSummaryProvider()
+            return FallbackCaseSummaryProvider(primary=gemini_provider, fallback=groq_provider)
+        return gemini_provider
+    elif provider_name == "mock":
+        return MockCaseSummaryProvider()
+    else:
+        raise ProviderConfigError(
+            f"Unknown summary provider: '{provider_name}'. Supported providers: 'mock', 'gemini'.",
+            provider_name=provider_name,
         )
-    return MockCaseSummaryProvider()
 
 
 case_summary_provider = get_case_summary_provider()
+

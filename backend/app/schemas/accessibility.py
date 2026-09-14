@@ -45,6 +45,9 @@ class AccessibilityProfileUpdate(BaseModel):
         description="Non-diagnostic user or staff accessibility instructions (e.g. 'Prefers audio instructions', 'Needs larger buttons')",
     )
 
+    model_config = ConfigDict(extra="forbid")
+
+
     @model_validator(mode="after")
     def validate_logical_consistency(self) -> "AccessibilityProfileUpdate":
         # Logical consistency checks between preferred_interaction_mode and input flags
@@ -76,6 +79,9 @@ class AccessibilityInteractionEventCreate(BaseModel):
         default=None,
         description="Optional minimal non-medical metadata. Strictly forbids audio blobs or speech recordings.",
     )
+
+    model_config = ConfigDict(extra="forbid")
+
 
     @model_validator(mode="after")
     def validate_privacy(self) -> "AccessibilityInteractionEventCreate":

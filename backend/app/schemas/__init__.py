@@ -7,6 +7,8 @@ from app.schemas.interview import (
     InterviewModeResponse,
     InterviewMessageCreate,
     InterviewMessageResponse,
+    InterviewMessageProcessResponse,
+    InterviewAudioProcessResponse,
 )
 from app.schemas.clinical_data import (
     ClinicalOntologyFieldResponse,
@@ -254,6 +256,8 @@ __all__ = [
     "InterviewModeResponse",
     "InterviewMessageCreate",
     "InterviewMessageResponse",
+    "InterviewMessageProcessResponse",
+    "InterviewAudioProcessResponse",
     "ClinicalOntologyFieldResponse",
     "InterviewClinicalDataResponse",
     "ClinicalDataUpdate",

@@ -39,20 +39,24 @@ class EmergencyEscalateRequest(BaseModel):
     """
     Staff-initiated manual emergency escalation.
     """
-    staff_id: str = Field(..., description="Operational staff identifier (workflow metadata).", min_length=1)
-    reason: str = Field(..., description="Operational reason for emergency escalation.", min_length=3)
+    staff_id: str = Field(..., description="Operational staff identifier (workflow metadata).", min_length=1, max_length=100)
+    reason: str = Field(..., description="Operational reason for emergency escalation.", min_length=3, max_length=2000)
     severity: Optional[EscalationSeverity] = Field(
         default=EscalationSeverity.CRITICAL,
         description="Escalation severity level.",
     )
+
+    model_config = ConfigDict(extra="forbid")
 
 
 class EmergencyAcknowledgeRequest(BaseModel):
     """
     Operational acknowledgement of an active emergency escalation.
     """
-    staff_id: str = Field(..., description="Operational staff identifier (workflow metadata).", min_length=1)
-    notes: Optional[str] = Field(None, description="Optional acknowledgement notes.")
+    staff_id: str = Field(..., description="Operational staff identifier (workflow metadata).", min_length=1, max_length=100)
+    notes: Optional[str] = Field(None, max_length=2000, description="Optional acknowledgement notes.")
+
+    model_config = ConfigDict(extra="forbid")
 
 
 class EmergencyTriageRequest(BaseModel):
@@ -60,35 +64,45 @@ class EmergencyTriageRequest(BaseModel):
     Operational triage of an acknowledged emergency escalation.
     Accepts operational triage metadata. Strictly forbids treatment recommendations.
     """
-    staff_id: str = Field(..., description="Operational staff identifier (workflow metadata).", min_length=1)
+    staff_id: str = Field(..., description="Operational staff identifier (workflow metadata).", min_length=1, max_length=100)
     triage_notes: Optional[str] = Field(
         None,
+        max_length=2000,
         description="Operational triage notes (e.g., triage category, bedside assignment).",
     )
+
+    model_config = ConfigDict(extra="forbid")
 
 
 class EmergencyResolveRequest(BaseModel):
     """
     Resolution or clinical handoff of a triaged emergency escalation.
     """
-    staff_id: str = Field(..., description="Operational staff identifier (workflow metadata).", min_length=1)
+    staff_id: str = Field(..., description="Operational staff identifier (workflow metadata).", min_length=1, max_length=100)
     resolution_reason: str = Field(
         ...,
         description="Operational reason describing workflow handling (e.g., 'Transferred to emergency care').",
         min_length=3,
+        max_length=2000,
     )
+
+    model_config = ConfigDict(extra="forbid")
 
 
 class EmergencyCancelRequest(BaseModel):
     """
     Cancellation of an emergency escalation prior to resolution.
     """
-    staff_id: str = Field(..., description="Operational staff identifier (workflow metadata).", min_length=1)
+    staff_id: str = Field(..., description="Operational staff identifier (workflow metadata).", min_length=1, max_length=100)
     cancellation_reason: str = Field(
         ...,
         description="Mandatory reason for cancelling emergency escalation.",
         min_length=3,
+        max_length=2000,
     )
+
+    model_config = ConfigDict(extra="forbid")
+
 
 
 # ---------------------------------------------------------------------------

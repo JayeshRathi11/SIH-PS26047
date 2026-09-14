@@ -12,7 +12,9 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.auth_dependencies import get_optional_current_user, require_patient_owner
 from app.core.database import get_db
+from app.models.app_user import AppUser, UserRole
 from app.repositories.interview_repository import interview_repository
 from app.repositories.medical_document_repository import medical_document_repository
 from app.repositories.medical_document_extraction_repository import (
@@ -51,6 +53,7 @@ def get_document_confidence(
     document_id: int,
     interview_id: int,
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ) -> ExtractionConfidenceResponse:
     """
     GET /api/documents/{document_id}/confidence?interview_id={interview_id}
@@ -65,6 +68,8 @@ def get_document_confidence(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Interview {interview_id} not found.",
         )
+    if current_user is not None and current_user.role == UserRole.PATIENT:
+        require_patient_owner(interview.patient_id, current_user)
     doc = medical_document_repository.get_by_interview_and_id(db, interview_id, document_id)
     if not doc:
         raise HTTPException(
@@ -109,6 +114,7 @@ def get_document_confidence(
 def get_interview_confidence(
     interview_id: int,
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ) -> InterviewConfidenceResponse:
     """
     GET /api/interviews/{interview_id}/confidence
@@ -121,6 +127,8 @@ def get_interview_confidence(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Interview {interview_id} not found.",
         )
+    if current_user is not None and current_user.role == UserRole.PATIENT:
+        require_patient_owner(interview.patient_id, current_user)
 
     docs = medical_document_repository.get_by_interview_id(db, interview_id)
     document_items = []
@@ -182,6 +190,7 @@ def get_interview_confidence(
 def get_patient_confidence(
     patient_id: int,
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ) -> PatientConfidenceResponse:
     """
     GET /api/patients/{patient_id}/confidence
@@ -194,6 +203,8 @@ def get_patient_confidence(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Patient {patient_id} not found.",
         )
+    if current_user is not None and current_user.role == UserRole.PATIENT:
+        require_patient_owner(patient_id, current_user)
 
     # Query all interviews for the patient
     from app.models.interview import Interview

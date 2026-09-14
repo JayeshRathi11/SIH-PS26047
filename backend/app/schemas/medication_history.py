@@ -122,7 +122,10 @@ class MedicationVerifyRequest(BaseModel):
         default=MedicationVerificationStatus.VERIFIED.value,
         description="VERIFIED | FLAGGED | NEEDS_VERIFICATION",
     )
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(None, max_length=1000)
+
+    model_config = ConfigDict(extra="forbid")
+
 
 
 class MedicationRebuildResponse(BaseModel):

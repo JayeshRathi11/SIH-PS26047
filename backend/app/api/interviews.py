@@ -1,12 +1,18 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Path, Query, Response, UploadFile, status
 from sqlalchemy.orm import Session
+from app.core.auth_dependencies import get_optional_current_user, require_patient_owner, require_roles
 from app.core.database import get_db
+from app.models.app_user import AppUser, UserRole
+from app.models.clinical_ontology import ClinicalDataSource, VerificationStatus
 from app.models.medical_document import DocumentType
+
 from app.schemas.interview import (
     InterviewCreate,
     InterviewMessageCreate,
     InterviewMessageResponse,
+    InterviewMessageProcessResponse,
+    InterviewAudioProcessResponse,
     InterviewModeResponse,
     InterviewModeUpdate,
     InterviewResponse,
@@ -96,26 +102,56 @@ from app.services.doctor_verification_service import (
 from app.services.bilingual_output_service import (
     bilingual_output_service,
 )
+from app.services.interview_nlp_flow_service import (
+    interview_nlp_flow_service,
+)
+from app.services.voice_nlp_flow_service import (
+    voice_nlp_flow_service,
+)
 
 
 
 router = APIRouter(prefix="/interviews", tags=["interviews"])
 
 
+def _require_interview_patient_owner(
+    db: Session, interview_id: int, current_user: AppUser | None
+) -> None:
+    if current_user is not None and current_user.role == UserRole.PATIENT:
+        interview = interview_service.get_interview(db=db, interview_id=interview_id)
+        require_patient_owner(interview.patient_id, current_user)
+
+
 @router.post("", response_model=InterviewResponse, status_code=status.HTTP_201_CREATED)
 def create_interview(
     interview_in: InterviewCreate,
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    if current_user is not None and current_user.role == UserRole.PATIENT:
+        if current_user.patient_id != interview_in.patient_id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Patient {interview_in.patient_id} not found",
+            )
     return interview_service.create_interview(db=db, interview_in=interview_in)
+
 
 
 @router.get("/{interview_id}", response_model=InterviewResponse, status_code=status.HTTP_200_OK)
 def get_interview(
-    interview_id: int,
+    interview_id: int = Path(..., gt=0),
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
-    return interview_service.get_interview(db=db, interview_id=interview_id)
+    interview = interview_service.get_interview(db=db, interview_id=interview_id)
+    if current_user is not None and current_user.role == UserRole.PATIENT:
+        if current_user.patient_id != interview.patient_id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Interview with ID {interview_id} not found.",
+            )
+    return interview
 
 
 @router.post("/{interview_id}/start", response_model=InterviewResponse, status_code=status.HTTP_200_OK)
@@ -189,6 +225,44 @@ def add_interview_message(
     return interview_service.add_message(db=db, interview_id=interview_id, message_in=message_in)
 
 
+@router.post(
+    "/{interview_id}/messages/process",
+    response_model=InterviewMessageProcessResponse,
+    status_code=status.HTTP_200_OK,
+)
+def process_interview_message(
+    interview_id: int,
+    message_in: InterviewMessageCreate,
+    db: Session = Depends(get_db),
+):
+    return interview_nlp_flow_service.process_patient_message(
+        db=db,
+        interview_id=interview_id,
+        message_in=message_in,
+    )
+
+
+@router.post(
+    "/{interview_id}/messages/audio",
+    response_model=InterviewAudioProcessResponse,
+    status_code=status.HTTP_200_OK,
+)
+def process_interview_audio(
+    interview_id: int,
+    file: UploadFile = File(...),
+    language: Optional[str] = Form(None),
+    db: Session = Depends(get_db),
+):
+    return voice_nlp_flow_service.process_patient_audio(
+        db=db,
+        interview_id=interview_id,
+        audio_file=file,
+        language_override=language,
+    )
+
+
+
+
 @router.get(
     "/{interview_id}/messages",
     response_model=List[InterviewMessageResponse],
@@ -197,7 +271,9 @@ def add_interview_message(
 def get_interview_messages(
     interview_id: int,
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    _require_interview_patient_owner(db, interview_id, current_user)
     return interview_service.get_messages(db=db, interview_id=interview_id)
 
 
@@ -209,7 +285,9 @@ def get_interview_messages(
 def get_clinical_data(
     interview_id: int,
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    _require_interview_patient_owner(db, interview_id, current_user)
     return clinical_data_service.get_clinical_history(db=db, interview_id=interview_id)
 
 
@@ -219,17 +297,37 @@ def get_clinical_data(
     status_code=status.HTTP_200_OK,
 )
 def update_clinical_data_field(
-    interview_id: int,
-    field_key: str,
-    update_in: ClinicalDataUpdate,
+    interview_id: int = Path(..., gt=0),
+    field_key: str = Path(..., min_length=1, max_length=100),
+    update_in: ClinicalDataUpdate = ...,
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    if current_user is not None and current_user.role == UserRole.PATIENT:
+        interview = interview_service.get_interview(db=db, interview_id=interview_id)
+        if current_user.patient_id != interview.patient_id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Interview with ID {interview_id} not found.",
+            )
+        # Mass-assignment protection: Patient cannot elevate verification status or claim DOCTOR source
+        if update_in.verification_status == VerificationStatus.VERIFIED:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Patients cannot set verification_status to VERIFIED.",
+            )
+        if update_in.source == ClinicalDataSource.DOCTOR:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Patients cannot set data source to DOCTOR.",
+            )
     return clinical_data_service.update_clinical_data(
         db=db,
         interview_id=interview_id,
         field_key=field_key,
         update_in=update_in,
     )
+
 
 
 @router.get(
@@ -337,7 +435,9 @@ def upload_document(
 def list_documents(
     interview_id: int,
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    _require_interview_patient_owner(db, interview_id, current_user)
     return medical_document_service.list_documents(
         db=db,
         interview_id=interview_id,
@@ -353,7 +453,9 @@ def get_document(
     interview_id: int,
     document_id: int,
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    _require_interview_patient_owner(db, interview_id, current_user)
     return medical_document_service.get_document(
         db=db,
         interview_id=interview_id,
@@ -369,7 +471,9 @@ def get_document_content(
     interview_id: int,
     document_id: int,
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    _require_interview_patient_owner(db, interview_id, current_user)
     content, content_type, filename = medical_document_service.get_document_content(
         db=db,
         interview_id=interview_id,
@@ -390,7 +494,9 @@ def delete_document(
     interview_id: int,
     document_id: int,
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    _require_interview_patient_owner(db, interview_id, current_user)
     medical_document_service.delete_document(
         db=db,
         interview_id=interview_id,
@@ -405,17 +511,24 @@ def delete_document(
     status_code=status.HTTP_200_OK,
 )
 def update_document_processing_status(
-    interview_id: int,
-    document_id: int,
-    update_in: ProcessingStatusUpdateRequest,
+    interview_id: int = Path(..., gt=0),
+    document_id: int = Path(..., gt=0),
+    update_in: ProcessingStatusUpdateRequest = ...,
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    if current_user is not None and current_user.role == UserRole.PATIENT:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Patients are not authorized to update document processing status.",
+        )
     return medical_document_service.update_processing_status(
         db=db,
         interview_id=interview_id,
         document_id=document_id,
         update_in=update_in,
     )
+
 
 
 # Medical Document Extraction Endpoints (Feature 8)
@@ -513,7 +626,9 @@ def generate_document_timeline(
 def get_interview_timeline(
     interview_id: int,
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    _require_interview_patient_owner(db, interview_id, current_user)
     return medical_timeline_service.get_interview_timeline(
         db=db,
         interview_id=interview_id,
@@ -529,7 +644,9 @@ def get_document_timeline(
     interview_id: int,
     document_id: int,
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    _require_interview_patient_owner(db, interview_id, current_user)
     return medical_timeline_service.get_document_timeline(
         db=db,
         interview_id=interview_id,
@@ -547,7 +664,9 @@ def evaluate_document_abnormal_values(
     interview_id: int,
     document_id: int,
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    _require_interview_patient_owner(db, interview_id, current_user)
     return medical_abnormal_value_service.evaluate_document_abnormal_values(
         db=db,
         interview_id=interview_id,
@@ -564,7 +683,9 @@ def get_document_abnormal_values(
     interview_id: int,
     document_id: int,
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    _require_interview_patient_owner(db, interview_id, current_user)
     return medical_abnormal_value_service.get_document_abnormal_values(
         db=db,
         interview_id=interview_id,
@@ -580,7 +701,9 @@ def get_document_abnormal_values(
 def get_interview_abnormal_values(
     interview_id: int,
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    _require_interview_patient_owner(db, interview_id, current_user)
     return medical_abnormal_value_service.get_interview_abnormal_values(
         db=db,
         interview_id=interview_id,
@@ -615,7 +738,9 @@ def generate_case_summary(
 def get_latest_case_summary(
     interview_id: int,
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    _require_interview_patient_owner(db, interview_id, current_user)
     summary = medical_case_summary_service.get_latest_case_summary(
         db=db,
         interview_id=interview_id,
@@ -636,7 +761,9 @@ def get_latest_case_summary(
 def get_case_summary_history(
     interview_id: int,
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    _require_interview_patient_owner(db, interview_id, current_user)
     interview = interview_service.get_interview(db, interview_id)
     summaries = medical_case_summary_service.get_case_summary_history(
         db=db,
@@ -659,7 +786,9 @@ def get_case_summary_by_id(
     interview_id: int,
     summary_id: int,
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    _require_interview_patient_owner(db, interview_id, current_user)
     return medical_case_summary_service.get_case_summary_by_id(
         db=db,
         interview_id=interview_id,
@@ -698,7 +827,9 @@ def get_patient_confirmation(
     interview_id: int,
     confirmation_id: int,
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    _require_interview_patient_owner(db, interview_id, current_user)
     return patient_summary_confirmation_service.get_confirmation(
         db=db,
         interview_id=interview_id,
@@ -714,7 +845,9 @@ def get_patient_confirmation(
 def get_interview_confirmations(
     interview_id: int,
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    _require_interview_patient_owner(db, interview_id, current_user)
     interview = interview_service.get_interview(db, interview_id)
     confirmations = patient_summary_confirmation_service.get_confirmations_for_interview(
         db=db,
@@ -830,7 +963,9 @@ def cancel_patient_confirmation(
 def get_interview_dashboard(
     interview_id: int,
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    _require_interview_patient_owner(db, interview_id, current_user)
     return doctor_dashboard_service.get_interview_dashboard(
         db=db,
         interview_id=interview_id,
@@ -846,12 +981,14 @@ def get_interview_dashboard(
     "/{interview_id}/summary/{summary_id}/doctor-review/start",
     response_model=DoctorReviewResponse,
     status_code=status.HTTP_201_CREATED,
+    description="Start a doctor review session. Requires DOCTOR role.",
 )
 def start_doctor_review(
     interview_id: int,
     summary_id: int,
     start_in: Optional[DoctorReviewStartRequest] = None,
     db: Session = Depends(get_db),
+    _current_user: AppUser = Depends(require_roles(UserRole.DOCTOR)),
 ):
     return doctor_verification_service.start_review(
         db=db,
@@ -897,6 +1034,7 @@ def get_doctor_review(
     "/{interview_id}/doctor-reviews/{review_id}/items/{item_id}/verify",
     response_model=DoctorReviewResponse,
     status_code=status.HTTP_200_OK,
+    description="Verify a review item. Requires DOCTOR role.",
 )
 def verify_review_item(
     interview_id: int,
@@ -904,6 +1042,7 @@ def verify_review_item(
     item_id: int,
     action_in: Optional[DoctorReviewItemActionRequest] = None,
     db: Session = Depends(get_db),
+    _current_user: AppUser = Depends(require_roles(UserRole.DOCTOR)),
 ):
     return doctor_verification_service.verify_item(
         db=db,
@@ -918,6 +1057,7 @@ def verify_review_item(
     "/{interview_id}/doctor-reviews/{review_id}/items/{item_id}",
     response_model=DoctorReviewResponse,
     status_code=status.HTTP_200_OK,
+    description="Edit a review item. Requires DOCTOR role.",
 )
 def edit_review_item(
     interview_id: int,
@@ -925,6 +1065,7 @@ def edit_review_item(
     item_id: int,
     edit_in: DoctorReviewItemUpdateRequest,
     db: Session = Depends(get_db),
+    _current_user: AppUser = Depends(require_roles(UserRole.DOCTOR)),
 ):
     return doctor_verification_service.edit_item(
         db=db,
@@ -939,6 +1080,7 @@ def edit_review_item(
     "/{interview_id}/doctor-reviews/{review_id}/items/{item_id}/flag",
     response_model=DoctorReviewResponse,
     status_code=status.HTTP_200_OK,
+    description="Flag a review item. Requires DOCTOR role.",
 )
 def flag_review_item(
     interview_id: int,
@@ -946,6 +1088,7 @@ def flag_review_item(
     item_id: int,
     action_in: Optional[DoctorReviewItemActionRequest] = None,
     db: Session = Depends(get_db),
+    _current_user: AppUser = Depends(require_roles(UserRole.DOCTOR)),
 ):
     return doctor_verification_service.flag_item(
         db=db,
@@ -960,6 +1103,7 @@ def flag_review_item(
     "/{interview_id}/doctor-reviews/{review_id}/items/{item_id}/skip",
     response_model=DoctorReviewResponse,
     status_code=status.HTTP_200_OK,
+    description="Skip a review item. Requires DOCTOR role.",
 )
 def skip_review_item(
     interview_id: int,
@@ -967,6 +1111,7 @@ def skip_review_item(
     item_id: int,
     action_in: Optional[DoctorReviewItemActionRequest] = None,
     db: Session = Depends(get_db),
+    _current_user: AppUser = Depends(require_roles(UserRole.DOCTOR)),
 ):
     return doctor_verification_service.skip_item(
         db=db,
@@ -981,12 +1126,14 @@ def skip_review_item(
     "/{interview_id}/doctor-reviews/{review_id}/complete",
     response_model=DoctorReviewResponse,
     status_code=status.HTTP_200_OK,
+    description="Complete a doctor review. Requires DOCTOR role.",
 )
 def complete_doctor_review(
     interview_id: int,
     review_id: int,
     complete_in: Optional[DoctorReviewCompleteRequest] = None,
     db: Session = Depends(get_db),
+    _current_user: AppUser = Depends(require_roles(UserRole.DOCTOR)),
 ):
     return doctor_verification_service.complete_review(
         db=db,
@@ -1000,11 +1147,13 @@ def complete_doctor_review(
     "/{interview_id}/doctor-reviews/{review_id}/cancel",
     response_model=DoctorReviewResponse,
     status_code=status.HTTP_200_OK,
+    description="Cancel a doctor review. Requires DOCTOR role.",
 )
 def cancel_doctor_review(
     interview_id: int,
     review_id: int,
     db: Session = Depends(get_db),
+    _current_user: AppUser = Depends(require_roles(UserRole.DOCTOR)),
 ):
     return doctor_verification_service.cancel_review(
         db=db,

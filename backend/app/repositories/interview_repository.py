@@ -27,6 +27,14 @@ class InterviewRepository:
             .first()
         )
 
+    def get_by_id_for_update(self, db: Session, interview_id: int) -> Optional[Interview]:
+        return (
+            db.query(Interview)
+            .filter(Interview.id == interview_id)
+            .with_for_update()
+            .first()
+        )
+
     def update_status(
         self,
         db: Session,

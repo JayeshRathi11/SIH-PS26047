@@ -38,6 +38,7 @@ ALLOWED_STATUS_TRANSITIONS = {
     (DocumentProcessingStatus.PROCESSING.value, DocumentProcessingStatus.COMPLETED.value),
     (DocumentProcessingStatus.PROCESSING.value, DocumentProcessingStatus.FAILED.value),
     (DocumentProcessingStatus.FAILED.value, DocumentProcessingStatus.PROCESSING.value),  # Retry
+    (DocumentProcessingStatus.COMPLETED.value, DocumentProcessingStatus.PROCESSING.value),  # Reprocess
 }
 
 
@@ -98,9 +99,16 @@ class MedicalDocumentService:
                 ),
             )
 
-        # 3. Read content and validate size
-        file_bytes = file.file.read()
+        # 3. Read content with bounded buffer and validate size
+        max_bytes = settings.MAX_DOCUMENT_SIZE_MB * 1024 * 1024
+        file_bytes = file.file.read(max_bytes + 1)
         file_size = len(file_bytes)
+
+        if file_size > max_bytes:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=f"File size exceeds maximum limit of {settings.MAX_DOCUMENT_SIZE_MB}MB.",
+            )
 
         if file_size == 0:
             raise HTTPException(
@@ -108,12 +116,6 @@ class MedicalDocumentService:
                 detail="Uploaded file is empty.",
             )
 
-        max_bytes = settings.MAX_DOCUMENT_SIZE_MB * 1024 * 1024
-        if file_size > max_bytes:
-            raise HTTPException(
-                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                detail=f"File size ({file_size} bytes) exceeds maximum limit of {settings.MAX_DOCUMENT_SIZE_MB}MB.",
-            )
 
         # 4. Generate safe unique storage key
         safe_filename = self._sanitize_filename(file.filename or "document")
@@ -145,7 +147,7 @@ class MedicalDocumentService:
                 content_type=content_type,
                 file_size=file_size,
                 document_type=doc_type_val,
-                storage_provider=settings.STORAGE_PROVIDER,
+                storage_provider=settings.DOCUMENT_STORAGE_PROVIDER,
                 storage_reference=storage_reference,
             )
         except Exception as db_exc:

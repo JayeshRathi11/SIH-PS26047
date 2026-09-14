@@ -9,10 +9,12 @@ MANDATORY STATEMENT:
 """
 import logging
 from typing import Optional
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Path, Query
 from sqlalchemy.orm import Session
 
+from app.core.auth_dependencies import get_optional_current_user, require_patient_owner, require_roles
 from app.core.database import get_db
+from app.models.app_user import AppUser, UserRole
 from app.schemas.contradiction import (
     ClinicalContradictionResponse,
     ContradictionDismissRequest,
@@ -21,10 +23,12 @@ from app.schemas.contradiction import (
     ContradictionRebuildResponse,
     ContradictionVerifyRequest,
 )
+
 from app.services.clinical_contradiction_service import (
     ClinicalContradictionService,
     clinical_contradiction_service,
 )
+from app.services.interview_service import interview_service
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +70,11 @@ def evaluate_contradictions(
     interview_id: int,
     db: Session = Depends(get_db),
     service: ClinicalContradictionService = Depends(lambda: clinical_contradiction_service),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    if current_user is not None and current_user.role == UserRole.PATIENT:
+        interview = interview_service.get_interview(db, interview_id)
+        require_patient_owner(interview.patient_id, current_user)
     return service.evaluate_for_interview(db, interview_id)
 
 
@@ -82,7 +90,11 @@ def list_interview_contradictions(
     severity: Optional[str] = Query(None, description="Filter by severity: INFO, WARNING, HIGH"),
     db: Session = Depends(get_db),
     service: ClinicalContradictionService = Depends(lambda: clinical_contradiction_service),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    if current_user is not None and current_user.role == UserRole.PATIENT:
+        interview = interview_service.get_interview(db, interview_id)
+        require_patient_owner(interview.patient_id, current_user)
     return service.list_by_interview(db, interview_id, status, category, severity)
 
 
@@ -109,7 +121,10 @@ def list_patient_contradictions(
     interview_id: Optional[int] = Query(None, description="Filter to a specific interview"),
     db: Session = Depends(get_db),
     service: ClinicalContradictionService = Depends(lambda: clinical_contradiction_service),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    if current_user is not None and current_user.role == UserRole.PATIENT:
+        require_patient_owner(patient_id, current_user)
     return service.list_by_patient(db, patient_id, status, category, severity, interview_id)
 
 
@@ -127,7 +142,10 @@ def rebuild_patient_contradictions(
     patient_id: int,
     db: Session = Depends(get_db),
     service: ClinicalContradictionService = Depends(lambda: clinical_contradiction_service),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    if current_user is not None and current_user.role == UserRole.PATIENT:
+        require_patient_owner(patient_id, current_user)
     return service.rebuild_for_patient(db, patient_id)
 
 
@@ -145,7 +163,7 @@ def rebuild_patient_contradictions(
     ),
 )
 def get_contradiction(
-    contradiction_id: int,
+    contradiction_id: int = Path(..., gt=0),
     db: Session = Depends(get_db),
     service: ClinicalContradictionService = Depends(lambda: clinical_contradiction_service),
 ):
@@ -158,14 +176,16 @@ def get_contradiction(
     summary="Mark a contradiction as verified by human reviewer",
     description=(
         "Records that a human reviewer has confirmed this conflict represents a real divergence. "
-        "Does NOT modify any source clinical record. Status changes to VERIFIED."
+        "Does NOT modify any source clinical record. Status changes to VERIFIED. "
+        "Requires DOCTOR or STAFF role."
     ),
 )
 def verify_contradiction(
-    contradiction_id: int,
-    request: ContradictionVerifyRequest,
+    contradiction_id: int = Path(..., gt=0),
+    request: ContradictionVerifyRequest = ...,
     db: Session = Depends(get_db),
     service: ClinicalContradictionService = Depends(lambda: clinical_contradiction_service),
+    _current_user: AppUser = Depends(require_roles(UserRole.DOCTOR, UserRole.STAFF)),
 ):
     return service.verify_contradiction(db, contradiction_id, request)
 
@@ -176,16 +196,19 @@ def verify_contradiction(
     summary="Dismiss a contradiction after human review",
     description=(
         "Records that a human reviewer has determined no further action is required. "
-        "Does NOT modify any source clinical record. Status changes to DISMISSED."
+        "Does NOT modify any source clinical record. Status changes to DISMISSED. "
+        "Requires DOCTOR or STAFF role."
     ),
 )
 def dismiss_contradiction(
-    contradiction_id: int,
-    request: ContradictionDismissRequest,
+    contradiction_id: int = Path(..., gt=0),
+    request: ContradictionDismissRequest = ...,
     db: Session = Depends(get_db),
     service: ClinicalContradictionService = Depends(lambda: clinical_contradiction_service),
+    _current_user: AppUser = Depends(require_roles(UserRole.DOCTOR, UserRole.STAFF)),
 ):
     return service.dismiss_contradiction(db, contradiction_id, request)
+
 
 
 # ── Combined router for main application inclusion ─────────────────────────────

@@ -1,4 +1,5 @@
 from fastapi import HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from app.models.patient import Patient
 from app.repositories.patient_repository import patient_repository
@@ -20,7 +21,14 @@ class PatientService:
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"Patient with phone number '{patient_in.phone_number}' is already registered.",
             )
-        patient = self.repository.create(db, patient_in)
+        try:
+            patient = self.repository.create(db, patient_in)
+        except IntegrityError:
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Patient with phone number '{patient_in.phone_number}' is already registered.",
+            )
         from app.services.accessibility_service import accessibility_service
         accessibility_service.get_or_create_profile(db, patient.id)
         return patient

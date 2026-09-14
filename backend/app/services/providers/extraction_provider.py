@@ -462,15 +462,372 @@ class MockMedicalExtractionProvider(MedicalExtractionProvider):
         }
 
 
+from app.core.provider_errors import (
+    ProviderError,
+    ProviderConfigError,
+    ProviderAuthError,
+    ProviderNetworkError,
+    ProviderResponseError,
+    ProviderProcessingError,
+    execute_with_retry,
+    sanitize_secret,
+)
+
+
+class GeminiMedicalDocumentExtractionProvider(MedicalExtractionProvider):
+    """
+    Medical document information extraction provider utilizing Google Gemini REST API.
+    Interacts via standard HTTPS REST request with structured JSON output enforcement.
+    """
+
+    BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
+
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        model_name: Optional[str] = None,
+        timeout_seconds: Optional[int] = None,
+    ):
+        self.api_key = api_key if api_key is not None else getattr(settings, "GEMINI_API_KEY", None)
+        self.model_name = (
+            model_name
+            or getattr(settings, "GEMINI_MODEL", None)
+            or getattr(settings, "GEMINI_MODEL_NAME", "gemini-2.5-flash")
+        )
+        self.timeout_seconds = timeout_seconds or getattr(settings, "GEMINI_TIMEOUT_SECONDS", 15)
+
+    def extract_structured_data(
+        self,
+        raw_ocr_text: str,
+        document_type: Optional[str] = None,
+        language_code: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        if not self.api_key:
+            raise ProviderConfigError(
+                "GEMINI_API_KEY is not configured for GeminiMedicalDocumentExtractionProvider.",
+                provider_name="gemini",
+            )
+
+        import json
+        import requests
+        from app.schemas.extraction import StructuredMedicalData
+
+        text = (raw_ocr_text or "").strip()
+        if not text:
+            return {
+                "patient": None,
+                "diagnoses": [],
+                "medications": [],
+                "investigations": [],
+                "procedures": [],
+                "observations": [],
+            }
+
+        prompt = (
+            "You are an expert clinical document information extraction system. "
+            "Extract structured medical entities from the provided OCR text of a medical document.\n\n"
+            "CRITICAL EXTRACTION CONSTRAINTS:\n"
+            "- Extract ONLY what is explicitly stated in the document text.\n"
+            "- Do NOT perform diagnosis.\n"
+            "- Do NOT recommend treatment or medications.\n"
+            "- Do NOT invent or infer undocumented facts.\n"
+            "- Missing fields must remain null or empty list [].\n"
+            "- For each item, include 'source' with 'page': 1, 'text': exact excerpt, 'confidence': null.\n"
+            "- Return valid JSON adhering strictly to this schema:\n"
+            "  {\n"
+            "    \"patient\": {\"name\": string|null, \"date_of_birth\": string|null, \"age\": string|null, \"gender\": string|null, \"identifiers\": dict|null} or null,\n"
+            "    \"diagnoses\": [{\"name\": string, \"date\": string|null, \"context\": string|null, \"source\": {\"page\": int|null, \"text\": string|null, \"confidence\": float|null}}],\n"
+            "    \"medications\": [{\"name\": string, \"dosage\": string|null, \"unit\": string|null, \"frequency\": string|null, \"route\": string|null, \"duration\": string|null, \"start_date\": string|null, \"end_date\": string|null, \"instructions\": string|null, \"source\": {\"page\": int|null, \"text\": string|null, \"confidence\": float|null}}],\n"
+            "    \"investigations\": [{\"test_name\": string, \"value\": string|null, \"unit\": string|null, \"reference_range\": string|null, \"date\": string|null, \"source\": {\"page\": int|null, \"text\": string|null, \"confidence\": float|null}}],\n"
+            "    \"procedures\": [{\"procedure_name\": string, \"date\": string|null, \"notes\": string|null, \"source\": {\"page\": int|null, \"text\": string|null, \"confidence\": float|null}}],\n"
+            "    \"observations\": [{\"observation\": string, \"context\": string|null, \"source\": {\"page\": int|null, \"text\": string|null, \"confidence\": float|null}}]\n"
+            "  }\n\n"
+            f"Document Type: {document_type or 'unspecified'}\n"
+            f"Language: {language_code or 'unspecified'}\n"
+            f"OCR Document Text:\n{raw_ocr_text}\n"
+        )
+
+        url = f"{self.BASE_URL}/{self.model_name}:generateContent"
+        headers = {
+            "Content-Type": "application/json",
+            "x-goog-api-key": self.api_key,
+        }
+        body = {
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [{"text": prompt}],
+                }
+            ],
+            "generationConfig": {
+                "responseMimeType": "application/json",
+                "temperature": 0.0,
+            },
+        }
+
+        def _do_call():
+            try:
+                resp = requests.post(
+                    url,
+                    headers=headers,
+                    json=body,
+                    timeout=self.timeout_seconds,
+                )
+            except requests.Timeout as e:
+                raise ProviderNetworkError(
+                    f"Gemini API request timed out after {self.timeout_seconds}s.",
+                    "gemini",
+                    self.api_key,
+                ) from e
+            except requests.RequestException as e:
+                sanitized = sanitize_secret(str(e), self.api_key)
+                raise ProviderNetworkError(
+                    f"Gemini API network error: {sanitized}",
+                    "gemini",
+                    self.api_key,
+                ) from e
+
+            if resp.status_code != 200:
+                err_msg = sanitize_secret(resp.text, self.api_key)
+                try:
+                    err_json = resp.json()
+                    if "error" in err_json and "message" in err_json["error"]:
+                        err_msg = sanitize_secret(err_json["error"]["message"], self.api_key)
+                except Exception:
+                    pass
+
+                if resp.status_code in (401, 403):
+                    raise ProviderAuthError(
+                        f"Gemini API authentication failed (HTTP {resp.status_code}): {err_msg}",
+                        "gemini",
+                        self.api_key,
+                    )
+                elif resp.status_code >= 500 or resp.status_code == 429:
+                    raise ProviderProcessingError(
+                        f"Gemini API transient failure (HTTP {resp.status_code}): {err_msg}",
+                        "gemini",
+                        self.api_key,
+                    )
+                else:
+                    raise ProviderResponseError(
+                        f"Gemini API error (HTTP {resp.status_code}): {err_msg}",
+                        "gemini",
+                        self.api_key,
+                    )
+
+            try:
+                resp_data = resp.json()
+                candidates = resp_data.get("candidates", [])
+                if not candidates:
+                    raise ProviderResponseError("Gemini API returned no response candidates.", "gemini")
+                content_parts = candidates[0].get("content", {}).get("parts", [])
+                if not content_parts:
+                    raise ProviderResponseError("Gemini API candidate contained no content parts.", "gemini")
+                raw_text_content = content_parts[0].get("text", "")
+                data = json.loads(raw_text_content)
+                if not isinstance(data, dict):
+                    raise ProviderResponseError("Expected JSON object from provider response.", "gemini")
+
+                # Guarantee all required list fields are present
+                for key in ["diagnoses", "medications", "investigations", "procedures", "observations"]:
+                    if key not in data or data[key] is None:
+                        data[key] = []
+
+                if "patient" not in data:
+                    data["patient"] = None
+
+                # Strict Pydantic validation
+                StructuredMedicalData.model_validate(data)
+                return data
+            except (ProviderResponseError, ProviderAuthError, ProviderNetworkError, ProviderProcessingError):
+                raise
+            except Exception as e:
+                sanitized = sanitize_secret(str(e), self.api_key)
+                raise ProviderResponseError(
+                    f"Gemini Medical Document Extraction Provider response error: {sanitized}",
+                    "gemini",
+                    self.api_key,
+                ) from e
+
+        return execute_with_retry(_do_call, max_retries=2, provider_name="gemini_doc_extraction")
+
+
+class GroqMedicalDocumentExtractionProvider(MedicalExtractionProvider):
+    """
+    Groq LLM Medical Document Information Extraction Provider.
+    Used as an unassisted, controlled fallback provider when Gemini experiences transient failures.
+    """
+
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        model_name: Optional[str] = None,
+        timeout_seconds: Optional[int] = None,
+    ):
+        self.api_key = api_key or os.getenv("GROQ_API_KEY") or getattr(settings, "GROQ_API_KEY", None)
+        self.model_name = (
+            model_name
+            or os.getenv("GROQ_MODEL")
+            or getattr(settings, "GROQ_MODEL", None)
+            or getattr(settings, "GROQ_MODEL_NAME", "openai/gpt-oss-120b")
+        )
+        self.timeout_seconds = timeout_seconds or getattr(settings, "GROQ_TIMEOUT_SECONDS", 15)
+
+    def extract_structured_data(
+        self,
+        raw_ocr_text: str,
+        document_type: Optional[str] = None,
+        language_code: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        if not self.api_key:
+            raise ProviderConfigError("GROQ_API_KEY is not configured.", provider_name="groq")
+
+        text = (raw_ocr_text or "").strip()
+        if not text:
+            return {
+                "patient": None,
+                "diagnoses": [],
+                "medications": [],
+                "investigations": [],
+                "procedures": [],
+                "observations": [],
+            }
+
+        from app.core.llm_fallback import call_groq_chat_completion
+        from app.schemas.extraction import StructuredMedicalData
+
+        system_prompt = (
+            "You are an expert clinical document information extraction system.\n"
+            "Extract structured medical entities from the provided OCR text of a medical document.\n\n"
+            "CRITICAL EXTRACTION CONSTRAINTS:\n"
+            "- Extract ONLY what is explicitly stated in the document text.\n"
+            "- Do NOT perform diagnosis.\n"
+            "- Do NOT recommend treatment or medications.\n"
+            "- Do NOT invent or infer undocumented facts.\n"
+            "- Missing fields must remain null or empty list [].\n"
+            "- For each item, include 'source' with 'page': 1, 'text': exact excerpt, 'confidence': null.\n"
+            "- Return valid JSON adhering strictly to this schema:\n"
+            "  {\n"
+            '    "patient": {"name": string|null, "date_of_birth": string|null, "age": string|null, "gender": string|null, "identifiers": dict|null} or null,\n'
+            '    "diagnoses": [{"name": string, "date": string|null, "context": string|null, "source": {"page": int|null, "text": string|null, "confidence": float|null}}],\n'
+            '    "medications": [{"name": string, "dosage": string|null, "unit": string|null, "frequency": string|null, "route": string|null, "duration": string|null, "start_date": string|null, "end_date": string|null, "instructions": string|null, "source": {"page": int|null, "text": string|null, "confidence": float|null}}],\n'
+            '    "investigations": [{"test_name": string, "value": string|null, "unit": string|null, "reference_range": string|null, "date": string|null, "source": {"page": int|null, "text": string|null, "confidence": float|null}}],\n'
+            '    "procedures": [{"procedure_name": string, "date": string|null, "notes": string|null, "source": {"page": int|null, "text": string|null, "confidence": float|null}}],\n'
+            '    "observations": [{"observation": string, "context": string|null, "source": {"page": int|null, "text": string|null, "confidence": float|null}}]\n'
+            "  }\n"
+            'Patient age MUST be string (e.g. "42") or null.'
+        )
+
+        user_prompt = (
+            f"Document Type: {document_type or 'unspecified'}\n"
+            f"Language: {language_code or 'unspecified'}\n"
+            f"OCR Document Text:\n{raw_ocr_text}\n"
+        )
+
+        data = call_groq_chat_completion(
+            api_key=self.api_key,
+            model_name=self.model_name,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            timeout_seconds=self.timeout_seconds,
+            schema_name="StructuredMedicalData",
+        )
+
+        if not isinstance(data, dict):
+            raise ProviderResponseError("Expected JSON object from Groq response.", "groq")
+
+        # Strict authoritative Pydantic validation
+        StructuredMedicalData.model_validate(data)
+        return data
+
+
+class FallbackMedicalExtractionProvider(MedicalExtractionProvider):
+    """
+    Composite provider orchestrating primary Gemini provider with controlled Groq fallback.
+    Fallback only triggers on eligible transient availability failures when LLM_FALLBACK_ENABLED=true.
+    """
+
+    def __init__(
+        self,
+        primary: MedicalExtractionProvider,
+        fallback: Optional[MedicalExtractionProvider] = None,
+    ):
+        self.primary = primary
+        self.fallback = fallback
+
+    def extract_structured_data(
+        self,
+        raw_ocr_text: str,
+        document_type: Optional[str] = None,
+        language_code: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        from app.core.llm_fallback import is_transient_fallback_eligible, record_fallback_event
+
+        try:
+            return self.primary.extract_structured_data(raw_ocr_text, document_type, language_code)
+        except Exception as primary_err:
+            fallback_enabled = getattr(settings, "LLM_FALLBACK_ENABLED", False)
+            if (
+                self.fallback is not None
+                and fallback_enabled
+                and is_transient_fallback_eligible(primary_err)
+            ):
+                record_fallback_event(
+                    operation="document_extraction",
+                    primary="gemini",
+                    fallback="groq",
+                    reason=type(primary_err).__name__,
+                    status="triggered",
+                )
+                try:
+                    result = self.fallback.extract_structured_data(raw_ocr_text, document_type, language_code)
+                    record_fallback_event(
+                        operation="document_extraction",
+                        primary="gemini",
+                        fallback="groq",
+                        reason=type(primary_err).__name__,
+                        status="success",
+                    )
+                    return result
+                except Exception as fallback_err:
+                    record_fallback_event(
+                        operation="document_extraction",
+                        primary="gemini",
+                        fallback="groq",
+                        reason=type(fallback_err).__name__,
+                        status="failure",
+                    )
+                    raise fallback_err
+            raise primary_err
+
+
 def get_extraction_provider() -> MedicalExtractionProvider:
-    provider_name = (settings.EXTRACTION_PROVIDER or "mock").lower()
+    """
+    Factory resolving medical document extraction provider based on configuration.
+    - 'mock': MockMedicalExtractionProvider (default)
+    - 'gemini': GeminiMedicalDocumentExtractionProvider (with controlled Groq fallback if enabled)
+    - other: raises ProviderConfigError configuration error
+    """
+    provider_name = (settings.EXTRACTION_PROVIDER or "mock").lower().strip()
     if provider_name == "mock":
         return MockMedicalExtractionProvider()
     elif provider_name == "gemini":
-        if settings.GEMINI_API_KEY:
-            pass
-        return MockMedicalExtractionProvider()
-    return MockMedicalExtractionProvider()
+        if not settings.GEMINI_API_KEY:
+            raise ProviderConfigError(
+                "GEMINI_API_KEY must be configured when EXTRACTION_PROVIDER is 'gemini'.",
+                provider_name="gemini",
+            )
+        gemini_provider = GeminiMedicalDocumentExtractionProvider()
+        if getattr(settings, "LLM_FALLBACK_ENABLED", False) and getattr(settings, "GROQ_API_KEY", None):
+            groq_provider = GroqMedicalDocumentExtractionProvider()
+            return FallbackMedicalExtractionProvider(primary=gemini_provider, fallback=groq_provider)
+        return gemini_provider
+    else:
+        raise ProviderConfigError(
+            f"Unknown medical extraction provider: '{provider_name}'. Supported providers: 'mock', 'gemini'.",
+            provider_name=provider_name,
+        )
 
 
 extraction_provider = get_extraction_provider()
+

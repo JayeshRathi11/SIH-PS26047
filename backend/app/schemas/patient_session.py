@@ -1,7 +1,7 @@
 import enum
 from datetime import datetime
 from typing import List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from app.models.patient_session import SessionStatus
 
 
@@ -14,6 +14,40 @@ class NextAction(str, enum.Enum):
     DOCTOR_REVIEW = "DOCTOR_REVIEW"
     EMERGENCY_ATTENTION = "EMERGENCY_ATTENTION"
     COMPLETED = "COMPLETED"
+
+
+class SessionStepStatus(BaseModel):
+    step: str
+    status: str
+    action_required: bool = False
+    details: Optional[str] = None
+
+
+class SessionStateResponse(BaseModel):
+    session_id: int
+    patient_id: int
+    interview_id: Optional[int] = None
+    status: SessionStatus
+    current_step: str
+    next_action: NextAction
+    steps: List[SessionStepStatus]
+    summary_available: bool = False
+    confirmation_status: Optional[str] = None
+    doctor_review_status: Optional[str] = None
+    emergency_active: bool = False
+    queue_token: Optional[str] = None
+    started_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class SessionDocumentStatus(BaseModel):
+    total_documents: int = 0
+    processing_complete: bool = True
+    has_failures: bool = False
+    pending_count: int = 0
 
 
 class BlockingCondition(BaseModel):
@@ -56,16 +90,22 @@ class SessionQueueInfo(BaseModel):
 
 
 class SessionCreateRequest(BaseModel):
-    patient_id: int = Field(..., description="ID of patient for encounter")
-    interview_id: Optional[int] = Field(None, description="Optional interview ID to attach")
+    patient_id: int = Field(..., gt=0, description="ID of patient for encounter")
+    interview_id: Optional[int] = Field(None, gt=0, description="Optional interview ID to attach")
+
+    model_config = ConfigDict(extra="forbid")
 
 
 class SessionCancelRequest(BaseModel):
-    reason: Optional[str] = Field(None, description="Operational reason for cancellation")
+    reason: Optional[str] = Field(None, max_length=255, description="Operational reason for cancellation")
+
+    model_config = ConfigDict(extra="forbid")
 
 
 class SessionAttachInterviewRequest(BaseModel):
-    interview_id: int = Field(..., description="ID of interview to bind to session")
+    interview_id: int = Field(..., gt=0, description="ID of interview to bind to session")
+
+    model_config = ConfigDict(extra="forbid")
 
 
 class PatientSessionSummary(BaseModel):

@@ -268,8 +268,8 @@ class MedicationHistoryService:
                 detail=f"Extraction with ID {extraction_id} not found.",
             )
 
-        # Remove existing records for this extraction
-        self.med_repo.delete_by_extraction_id(db, extraction_id)
+        # Remove existing records for this document to ensure idempotency on reprocessing
+        self.med_repo.delete_by_document_id(db, document_id)
 
         # Map document_type to source_type
         doc_type_val = doc.document_type.value if hasattr(doc.document_type, "value") else str(doc.document_type)

@@ -1,7 +1,11 @@
 import logging
+import time
 from typing import Dict, Any, List, Optional, Tuple, Set
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
+
+from app.core.metrics import operational_metrics
+from app.core.observability import classify_error, log_operational_event
 
 from app.models.interview import Interview
 from app.models.medical_case_summary import MedicalCaseSummary, SummaryStatus
@@ -193,12 +197,23 @@ class MedicalCaseSummaryService:
         )
         summary_record = self.summary_repo.create_summary(db, summary_record)
 
+        start_sum = time.perf_counter()
         try:
             generated_summary = provider.generate_summary(snapshot)
 
             # Grounding & hallucination defense validation
             is_valid, error_msg = self.validate_summary_grounding(generated_summary, snapshot)
             if not is_valid:
+                duration_ms = (time.perf_counter() - start_sum) * 1000.0
+                operational_metrics.record_pipeline_stage("case_summary", success=False, duration_ms=duration_ms, error_category="validation_failure")
+                log_operational_event(
+                    event_name="pipeline_stage_failed",
+                    stage="case_summary",
+                    status="failure",
+                    duration_ms=duration_ms,
+                    interview_id=interview_id,
+                    error_category="validation_failure",
+                )
                 logger.warning(
                     f"Case summary generation grounding failure for interview {interview_id}: {error_msg}"
                 )
@@ -209,6 +224,15 @@ class MedicalCaseSummaryService:
                 return summary_record
 
             # Success
+            duration_ms = (time.perf_counter() - start_sum) * 1000.0
+            operational_metrics.record_pipeline_stage("case_summary", success=True, duration_ms=duration_ms)
+            log_operational_event(
+                event_name="pipeline_stage_completed",
+                stage="case_summary",
+                status="success",
+                duration_ms=duration_ms,
+                interview_id=interview_id,
+            )
             summary_record.summary_data = generated_summary
             summary_record.summary_status = SummaryStatus.DRAFT.value
             summary_record.processing_error = None
@@ -217,6 +241,17 @@ class MedicalCaseSummaryService:
             return summary_record
 
         except Exception as e:
+            duration_ms = (time.perf_counter() - start_sum) * 1000.0
+            err_cat = classify_error(e)
+            operational_metrics.record_pipeline_stage("case_summary", success=False, duration_ms=duration_ms, error_category=err_cat)
+            log_operational_event(
+                event_name="pipeline_stage_failed",
+                stage="case_summary",
+                status="failure",
+                duration_ms=duration_ms,
+                interview_id=interview_id,
+                error_category=err_cat,
+            )
             logger.error(f"Error generating case summary for interview {interview_id}: {e}", exc_info=True)
             summary_record.summary_status = SummaryStatus.FAILED.value
             summary_record.processing_error = str(e)
@@ -231,6 +266,15 @@ class MedicalCaseSummaryService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Interview {interview_id} not found",
             )
+        from app.services.consent_service import consent_service
+        from app.models.patient_consent import ConsentPurpose
+
+        consent_service.require_consent(
+            db=db,
+            patient_id=interview.patient_id,
+            purpose=ConsentPurpose.AI_SUMMARIZATION,
+            interview_id=interview_id,
+        )
         return self.summary_repo.get_latest_draft_by_interview_id(db, interview_id)
 
     def get_case_summary_history(self, db: Session, interview_id: int) -> List[MedicalCaseSummary]:
@@ -240,6 +284,15 @@ class MedicalCaseSummaryService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Interview {interview_id} not found",
             )
+        from app.services.consent_service import consent_service
+        from app.models.patient_consent import ConsentPurpose
+
+        consent_service.require_consent(
+            db=db,
+            patient_id=interview.patient_id,
+            purpose=ConsentPurpose.AI_SUMMARIZATION,
+            interview_id=interview_id,
+        )
         return self.summary_repo.get_history_by_interview_id(db, interview_id)
 
     def get_case_summary_by_id(
@@ -251,8 +304,17 @@ class MedicalCaseSummaryService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Interview {interview_id} not found",
             )
+        from app.services.consent_service import consent_service
+        from app.models.patient_consent import ConsentPurpose
+
+        consent_service.require_consent(
+            db=db,
+            patient_id=interview.patient_id,
+            purpose=ConsentPurpose.AI_SUMMARIZATION,
+            interview_id=interview_id,
+        )
         summary = self.summary_repo.get_by_id(db, summary_id)
-        if not summary or summary.interview_id != interview_id:
+        if not summary or summary.interview_id != interview_id or summary.patient_id != interview.patient_id:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Case summary {summary_id} not found for interview {interview_id}",

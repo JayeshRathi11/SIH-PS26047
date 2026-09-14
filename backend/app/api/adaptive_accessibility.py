@@ -11,7 +11,9 @@ import logging
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app.core.auth_dependencies import require_roles
 from app.core.database import get_db
+from app.models.app_user import AppUser, UserRole
 from app.schemas.adaptive_accessibility import (
     AdaptiveAccessibilityStateResponse,
     AdaptiveSignalEvaluationResponse,
@@ -90,6 +92,7 @@ def apply_staff_override(
     override: AdaptiveStaffOverrideRequest,
     db: Session = Depends(get_db),
     service: AdaptiveAccessibilityService = Depends(lambda: adaptive_accessibility_service),
+    _current_user: AppUser = Depends(require_roles(UserRole.DOCTOR, UserRole.STAFF, UserRole.ADMIN)),
 ):
     return service.apply_staff_override(db, interview_id, override)
 

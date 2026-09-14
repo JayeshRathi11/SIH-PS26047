@@ -7,8 +7,12 @@ from app.models.patient_summary_confirmation import ConfirmationStatus, ItemResp
 class PatientCorrectionRequest(BaseModel):
     correction: Optional[str] = Field(
         default=None,
+        max_length=2000,
         description="Optional patient-reported correction or feedback text.",
     )
+
+    model_config = ConfigDict(extra="forbid")
+
 
 
 class PatientConfirmationItemResponse(BaseModel):

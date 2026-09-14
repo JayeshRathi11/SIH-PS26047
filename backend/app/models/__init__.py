@@ -1,3 +1,4 @@
+from app.models.app_user import AppUser, UserRole
 from app.models.patient import Patient
 from app.models.interview import (
     Interview,
@@ -133,6 +134,8 @@ from app.models.clinical_contradiction import (
 
 
 __all__ = [
+    "AppUser",
+    "UserRole",
     "Patient",
     "Interview",
     "InterviewMessage",

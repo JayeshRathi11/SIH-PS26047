@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import List, Optional, Any, Dict
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from app.models.patient_consent import (
     ConsentPurpose,
     ConsentStatus,
@@ -12,13 +12,13 @@ from app.models.patient_consent import (
 
 class ConsentCreateRequest(BaseModel):
     purpose: ConsentPurpose
-    language_code: str = Field(default="en", description="Supported language code (en, hi, mr)")
+    language_code: str = Field(default="en", min_length=2, max_length=10, description="Supported language code (en, hi, mr)")
     consent_version: str = Field(default="1.0", max_length=32)
     collection_method: ConsentCollectionMethod = Field(
         default=ConsentCollectionMethod.PATIENT_SELF
     )
     interview_id: Optional[int] = Field(
-        default=None, description="Optional interview ID for interview-scoped consent"
+        default=None, gt=0, description="Optional interview ID for interview-scoped consent"
     )
     expires_at: Optional[datetime] = Field(
         default=None, description="Optional expiration datetime (UTC)"
@@ -27,9 +27,14 @@ class ConsentCreateRequest(BaseModel):
         default=None, max_length=100, description="Reference to consent template / policy"
     )
 
+    model_config = ConfigDict(extra="forbid")
+
 
 class ConsentRevokeRequest(BaseModel):
-    reason: Optional[str] = None
+    reason: Optional[str] = Field(default=None, max_length=500)
+
+    model_config = ConfigDict(extra="forbid")
+
 
 
 class ConsentResponse(BaseModel):

@@ -40,7 +40,7 @@ class AdaptiveSignalRequest(BaseModel):
         ),
     )
 
-    model_config = ConfigDict(str_strip_whitespace=True)
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
 
 
 class AdaptiveStaffOverrideRequest(BaseModel):
@@ -59,6 +59,8 @@ class AdaptiveStaffOverrideRequest(BaseModel):
         description="Non-diagnostic staff reason for the override (e.g. 'Patient requested simpler interface').",
     )
 
+    model_config = ConfigDict(extra="forbid")
+
 
 class AdaptiveSessionResetRequest(BaseModel):
     """
@@ -68,8 +70,10 @@ class AdaptiveSessionResetRequest(BaseModel):
     reason: Optional[str] = Field(
         default=None,
         max_length=255,
-        description="Optional operational reason for the reset.",
+        description="Optional reason for the session reset.",
     )
+
+    model_config = ConfigDict(extra="forbid")
 
 
 # ──────────────────────────────────────────────────────────────────────────────

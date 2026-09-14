@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
+from app.core.auth_dependencies import get_optional_current_user, require_patient_owner
 from app.core.database import get_db
+from app.models.app_user import AppUser, UserRole
 from app.schemas.accessibility import (
     AccessibilityProfileResponse,
     AccessibilityProfileUpdate,
@@ -24,7 +26,10 @@ router = APIRouter(tags=["accessibility"])
 def get_patient_accessibility_profile(
     patient_id: int,
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    if current_user is not None and current_user.role == UserRole.PATIENT:
+        require_patient_owner(patient_id, current_user)
     return accessibility_service.get_or_create_profile(db=db, patient_id=patient_id)
 
 
@@ -38,7 +43,10 @@ def update_patient_accessibility_profile(
     patient_id: int,
     update_in: AccessibilityProfileUpdate,
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    if current_user is not None and current_user.role == UserRole.PATIENT:
+        require_patient_owner(patient_id, current_user)
     return accessibility_service.update_profile(
         db=db, patient_id=patient_id, update_in=update_in
     )
@@ -53,7 +61,10 @@ def update_patient_accessibility_profile(
 def get_patient_presentation_config(
     patient_id: int,
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    if current_user is not None and current_user.role == UserRole.PATIENT:
+        require_patient_owner(patient_id, current_user)
     return accessibility_service.resolve_presentation_config(
         db=db, patient_id=patient_id
     )

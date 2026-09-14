@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Path, status
 from sqlalchemy.orm import Session
 
+from app.core.auth_dependencies import get_optional_current_user, require_patient_owner, require_roles
 from app.core.database import get_db
+from app.models.app_user import AppUser, UserRole
 from app.schemas.medication_history import (
     InterviewMedicationComparisonResponse,
     MedicationHistoryItemResponse,
@@ -9,6 +11,7 @@ from app.schemas.medication_history import (
     MedicationRebuildResponse,
     MedicationVerifyRequest,
 )
+from app.services.interview_service import interview_service
 from app.services.medication_history_service import medication_history_service
 
 router = APIRouter(tags=["medications"])
@@ -21,13 +24,16 @@ router = APIRouter(tags=["medications"])
     summary="Get patient longitudinal medication history",
 )
 def get_patient_medications(
-    patient_id: int,
+    patient_id: int = Path(..., gt=0),
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
     """
     Returns longitudinal, source-traceable medication records for the patient across encounters.
     Enforces strict patient tenant isolation.
     """
+    if current_user is not None and current_user.role == UserRole.PATIENT:
+        require_patient_owner(patient_id, current_user)
     return medication_history_service.get_patient_medications(db, patient_id)
 
 
@@ -38,12 +44,16 @@ def get_patient_medications(
     summary="Get encounter medications",
 )
 def get_interview_medications(
-    interview_id: int,
+    interview_id: int = Path(..., gt=0),
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
     """
     Returns all medication records associated with the specified interview encounter.
     """
+    if current_user is not None and current_user.role == UserRole.PATIENT:
+        interview = interview_service.get_interview(db, interview_id)
+        require_patient_owner(interview.patient_id, current_user)
     return medication_history_service.get_interview_medications(db, interview_id)
 
 
@@ -54,7 +64,7 @@ def get_interview_medications(
     summary="Compare medications across encounter sources",
 )
 def compare_interview_medications(
-    interview_id: int,
+    interview_id: int = Path(..., gt=0),
     db: Session = Depends(get_db),
 ):
     """
@@ -72,7 +82,7 @@ def compare_interview_medications(
     summary="Rebuild encounter medication history idempotently",
 )
 def rebuild_interview_medications(
-    interview_id: int,
+    interview_id: int = Path(..., gt=0),
     db: Session = Depends(get_db),
 ):
     """
@@ -89,14 +99,16 @@ def rebuild_interview_medications(
     summary="Doctor verification of a medication record",
 )
 def verify_medication_record(
-    interview_id: int,
-    medication_id: int,
-    payload: MedicationVerifyRequest,
+    interview_id: int = Path(..., gt=0),
+    medication_id: int = Path(..., gt=0),
+    payload: MedicationVerifyRequest = ...,
     db: Session = Depends(get_db),
+    _current_user: AppUser = Depends(require_roles(UserRole.DOCTOR)),
 ):
     """
     Authoritative doctor verification of an individual medication record.
     Updates verification status while strictly preserving the original AI/OCR confidence.
+    Requires DOCTOR role.
     """
     return medication_history_service.verify_medication_record(
         db=db,
@@ -104,3 +116,4 @@ def verify_medication_record(
         medication_id=medication_id,
         verification_status_val=payload.verification_status,
     )
+

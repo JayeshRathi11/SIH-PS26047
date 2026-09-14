@@ -12,10 +12,12 @@ from app.models.opd_queue import (
 
 
 class OpdQueueEntryCreate(BaseModel):
-    patient_id: int
-    interview_id: Optional[int] = None
+    patient_id: int = Field(..., gt=0)
+    interview_id: Optional[int] = Field(None, gt=0)
     priority: Optional[OpdQueuePriority] = OpdQueuePriority.NORMAL
     queue_date: Optional[date] = None
+
+    model_config = ConfigDict(extra="forbid")
 
 
 class OpdQueueEscalateRequest(BaseModel):
@@ -27,9 +29,14 @@ class OpdQueueEscalateRequest(BaseModel):
     )
     notes: Optional[str] = Field(None, max_length=255)
 
+    model_config = ConfigDict(extra="forbid")
+
 
 class OpdQueueCancelRequest(BaseModel):
     reason: Optional[str] = Field(None, max_length=255)
+
+    model_config = ConfigDict(extra="forbid")
+
 
 
 class OpdQueueEntryResponse(BaseModel):

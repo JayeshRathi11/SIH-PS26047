@@ -206,10 +206,39 @@ class MockTranslationProvider(TranslationProvider):
         }
 
 
+from app.core.provider_errors import (
+    ProviderError,
+    ProviderConfigError,
+    ProviderAuthError,
+    ProviderNetworkError,
+    ProviderResponseError,
+    ProviderProcessingError,
+    execute_with_retry,
+    sanitize_secret,
+)
+
+
 class GeminiTranslationProvider(TranslationProvider):
-    def __init__(self, api_key: Optional[str] = None, model_name: str = "gemini-1.5-flash"):
-        self.api_key = api_key or settings.GEMINI_API_KEY
-        self.model_name = model_name
+    """
+    Translation provider utilizing Google Gemini REST API.
+    Interacts via standard HTTPS REST request with structured JSON output enforcement.
+    """
+
+    BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
+
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        model_name: Optional[str] = None,
+        timeout_seconds: Optional[int] = None,
+    ):
+        self.api_key = api_key if api_key is not None else getattr(settings, "GEMINI_API_KEY", None)
+        self.model_name = (
+            model_name
+            or getattr(settings, "GEMINI_MODEL", None)
+            or getattr(settings, "GEMINI_MODEL_NAME", "gemini-2.5-flash")
+        )
+        self.timeout_seconds = timeout_seconds or getattr(settings, "GEMINI_TIMEOUT_SECONDS", 15)
 
     def translate_summary(
         self,
@@ -219,45 +248,308 @@ class GeminiTranslationProvider(TranslationProvider):
         simulation_hook: Optional[str] = None,
     ) -> Dict[str, Any]:
         if not self.api_key:
-            return MockTranslationProvider().translate_summary(
-                summary_dict, target_language_code, target_language_name, simulation_hook
+            raise ProviderConfigError(
+                "GEMINI_API_KEY is not configured for GeminiTranslationProvider.",
+                provider_name="gemini",
             )
 
+        import requests
+
+        prompt = (
+            f"You are a professional medical translator translating a structured clinical case summary into {target_language_name} ({target_language_code}).\n\n"
+            "CRITICAL CLINICAL TRANSLATION CONSTRAINTS:\n"
+            "- Translate ONLY the natural language text.\n"
+            "- Do NOT diagnose, infer, add, or remove medical facts.\n"
+            "- Preserve all section keys exactly.\n"
+            "- Preserve exact number of items and item ordering per section.\n"
+            "- Preserve all 'sources' lists completely unchanged with all original IDs and keys.\n"
+            "- Preserve all numbers, lab values, and units (e.g. 500 mg, 10.2 g/dL, 120/80 mmHg, 3 days).\n"
+            "- Preserve medication names and dosages without alterations.\n"
+            "- Translate 'Not documented' to natural equivalent indicating absence of documentation (e.g. 'नोंद केलेली नाही' in Marathi / 'दस्तावेजीकरण नहीं किया गया' in Hindi). NEVER translate to 'No history'.\n"
+            "- Return valid JSON matching the schema:\n"
+            "  {\n"
+            "    \"language_code\": string,\n"
+            "    \"language_name\": string,\n"
+            "    \"sections\": {\n"
+            "      \"<section_key>\": {\n"
+            "        \"display_label\": string,\n"
+            "        \"items\": [\n"
+            "          {\"text\": string, \"sources\": list, \"status\": string|null}\n"
+            "        ]\n"
+            "      }\n"
+            "    }\n"
+            "  }\n\n"
+            f"Source Summary (JSON):\n{json.dumps(summary_dict, indent=2)}\n"
+        )
+
+        url = f"{self.BASE_URL}/{self.model_name}:generateContent"
+        headers = {
+            "Content-Type": "application/json",
+            "x-goog-api-key": self.api_key,
+        }
+        body = {
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [{"text": prompt}],
+                }
+            ],
+            "generationConfig": {
+                "responseMimeType": "application/json",
+                "temperature": 0.0,
+            },
+        }
+
+        def _do_call():
+            try:
+                resp = requests.post(
+                    url,
+                    headers=headers,
+                    json=body,
+                    timeout=self.timeout_seconds,
+                )
+            except requests.Timeout as e:
+                raise ProviderNetworkError(
+                    f"Gemini API request timed out after {self.timeout_seconds}s.",
+                    "gemini",
+                    self.api_key,
+                ) from e
+            except requests.RequestException as e:
+                sanitized = sanitize_secret(str(e), self.api_key)
+                raise ProviderNetworkError(
+                    f"Gemini API network error: {sanitized}",
+                    "gemini",
+                    self.api_key,
+                ) from e
+
+            if resp.status_code != 200:
+                err_msg = sanitize_secret(resp.text, self.api_key)
+                try:
+                    err_json = resp.json()
+                    if "error" in err_json and "message" in err_json["error"]:
+                        err_msg = sanitize_secret(err_json["error"]["message"], self.api_key)
+                except Exception:
+                    pass
+
+                if resp.status_code in (401, 403):
+                    raise ProviderAuthError(
+                        f"Gemini API authentication failed (HTTP {resp.status_code}): {err_msg}",
+                        "gemini",
+                        self.api_key,
+                    )
+                elif resp.status_code >= 500 or resp.status_code == 429:
+                    raise ProviderProcessingError(
+                        f"Gemini API transient failure (HTTP {resp.status_code}): {err_msg}",
+                        "gemini",
+                        self.api_key,
+                    )
+                else:
+                    raise ProviderResponseError(
+                        f"Gemini API error (HTTP {resp.status_code}): {err_msg}",
+                        "gemini",
+                        self.api_key,
+                    )
+
+            try:
+                resp_data = resp.json()
+                candidates = resp_data.get("candidates", [])
+                if not candidates:
+                    raise ProviderResponseError("Gemini API returned no response candidates.", "gemini")
+                content_parts = candidates[0].get("content", {}).get("parts", [])
+                if not content_parts:
+                    raise ProviderResponseError("Gemini API candidate contained no content parts.", "gemini")
+                raw_text_content = content_parts[0].get("text", "")
+                data = json.loads(raw_text_content)
+                if not isinstance(data, dict):
+                    raise ProviderResponseError("Expected JSON object from provider response.", "gemini")
+
+                if "sections" not in data or not isinstance(data["sections"], dict):
+                    raise ProviderResponseError("Provider response missing required 'sections' dictionary.", "gemini")
+
+                data["language_code"] = target_language_code
+                data["language_name"] = target_language_name
+                return data
+            except (ProviderResponseError, ProviderAuthError, ProviderNetworkError, ProviderProcessingError):
+                raise
+            except Exception as e:
+                sanitized = sanitize_secret(str(e), self.api_key)
+                raise ProviderResponseError(
+                    f"Gemini Translation Provider response error: {sanitized}",
+                    "gemini",
+                    self.api_key,
+                ) from e
+
+        return execute_with_retry(_do_call, max_retries=2, provider_name="gemini_translation")
+
+
+class GroqTranslationProvider(TranslationProvider):
+    """
+    Groq LLM Translation Provider.
+    Used as an unassisted, controlled fallback provider when Gemini experiences transient failures.
+    """
+
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        model_name: Optional[str] = None,
+        timeout_seconds: Optional[int] = None,
+    ):
+        self.api_key = api_key or os.getenv("GROQ_API_KEY") or getattr(settings, "GROQ_API_KEY", None)
+        self.model_name = (
+            model_name
+            or os.getenv("GROQ_MODEL")
+            or getattr(settings, "GROQ_MODEL", None)
+            or getattr(settings, "GROQ_MODEL_NAME", "openai/gpt-oss-120b")
+        )
+        self.timeout_seconds = timeout_seconds or getattr(settings, "GROQ_TIMEOUT_SECONDS", 15)
+
+    def translate_summary(
+        self,
+        summary_dict: Dict[str, Any],
+        target_language_code: str,
+        target_language_name: str,
+    ) -> Dict[str, Any]:
+        if not self.api_key:
+            raise ProviderConfigError("GROQ_API_KEY is not configured.", provider_name="groq")
+
+        from app.core.llm_fallback import call_groq_chat_completion
+
+        system_prompt = (
+            f"You are a professional medical translator translating clinical summaries into {target_language_name} ({target_language_code}).\n\n"
+            "CRITICAL TRANSLATION INVARIANTS:\n"
+            "- Translate only item 'text' and 'display_label' fields.\n"
+            "- Preserve exact section keys and ordering.\n"
+            "- Maintain medication brand names, generic names, dosages, frequencies, and routes in Latin alphabet alongside the translation if helpful.\n"
+            "- Maintain lab value numerals and units (e.g. mg/dL) exactly as documented.\n"
+            "- Preserve all source attribution items exactly without altering IDs, page numbers, or field keys.\n"
+            "- Return valid JSON adhering strictly to this schema:\n"
+            "  {\n"
+            '    "language_code": string,\n'
+            '    "language_name": string,\n'
+            '    "sections": {\n'
+            '      "<section_key>": {\n'
+            '        "display_label": string,\n'
+            '        "items": [\n'
+            '          {"text": string, "sources": list, "status": string|null}\n'
+            "        ]\n"
+            "      }\n"
+            "    }\n"
+            "  }"
+        )
+
+        user_prompt = (
+            f"Target Language: {target_language_name} ({target_language_code})\n"
+            f"Source Summary (JSON):\n{json.dumps(summary_dict, indent=2)}\n"
+        )
+
+        data = call_groq_chat_completion(
+            api_key=self.api_key,
+            model_name=self.model_name,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            timeout_seconds=self.timeout_seconds,
+            schema_name="SummaryTranslation",
+        )
+
+        if not isinstance(data, dict):
+            raise ProviderResponseError("Expected JSON object from Groq response.", "groq")
+
+        if "sections" not in data or not isinstance(data["sections"], dict):
+            raise ProviderResponseError("Provider response missing required 'sections' dictionary.", "groq")
+
+        data["language_code"] = target_language_code
+        data["language_name"] = target_language_name
+        return data
+
+
+class FallbackTranslationProvider(TranslationProvider):
+    """
+    Composite provider orchestrating primary Gemini provider with controlled Groq fallback.
+    Fallback only triggers on eligible transient availability failures when LLM_FALLBACK_ENABLED=true.
+    """
+
+    def __init__(
+        self,
+        primary: TranslationProvider,
+        fallback: Optional[TranslationProvider] = None,
+    ):
+        self.primary = primary
+        self.fallback = fallback
+
+    def translate_summary(
+        self,
+        summary_dict: Dict[str, Any],
+        target_language_code: str,
+        target_language_name: str,
+    ) -> Dict[str, Any]:
+        from app.core.llm_fallback import is_transient_fallback_eligible, record_fallback_event
+
         try:
-            from google import genai
-            client = genai.Client(api_key=self.api_key)
-            prompt = (
-                f"You are a professional medical translator translating a structured clinical case summary into {target_language_name} ({target_language_code}).\n"
-                "CRITICAL CLINICAL TRANSLATION CONSTRAINTS:\n"
-                "- Translate ONLY the natural language text.\n"
-                "- Do NOT diagnose, infer, add, or remove medical facts.\n"
-                "- Preserve all section keys exactly.\n"
-                "- Preserve exact number of items and item ordering per section.\n"
-                "- Preserve all 'sources' lists completely unchanged.\n"
-                "- Preserve all numbers, lab values, and units (e.g. 500 mg, 10.2 g/dL, 120/80 mmHg, 3 days).\n"
-                "- Preserve medication names and dosages without alterations.\n"
-                "- Translate 'Not documented' to natural equivalent indicating absence of documentation (e.g. 'नोंद केलेली नाही' in Marathi / 'दस्तावेजीकरण नहीं किया गया' in Hindi). NEVER translate to 'No history'.\n"
-                "- Return valid JSON matching the schema: { 'language_code': str, 'language_name': str, 'sections': { '<section_key>': { 'display_label': str, 'items': [ { 'text': str, 'sources': list, 'status': str|null } ] } } }.\n\n"
-                f"Source Summary:\n{json.dumps(summary_dict, indent=2)}\n"
-            )
-            response = client.models.generate_content(
-                model=self.model_name,
-                contents=prompt,
-                config={"response_mime_type": "application/json"},
-            )
-            return json.loads(response.text)
-        except Exception as e:
-            raise RuntimeError(f"Gemini Translation Provider failed: {str(e)}")
+            return self.primary.translate_summary(summary_dict, target_language_code, target_language_name)
+        except Exception as primary_err:
+            fallback_enabled = getattr(settings, "LLM_FALLBACK_ENABLED", False)
+            if (
+                self.fallback is not None
+                and fallback_enabled
+                and is_transient_fallback_eligible(primary_err)
+            ):
+                record_fallback_event(
+                    operation="translation",
+                    primary="gemini",
+                    fallback="groq",
+                    reason=type(primary_err).__name__,
+                    status="triggered",
+                )
+                try:
+                    result = self.fallback.translate_summary(summary_dict, target_language_code, target_language_name)
+                    record_fallback_event(
+                        operation="translation",
+                        primary="gemini",
+                        fallback="groq",
+                        reason=type(primary_err).__name__,
+                        status="success",
+                    )
+                    return result
+                except Exception as fallback_err:
+                    record_fallback_event(
+                        operation="translation",
+                        primary="gemini",
+                        fallback="groq",
+                        reason=type(fallback_err).__name__,
+                        status="failure",
+                    )
+                    raise fallback_err
+            raise primary_err
 
 
 def get_translation_provider() -> TranslationProvider:
-    provider_name = (getattr(settings, "TRANSLATION_PROVIDER", None) or "mock").lower()
-    if provider_name == "gemini" and settings.GEMINI_API_KEY:
-        return GeminiTranslationProvider(
-            api_key=settings.GEMINI_API_KEY,
-            model_name=getattr(settings, "GEMINI_MODEL_NAME", "gemini-1.5-flash"),
+    """
+    Factory resolving translation provider based on configuration.
+    - 'mock': MockTranslationProvider (default)
+    - 'gemini': GeminiTranslationProvider (with controlled Groq fallback if enabled)
+    - other: raises ProviderConfigError configuration error
+    """
+    provider_name = (getattr(settings, "TRANSLATION_PROVIDER", None) or "mock").lower().strip()
+    if provider_name == "gemini":
+        api_key = getattr(settings, "GEMINI_API_KEY", None)
+        if not api_key:
+            raise ProviderConfigError(
+                "GEMINI_API_KEY must be configured when TRANSLATION_PROVIDER is 'gemini'.",
+                provider_name="gemini",
+            )
+        gemini_provider = GeminiTranslationProvider()
+        if getattr(settings, "LLM_FALLBACK_ENABLED", False) and getattr(settings, "GROQ_API_KEY", None):
+            groq_provider = GroqTranslationProvider()
+            return FallbackTranslationProvider(primary=gemini_provider, fallback=groq_provider)
+        return gemini_provider
+    elif provider_name == "mock":
+        return MockTranslationProvider()
+    else:
+        raise ProviderConfigError(
+            f"Unknown translation provider: '{provider_name}'. Supported providers: 'mock', 'gemini'.",
+            provider_name=provider_name,
         )
-    return MockTranslationProvider()
 
 
 translation_provider = get_translation_provider()
+

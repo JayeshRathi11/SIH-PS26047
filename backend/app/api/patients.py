@@ -1,6 +1,8 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Path, status
 from sqlalchemy.orm import Session
+from app.core.auth_dependencies import get_optional_current_user, require_patient_owner
 from app.core.database import get_db
+from app.models.app_user import AppUser, UserRole
 from app.schemas.patient import PatientCreate, PatientResponse
 from app.schemas.timeline import TimelineListResponse
 from app.schemas.abnormal_value import AbnormalValueListResponse
@@ -23,17 +25,23 @@ def register_patient(
 
 @router.get("/{patient_id}", response_model=PatientResponse, status_code=status.HTTP_200_OK)
 def get_patient(
-    patient_id: int,
+    patient_id: int = Path(..., gt=0),
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    if current_user is not None and current_user.role == UserRole.PATIENT:
+        require_patient_owner(patient_id, current_user)
     return patient_service.get_patient(db=db, patient_id=patient_id)
 
 
 @router.get("/{patient_id}/timeline", response_model=TimelineListResponse, status_code=status.HTTP_200_OK)
 def get_patient_timeline(
-    patient_id: int,
+    patient_id: int = Path(..., gt=0),
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    if current_user is not None and current_user.role == UserRole.PATIENT:
+        require_patient_owner(patient_id, current_user)
     return medical_timeline_service.get_patient_timeline(db=db, patient_id=patient_id)
 
 
@@ -43,9 +51,12 @@ def get_patient_timeline(
     status_code=status.HTTP_200_OK,
 )
 def get_patient_abnormal_values(
-    patient_id: int,
+    patient_id: int = Path(..., gt=0),
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    if current_user is not None and current_user.role == UserRole.PATIENT:
+        require_patient_owner(patient_id, current_user)
     return medical_abnormal_value_service.get_patient_abnormal_values(
         db=db,
         patient_id=patient_id,
@@ -58,11 +69,15 @@ def get_patient_abnormal_values(
     status_code=status.HTTP_200_OK,
 )
 def get_patient_dashboard(
-    patient_id: int,
+    patient_id: int = Path(..., gt=0),
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    if current_user is not None and current_user.role == UserRole.PATIENT:
+        require_patient_owner(patient_id, current_user)
     return doctor_dashboard_service.get_patient_dashboard(
         db=db,
         patient_id=patient_id,
     )
+
 

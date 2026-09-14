@@ -146,7 +146,7 @@ class ContradictionVerifyRequest(BaseModel):
         description="Optional note describing review findings (operational, not clinical judgment).",
     )
 
-    model_config = ConfigDict(str_strip_whitespace=True)
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
 
 
 class ContradictionDismissRequest(BaseModel):
@@ -161,7 +161,8 @@ class ContradictionDismissRequest(BaseModel):
         description="Reason for dismissal (e.g. 'Data entry error', 'Different time context').",
     )
 
-    model_config = ConfigDict(str_strip_whitespace=True)
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
 
 
 # ─────────────────────────────────────────────────────────────────────────────

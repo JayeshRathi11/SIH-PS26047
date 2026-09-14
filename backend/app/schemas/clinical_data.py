@@ -41,7 +41,7 @@ class InterviewClinicalDataResponse(BaseModel):
 
 
 class ClinicalDataUpdate(BaseModel):
-    value: str = Field(..., min_length=1, description="Collected clinical detail/answer")
+    value: str = Field(..., min_length=1, max_length=5000, description="Collected clinical detail/answer")
     source: Optional[ClinicalDataSource] = Field(
         default=ClinicalDataSource.PATIENT,
         description="Source of data (PATIENT, AI, DOCUMENT, DOCTOR)",
@@ -50,6 +50,9 @@ class ClinicalDataUpdate(BaseModel):
         default=VerificationStatus.VERIFIED,
         description="Verification status",
     )
+
+    model_config = ConfigDict(extra="forbid")
+
 
 
 class NextQuestionResponse(BaseModel):
@@ -62,6 +65,8 @@ class NextQuestionResponse(BaseModel):
     required: Optional[bool] = None
     priority: Optional[int] = None
     reason: str
+    requires_verification: Optional[bool] = None
+    category: Optional[str] = None
 
 
 class ClinicalHistoryGroupedResponse(BaseModel):

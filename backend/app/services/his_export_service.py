@@ -1,7 +1,11 @@
+import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
+
+from app.core.metrics import operational_metrics
+from app.core.observability import classify_error, log_operational_event
 
 from app.core.config import settings
 from app.models.patient import Patient
@@ -166,7 +170,15 @@ class HisExportService:
 
         target_version = summary.summary_version
 
-        # 2. Gate 1: Doctor Verification Enforcement
+        # 2. Gate 1: Consent Enforcement (Feature 15 DATA_SHARING purpose - Fail Closed)
+        self.consent_srv.require_consent(
+            db,
+            patient_id=patient.id,
+            purpose=ConsentPurpose.DATA_SHARING,
+            interview_id=interview.id,
+        )
+
+        # 3. Gate 2: Doctor Verification Enforcement
         reviews = self.review_repo.get_by_summary_id(db, summary.id)
         verified_review = next((r for r in reviews if r.status == ReviewStatus.VERIFIED), None)
         if not verified_review:
@@ -177,14 +189,6 @@ class HisExportService:
                     "clinically verified by a doctor. Doctor verification is mandatory for external clinical transmission."
                 ),
             )
-
-        # 3. Gate 2: Consent Enforcement (Feature 15 DATA_SHARING purpose)
-        self.consent_srv.require_consent(
-            db,
-            patient_id=patient.id,
-            purpose=ConsentPurpose.DATA_SHARING,
-            interview_id=interview.id,
-        )
 
         adapter = get_his_adapter()
         adapter_name = adapter.__class__.__name__
@@ -275,7 +279,45 @@ class HisExportService:
             "summary_version": target_version,
             "trigger": request.trigger or "",
         }
-        transmission_res = adapter.transmit(bundle, context)
+        start_exp = time.perf_counter()
+        try:
+            transmission_res = adapter.transmit(bundle, context)
+            exp_duration_ms = (time.perf_counter() - start_exp) * 1000.0
+            if transmission_res.success:
+                operational_metrics.record_pipeline_stage("his_export", True, exp_duration_ms)
+                log_operational_event(
+                    "his_export_success",
+                    stage="his_export",
+                    status="success",
+                    duration_ms=round(exp_duration_ms, 2),
+                    interview_id=interview.id,
+                    metadata={"export_id": saved_export.id, "adapter": adapter_name},
+                )
+            else:
+                operational_metrics.record_pipeline_stage("his_export", False, exp_duration_ms, error_category="provider_response")
+                log_operational_event(
+                    "his_export_failure",
+                    stage="his_export",
+                    status="failed",
+                    duration_ms=round(exp_duration_ms, 2),
+                    interview_id=interview.id,
+                    error_category="provider_response",
+                    metadata={"export_id": saved_export.id, "error_code": transmission_res.error_code, "adapter": adapter_name},
+                )
+        except Exception as exc:
+            exp_duration_ms = (time.perf_counter() - start_exp) * 1000.0
+            err_cat = classify_error(exc)
+            operational_metrics.record_pipeline_stage("his_export", False, exp_duration_ms, error_category=err_cat)
+            log_operational_event(
+                "his_export_error",
+                stage="his_export",
+                status="failed",
+                duration_ms=round(exp_duration_ms, 2),
+                interview_id=interview.id,
+                error_category=err_cat,
+                metadata={"export_id": saved_export.id, "adapter": adapter_name},
+            )
+            raise
 
         # 10. Process Transmission Outcome
         if not transmission_res.success:

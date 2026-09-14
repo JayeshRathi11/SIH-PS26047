@@ -93,7 +93,12 @@ class InterviewService:
         )
 
     def complete_interview(self, db: Session, interview_id: int) -> Interview:
-        interview = self.get_interview(db, interview_id)
+        interview = self.interview_repo.get_by_id_for_update(db, interview_id)
+        if not interview:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Interview with ID {interview_id} not found",
+            )
         if interview.status != InterviewStatus.IN_PROGRESS.value:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -110,7 +115,12 @@ class InterviewService:
         )
 
     def cancel_interview(self, db: Session, interview_id: int) -> Interview:
-        interview = self.get_interview(db, interview_id)
+        interview = self.interview_repo.get_by_id_for_update(db, interview_id)
+        if not interview:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Interview with ID {interview_id} not found",
+            )
         if interview.status in [InterviewStatus.COMPLETED.value, InterviewStatus.CANCELLED.value]:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

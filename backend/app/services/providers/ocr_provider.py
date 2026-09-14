@@ -177,16 +177,317 @@ class MockOCRProvider(OCRProvider):
         )
 
 
+from app.core.provider_errors import (
+    ProviderError,
+    ProviderConfigError,
+    ProviderAuthError,
+    ProviderNetworkError,
+    ProviderResponseError,
+    ProviderProcessingError,
+    execute_with_retry,
+    sanitize_secret,
+)
+
+
+class SarvamOCRProvider(OCRProvider):
+    """
+    Sarvam AI Document OCR Provider integration using official REST API.
+    Interacts via multipart/form-data POST request to https://api.sarvam.ai/doc-ai/v1/job/digitise.
+    """
+
+    API_URL = "https://api.sarvam.ai/doc-ai/v1/job/digitise"
+
+    LANGUAGE_CODE_MAP = {
+        "en": "en-IN",
+        "hi": "hi-IN",
+        "mr": "mr-IN",
+        "te": "te-IN",
+        "ta": "ta-IN",
+        "kn": "kn-IN",
+        "bn": "bn-IN",
+        "gu": "gu-IN",
+        "pa": "pa-IN",
+        "or": "od-IN",
+        "od": "od-IN",
+        "ml": "ml-IN",
+    }
+
+    SUPPORTED_CONTENT_TYPES = {
+        "application/pdf",
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/webp",
+    }
+
+    CONTENT_TYPE_EXT_MAP = {
+        "application/pdf": "pdf",
+        "image/jpeg": "jpg",
+        "image/jpg": "jpg",
+        "image/png": "png",
+        "image/webp": "webp",
+    }
+
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        timeout_seconds: Optional[int] = None,
+    ):
+        self.api_key = api_key if api_key is not None else getattr(settings, "SARVAM_API_KEY", None)
+        self.timeout_seconds = timeout_seconds or getattr(settings, "SARVAM_TIMEOUT_SECONDS", 15)
+
+    def supports(self, content_type: str) -> bool:
+        return (content_type or "").lower().strip() in self.SUPPORTED_CONTENT_TYPES
+
+    def extract_text(
+        self,
+        document_bytes: bytes,
+        content_type: str,
+        language_hint: Optional[str] = None,
+    ) -> OCRResult:
+        if not self.supports(content_type):
+            raise ProviderResponseError(
+                f"Unsupported content type '{content_type}' for Sarvam OCR. Supported types: {sorted(self.SUPPORTED_CONTENT_TYPES)}",
+                provider_name="sarvam",
+            )
+
+        if not self.api_key:
+            raise ProviderConfigError("SARVAM_API_KEY is not configured.", provider_name="sarvam")
+
+        if not document_bytes or len(document_bytes) == 0:
+            raise ProviderResponseError("Cannot perform OCR on empty document payload.", provider_name="sarvam")
+
+        import requests
+        import time
+
+        lang = (language_hint or "en").lower()
+        if lang not in self.LANGUAGE_CODE_MAP and lang not in self.LANGUAGE_CODE_MAP.values():
+            raise ProviderResponseError(
+                f"Language '{language_hint}' is not supported by Sarvam OCR. Supported languages: {sorted(self.LANGUAGE_CODE_MAP.keys())}",
+                provider_name="sarvam",
+            )
+        sarvam_lang = self.LANGUAGE_CODE_MAP.get(lang, lang)
+
+        ext = self.CONTENT_TYPE_EXT_MAP.get(content_type.lower().strip(), "bin")
+        files = {
+            "file": (f"document.{ext}", document_bytes, content_type),
+        }
+        data = {
+            "language": sarvam_lang,
+            "output_format": "md",
+        }
+        headers = {
+            "api-subscription-key": self.api_key,
+        }
+
+        def _do_call():
+            try:
+                resp = requests.post(
+                    self.API_URL,
+                    files=files,
+                    data=data,
+                    headers=headers,
+                    timeout=self.timeout_seconds,
+                )
+            except requests.Timeout as e:
+                raise ProviderNetworkError(
+                    f"Sarvam OCR request timed out after {self.timeout_seconds}s.",
+                    "sarvam",
+                    self.api_key,
+                ) from e
+            except requests.RequestException as e:
+                sanitized = sanitize_secret(str(e), self.api_key)
+                raise ProviderNetworkError(
+                    f"Sarvam OCR network error: {sanitized}",
+                    "sarvam",
+                    self.api_key,
+                ) from e
+
+            if resp.status_code not in (200, 201):
+                err_msg = sanitize_secret(resp.text, self.api_key)
+                try:
+                    err_json = resp.json()
+                    if "error" in err_json and "message" in err_json["error"]:
+                        err_msg = sanitize_secret(err_json["error"]["message"], self.api_key)
+                    elif "detail" in err_json:
+                        err_msg = sanitize_secret(str(err_json["detail"]), self.api_key)
+                except Exception:
+                    pass
+
+                if resp.status_code in (401, 403):
+                    raise ProviderAuthError(
+                        f"Sarvam OCR authentication failed (HTTP {resp.status_code}): {err_msg}",
+                        "sarvam",
+                        self.api_key,
+                    )
+                elif resp.status_code >= 500 or resp.status_code == 429:
+                    raise ProviderProcessingError(
+                        f"Sarvam OCR transient failure (HTTP {resp.status_code}): {err_msg}",
+                        "sarvam",
+                        self.api_key,
+                    )
+                else:
+                    raise ProviderResponseError(
+                        f"Sarvam OCR provider error (HTTP {resp.status_code}): {err_msg}",
+                        "sarvam",
+                        self.api_key,
+                    )
+
+            try:
+                resp_data = resp.json()
+            except Exception as e:
+                sanitized = sanitize_secret(str(e), self.api_key)
+                raise ProviderResponseError(
+                    f"Sarvam OCR response parsing failed: {sanitized}",
+                    "sarvam",
+                    self.api_key,
+                ) from e
+
+            # Handle asynchronous Doc AI job if job_id was returned
+            job_id = resp_data.get("job_id") if isinstance(resp_data, dict) else None
+            if job_id:
+                poll_url = f"https://api.sarvam.ai/doc-ai/v1/job/{job_id}/status"
+                results_url = f"https://api.sarvam.ai/doc-ai/v1/job/{job_id}/results"
+                status = resp_data.get("status", "pending")
+                deadline = time.time() + max(self.timeout_seconds, 25)
+
+                while status in ("pending", "processing", "in_progress") and time.time() < deadline:
+                    time.sleep(1)
+                    try:
+                        poll_resp = requests.get(poll_url, headers=headers, timeout=self.timeout_seconds)
+                        if poll_resp.status_code == 200:
+                            status = poll_resp.json().get("status", status)
+                        elif poll_resp.status_code in (401, 403):
+                            raise ProviderAuthError(
+                                f"Sarvam OCR polling authentication failed (HTTP {poll_resp.status_code})",
+                                "sarvam",
+                                self.api_key,
+                            )
+                    except requests.RequestException as e:
+                        sanitized = sanitize_secret(str(e), self.api_key)
+                        raise ProviderNetworkError(
+                            f"Sarvam OCR poll network error: {sanitized}",
+                            "sarvam",
+                            self.api_key,
+                        ) from e
+
+                if status != "completed":
+                    if status == "failed":
+                        raise ProviderResponseError(
+                            "Sarvam Doc AI processing failed for document.",
+                            "sarvam",
+                            self.api_key,
+                        )
+                    raise ProviderNetworkError(
+                        f"Sarvam OCR job timed out (status: {status}).",
+                        "sarvam",
+                        self.api_key,
+                    )
+
+                try:
+                    res_resp = requests.get(results_url, headers=headers, timeout=self.timeout_seconds)
+                    if res_resp.status_code != 200:
+                        raise ProviderResponseError(
+                            f"Sarvam OCR results fetch failed (HTTP {res_resp.status_code})",
+                            "sarvam",
+                            self.api_key,
+                        )
+                    results_data = res_resp.json()
+                except requests.RequestException as e:
+                    sanitized = sanitize_secret(str(e), self.api_key)
+                    raise ProviderNetworkError(
+                        f"Sarvam OCR results fetch network error: {sanitized}",
+                        "sarvam",
+                        self.api_key,
+                    ) from e
+
+                page_texts = []
+                total_pages = 0
+                for doc in results_data.get("documents", []):
+                    total_pages += int(doc.get("page_count", 0) or 0)
+                    for page in doc.get("pages", []):
+                        blocks = page.get("blocks", [])
+                        sorted_blocks = sorted(blocks, key=lambda b: b.get("reading_order", 0))
+                        block_texts = [b.get("text", "").strip() for b in sorted_blocks if b.get("text")]
+                        if block_texts:
+                            page_texts.append("\n".join(block_texts))
+
+                raw_text = "\n\n".join(page_texts).strip()
+                if not raw_text:
+                    raise ProviderResponseError("Sarvam OCR returned empty text extraction.", "sarvam")
+
+                confidence = None
+                detected_language = results_data.get("language_code") or language_hint or "en"
+                page_count = max(total_pages, 1)
+
+                return OCRResult(
+                    raw_text=raw_text,
+                    detected_language=detected_language,
+                    confidence=confidence,
+                    page_count=page_count,
+                )
+
+            # Direct synchronous response handling (and mock test responses)
+            raw_text = (
+                resp_data.get("text")
+                or resp_data.get("raw_text")
+                or resp_data.get("content")
+                or resp_data.get("markdown")
+                or resp_data.get("output")
+                or ""
+            )
+
+            if not raw_text or not raw_text.strip():
+                raise ProviderResponseError("Sarvam OCR returned empty text extraction.", "sarvam")
+
+            # Preserve confidence if provider actually supplied one; do not invent
+            confidence = None
+            if "confidence" in resp_data and resp_data["confidence"] is not None:
+                try:
+                    confidence = float(resp_data["confidence"])
+                except (ValueError, TypeError):
+                    confidence = None
+            elif "average_confidence" in resp_data and resp_data["average_confidence"] is not None:
+                try:
+                    confidence = float(resp_data["average_confidence"])
+                except (ValueError, TypeError):
+                    confidence = None
+
+            detected_language = resp_data.get("language_code") or language_hint or "en"
+            page_count = int(resp_data.get("page_count", 1) or 1)
+
+            return OCRResult(
+                raw_text=raw_text,
+                detected_language=detected_language,
+                confidence=confidence,
+                page_count=page_count,
+            )
+
+        return execute_with_retry(_do_call, max_retries=2, provider_name="sarvam_ocr")
+
+
 def get_ocr_provider() -> OCRProvider:
-    provider_name = (settings.OCR_PROVIDER or "mock").lower()
+    """
+    Factory resolving OCR provider based on configuration.
+    - 'mock': MockOCRProvider (default)
+    - 'sarvam': SarvamOCRProvider
+    - other: raises ProviderConfigError configuration error
+    """
+    provider_name = (settings.OCR_PROVIDER or "mock").lower().strip()
     if provider_name == "mock":
         return MockOCRProvider()
     elif provider_name == "sarvam":
-        # Can instantiate real SarvamOCRProvider when credentials are provided
-        if settings.SARVAM_API_KEY:
-            pass
-        return MockOCRProvider()
-    return MockOCRProvider()
+        if not settings.SARVAM_API_KEY:
+            raise ProviderConfigError(
+                "SARVAM_API_KEY must be configured when OCR_PROVIDER is 'sarvam'.",
+                provider_name="sarvam",
+            )
+        return SarvamOCRProvider()
+    else:
+        raise ProviderConfigError(
+            f"Unknown OCR provider: '{provider_name}'. Supported providers: 'mock', 'sarvam'.",
+            provider_name=provider_name,
+        )
 
 
 ocr_provider = get_ocr_provider()

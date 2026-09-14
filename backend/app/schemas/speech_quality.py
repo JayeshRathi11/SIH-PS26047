@@ -26,11 +26,13 @@ class SpeechQualityEvaluationRequest(BaseModel):
     )
     transcription: Optional[str] = Field(
         None,
+        max_length=10000,
         description="Transcribed text from speech recognition.",
     )
     transcription_length: Optional[int] = Field(
         None,
         ge=0,
+        le=10000,
         description="Character count of transcription if known.",
     )
     silence_duration_ms: Optional[int] = Field(
@@ -62,6 +64,9 @@ class SpeechQualityEvaluationRequest(BaseModel):
         True,
         description="Indicates whether client interface can fallback to text input mode.",
     )
+
+    model_config = ConfigDict(extra="forbid")
+
 
 
 class SpeechQualityEvaluationResponse(BaseModel):

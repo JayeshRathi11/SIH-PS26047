@@ -7,7 +7,9 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, Path, status
 from sqlalchemy.orm import Session
 
+from app.core.auth_dependencies import get_optional_current_user, require_patient_owner
 from app.core.database import get_db
+from app.models.app_user import AppUser, UserRole
 from app.schemas.patient_session import (
     PatientSessionHistoryListResponse,
     PatientSessionResponse,
@@ -35,7 +37,10 @@ router = APIRouter(tags=["sessions"])
 def create_session(
     request: SessionCreateRequest,
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    if current_user is not None and current_user.role == UserRole.PATIENT:
+        require_patient_owner(request.patient_id, current_user)
     return session_status_service.create_session(
         db,
         patient_id=request.patient_id,
@@ -53,8 +58,12 @@ def create_session(
 def get_session(
     session_id: int = Path(..., description="The ID of the session"),
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
-    return session_status_service.get_session_by_id(db, session_id)
+    session = session_status_service.get_session_by_id(db, session_id)
+    if current_user is not None and current_user.role == UserRole.PATIENT:
+        require_patient_owner(session.patient_id, current_user)
+    return session
 
 
 @router.post(
@@ -68,7 +77,11 @@ def cancel_session(
     session_id: int = Path(..., description="The ID of the session to cancel"),
     request: Optional[SessionCancelRequest] = None,
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    session = session_status_service.get_session_by_id(db, session_id)
+    if current_user is not None and current_user.role == UserRole.PATIENT:
+        require_patient_owner(session.patient_id, current_user)
     reason = request.reason if request else None
     return session_status_service.cancel_session(db, session_id, reason=reason)
 
@@ -83,7 +96,11 @@ def cancel_session(
 def resolve_session_status(
     session_id: int = Path(..., description="The ID of the session"),
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    session = session_status_service.get_session_by_id(db, session_id)
+    if current_user is not None and current_user.role == UserRole.PATIENT:
+        require_patient_owner(session.patient_id, current_user)
     return session_status_service.resolve_session_status(db, session_id)
 
 
@@ -98,7 +115,11 @@ def attach_interview_to_session(
     session_id: int = Path(..., description="The ID of the session"),
     request: SessionAttachInterviewRequest = ...,
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    session = session_status_service.get_session_by_id(db, session_id)
+    if current_user is not None and current_user.role == UserRole.PATIENT:
+        require_patient_owner(session.patient_id, current_user)
     return session_status_service.attach_interview(db, session_id, request.interview_id)
 
 
@@ -112,7 +133,11 @@ def attach_interview_to_session(
 def get_session_status_history(
     session_id: int = Path(..., description="The ID of the session"),
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    session = session_status_service.get_session_by_id(db, session_id)
+    if current_user is not None and current_user.role == UserRole.PATIENT:
+        require_patient_owner(session.patient_id, current_user)
     return session_status_service.get_status_history(db, session_id)
 
 
@@ -130,7 +155,10 @@ def get_session_status_history(
 def get_patient_session_status(
     patient_id: int = Path(..., description="Patient ID"),
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    if current_user is not None and current_user.role == UserRole.PATIENT:
+        require_patient_owner(patient_id, current_user)
     return session_status_service.get_active_session_by_patient(db, patient_id)
 
 
@@ -144,5 +172,8 @@ def get_patient_session_status(
 def get_patient_sessions_history(
     patient_id: int = Path(..., description="Patient ID"),
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    if current_user is not None and current_user.role == UserRole.PATIENT:
+        require_patient_owner(patient_id, current_user)
     return session_status_service.get_patient_sessions_history(db, patient_id)

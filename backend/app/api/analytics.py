@@ -4,7 +4,9 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
+from app.core.auth_dependencies import require_roles
 from app.core.database import get_db
+from app.models.app_user import AppUser, UserRole
 from app.schemas.analytics import (
     AnalyticsAccessibilityResponse,
     AnalyticsConfirmationsResponse,
@@ -24,11 +26,14 @@ from app.schemas.analytics import (
     AnalyticsSessionsResponse,
     AnalyticsSpeechQualityResponse,
     AnalyticsContradictionsResponse,
-
 )
 from app.services.analytics_service import analytics_service
 
-router = APIRouter(prefix="/analytics", tags=["analytics"])
+router = APIRouter(
+    prefix="/analytics",
+    tags=["analytics"],
+    dependencies=[Depends(require_roles(UserRole.DOCTOR, UserRole.STAFF, UserRole.ADMIN))],
+)
 
 
 @router.get(

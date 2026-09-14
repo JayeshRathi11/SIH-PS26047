@@ -13,12 +13,17 @@ class FhirPreviewResponse(BaseModel):
 class FhirExportRequest(BaseModel):
     summary_version: Optional[int] = Field(
         default=None,
+        gt=0,
         description="Specific verified summary version to export. Defaults to latest verified version.",
     )
     trigger: Optional[str] = Field(
         default=None,
+        max_length=100,
         description="Optional simulation trigger for testing adapter behaviors (e.g., MOCK_REJECT, MOCK_TIMEOUT, MOCK_UNAVAILABLE).",
     )
+
+    model_config = ConfigDict(extra="forbid")
+
 
 
 class FhirExportResponse(BaseModel):

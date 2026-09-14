@@ -18,6 +18,9 @@ class InterviewLanguageUpdate(BaseModel):
         examples=["mr"],
     )
 
+    model_config = ConfigDict(extra="forbid")
+
+
 
 class InterviewLanguageResponse(BaseModel):
     interview_id: int

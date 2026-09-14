@@ -1,9 +1,12 @@
 import logging
 from typing import Optional
-from fastapi import APIRouter, Depends, Header, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
+from app.core.auth_dependencies import get_optional_current_user, require_patient_owner
 from app.core.database import get_db
+from app.models.app_user import AppUser, UserRole
+from app.repositories.interview_repository import interview_repository
 from app.schemas.speech_quality import (
     CurrentSpeechQualityResponse,
     QualityHistoryResponse,
@@ -38,7 +41,17 @@ def evaluate_speech_quality(
         description="Optional client idempotency key or interaction identifier.",
     ),
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    interview = interview_repository.get_by_id(db, interview_id)
+    if not interview:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Interview {interview_id} not found.",
+        )
+    if current_user is not None and current_user.role == UserRole.PATIENT:
+        require_patient_owner(interview.patient_id, current_user)
+
     if not request.interaction_id and idempotency_key:
         request.interaction_id = idempotency_key
     return speech_quality_service.evaluate_speech_quality(
@@ -61,7 +74,17 @@ def evaluate_speech_quality(
 def get_speech_quality_history(
     interview_id: int,
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    interview = interview_repository.get_by_id(db, interview_id)
+    if not interview:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Interview {interview_id} not found.",
+        )
+    if current_user is not None and current_user.role == UserRole.PATIENT:
+        require_patient_owner(interview.patient_id, current_user)
+
     return speech_quality_service.get_interview_history(
         db=db,
         interview_id=interview_id,
@@ -81,7 +104,17 @@ def get_speech_quality_history(
 def get_current_speech_quality(
     interview_id: int,
     db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
 ):
+    interview = interview_repository.get_by_id(db, interview_id)
+    if not interview:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Interview {interview_id} not found.",
+        )
+    if current_user is not None and current_user.role == UserRole.PATIENT:
+        require_patient_owner(interview.patient_id, current_user)
+
     return speech_quality_service.get_current_quality(
         db=db,
         interview_id=interview_id,

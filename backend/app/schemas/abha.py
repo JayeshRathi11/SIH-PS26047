@@ -1,7 +1,7 @@
 import re
 from datetime import datetime
 from typing import Any, Dict, Optional
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.patient_abha_link import AbhaLinkStatus, AbhaVerificationStatus
 
@@ -19,6 +19,9 @@ class AbhaLinkRequest(BaseModel):
         default=None,
         description="Optional ABHA address/handle (e.g., patient@abdm)",
     )
+
+    model_config = ConfigDict(extra="forbid")
+
 
     @field_validator("abha_id")
     @classmethod

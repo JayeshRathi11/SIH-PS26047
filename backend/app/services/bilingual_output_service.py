@@ -1,7 +1,11 @@
+import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
+
+from app.core.metrics import operational_metrics
+from app.core.observability import classify_error, log_operational_event
 
 from app.models.bilingual_summary_output import (
     BilingualSummaryOutput,
@@ -267,6 +271,7 @@ class BilingualOutputService:
 
         # Invoke Translation Provider
         sim_hook = interview.patient.name if interview.patient else None
+        start_trans = time.perf_counter()
         try:
             translated_raw = self.provider.translate_summary(
                 summary_dict=canonical_dict,
@@ -280,6 +285,16 @@ class BilingualOutputService:
                 source_summary=canonical_dict,
                 translated_payload=translated_raw,
                 target_language_code=target_code,
+            )
+
+            duration_ms = (time.perf_counter() - start_trans) * 1000.0
+            operational_metrics.record_pipeline_stage("translation", success=True, duration_ms=duration_ms)
+            log_operational_event(
+                event_name="pipeline_stage_completed",
+                stage="translation",
+                status="success",
+                duration_ms=duration_ms,
+                interview_id=interview.id,
             )
 
             output.translated_summary = translated_raw
@@ -309,6 +324,17 @@ class BilingualOutputService:
             )
 
         except Exception as e:
+            duration_ms = (time.perf_counter() - start_trans) * 1000.0
+            err_cat = classify_error(e)
+            operational_metrics.record_pipeline_stage("translation", success=False, duration_ms=duration_ms, error_category=err_cat)
+            log_operational_event(
+                event_name="pipeline_stage_failed",
+                stage="translation",
+                status="failure",
+                duration_ms=duration_ms,
+                interview_id=interview.id,
+                error_category=err_cat,
+            )
             output.output_status = BilingualOutputStatus.FAILED.value
             output.error_message = str(e)
             self.bilingual_repo.update_output(db, output)

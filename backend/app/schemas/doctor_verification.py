@@ -11,20 +11,29 @@ from app.models.doctor_summary_review import (
 class DoctorReviewStartRequest(BaseModel):
     doctor_id: Optional[str] = Field(None, max_length=100, description="Optional doctor identifier")
     doctor_name: Optional[str] = Field(None, max_length=255, description="Optional doctor name")
-    doctor_notes: Optional[str] = Field(None, description="Optional initial notes for review")
+    doctor_notes: Optional[str] = Field(None, max_length=2000, description="Optional initial notes for review")
+
+    model_config = ConfigDict(extra="forbid")
 
 
 class DoctorReviewItemUpdateRequest(BaseModel):
-    doctor_correction: str = Field(..., min_length=1, description="Explicit correction entered by the doctor")
-    doctor_note: Optional[str] = Field(None, description="Optional documentation note from the doctor")
+    doctor_correction: str = Field(..., min_length=1, max_length=5000, description="Explicit correction entered by the doctor")
+    doctor_note: Optional[str] = Field(None, max_length=2000, description="Optional documentation note from the doctor")
+
+    model_config = ConfigDict(extra="forbid")
 
 
 class DoctorReviewItemActionRequest(BaseModel):
-    doctor_note: Optional[str] = Field(None, description="Optional documentation note from the doctor")
+    doctor_note: Optional[str] = Field(None, max_length=2000, description="Optional documentation note from the doctor")
+
+    model_config = ConfigDict(extra="forbid")
 
 
 class DoctorReviewCompleteRequest(BaseModel):
-    doctor_notes: Optional[str] = Field(None, description="Optional completion notes from the doctor")
+    doctor_notes: Optional[str] = Field(None, max_length=2000, description="Optional completion notes from the doctor")
+
+    model_config = ConfigDict(extra="forbid")
+
 
 
 class DoctorReviewItemResponse(BaseModel):

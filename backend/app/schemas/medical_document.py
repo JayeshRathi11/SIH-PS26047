@@ -31,5 +31,8 @@ class ProcessingStatusUpdateRequest(BaseModel):
         ..., description="New processing status: PROCESSING, COMPLETED, or FAILED"
     )
     processing_error: Optional[str] = Field(
-        None, description="Optional error message or reason if status is FAILED"
+        None, max_length=1000, description="Optional error message or reason if status is FAILED"
     )
+
+    model_config = ConfigDict(extra="forbid")
+

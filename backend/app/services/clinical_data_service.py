@@ -89,6 +89,18 @@ class ClinicalDataService:
         self, db: Session, interview_id: int
     ) -> ClinicalHistoryGroupedResponse:
         interview = self._ensure_interview_exists(db, interview_id)
+
+        # Enforce active CLINICAL_HISTORY consent
+        from app.services.consent_service import consent_service
+        from app.models.patient_consent import ConsentPurpose
+
+        consent_service.require_consent(
+            db=db,
+            patient_id=interview.patient_id,
+            purpose=ConsentPurpose.CLINICAL_HISTORY,
+            interview_id=interview_id,
+        )
+
         from app.services.language_service import language_service
 
         lang_code = interview.language_code or interview.preferred_language or "en"
@@ -204,83 +216,8 @@ class ClinicalDataService:
         return self._format_record(updated_record, translations_map)
 
     def get_next_question(self, db: Session, interview_id: int) -> NextQuestionResponse:
-        interview = self._ensure_interview_exists(db, interview_id)
-        from app.services.language_service import language_service
-
-        lang_code = interview.language_code or interview.preferred_language or "en"
-
-        records = self.clinical_data_repo.get_by_interview_id(db, interview_id)
-
-        if not records:
-            self.initialize_interview_clinical_data(db, interview_id)
-            records = self.clinical_data_repo.get_by_interview_id(db, interview_id)
-
-        is_ayush_mode = getattr(interview, "mode", InterviewMode.GENERAL.value) == InterviewMode.AYUSH.value
-
-        # Filter applicable records:
-        # In GENERAL mode: only general fields (section not in AYUSH_SECTIONS)
-        # In AYUSH mode: all fields (both general and AYUSH)
-        applicable_records = [
-            r for r in records
-            if is_ayush_mode or r.ontology_field.section not in AYUSH_SECTIONS
-        ]
-
-        # 1. Deterministically find the first missing REQUIRED field ordered by priority
-        missing_required = [
-            r
-            for r in applicable_records
-            if r.ontology_field.required and r.collection_status == CollectionStatus.MISSING.value
-        ]
-
-        if missing_required:
-            next_record = missing_required[0]
-            field = next_record.ontology_field
-            disp_name, desc = language_service.get_field_localization(
-                db, field.field_key, lang_code, field
-            )
-            return NextQuestionResponse(
-                has_next=True,
-                is_complete=False,
-                field_key=field.field_key,
-                section=field.section,
-                display_name=disp_name,
-                description=desc,
-                required=True,
-                priority=field.priority,
-                reason="Required clinical information is missing.",
-            )
-
-        # 2. If all required fields are collected, check for missing OPTIONAL fields
-        missing_optional = [
-            r
-            for r in applicable_records
-            if not r.ontology_field.required and r.collection_status == CollectionStatus.MISSING.value
-        ]
-
-        if missing_optional:
-            next_record = missing_optional[0]
-            field = next_record.ontology_field
-            disp_name, desc = language_service.get_field_localization(
-                db, field.field_key, lang_code, field
-            )
-            return NextQuestionResponse(
-                has_next=True,
-                is_complete=True,
-                field_key=field.field_key,
-                section=field.section,
-                display_name=disp_name,
-                description=desc,
-                required=False,
-                priority=field.priority,
-                reason="All required clinical fields collected. Optional clinical context available.",
-            )
-
-        # 3. All fields collected
-        return NextQuestionResponse(
-            has_next=False,
-            is_complete=True,
-            reason="All clinical history fields have been collected.",
-        )
+        from app.services.adaptive_question_service import adaptive_question_service
+        return adaptive_question_service.get_next_question(db=db, interview_id=interview_id)
 
 
 clinical_data_service = ClinicalDataService()
