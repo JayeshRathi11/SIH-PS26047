@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=800, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MediKiosk — Screen 2: AI Clinical Interview States</title>
 
   <!-- Google Fonts: Baloo 2 & Noto Sans -->
@@ -13,26 +13,29 @@
   <link rel="stylesheet" href="../styles/tokens.css" />
 
   <style>
-    /* ── Screen 2 AI States Demo (Fixed 800x1280, No Scrollbar) ── */
+    /* ── Standardized Desktop Layout (Base 1440px, Min 1024px) ── */
     html, body {
-      width: 800px;
-      height: 1280px;
+      min-height: 100vh;
       margin: 0;
       padding: 0;
-      overflow: hidden;
-      background-color: var(--color-bg);
+      background-color: var(--color-canvas-outer, #EDE8DE);
       color: var(--color-text-primary);
       font-family: var(--font-body);
       -webkit-font-smoothing: antialiased;
     }
 
+    .app-container,
     .kiosk-screen {
-      width: 800px;
-      height: 1280px;
+      max-width: var(--app-max-width);
+      min-width: var(--app-min-width);
+      margin: 0 auto;
+      width: 100%;
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
       position: relative;
+      background-color: var(--color-bg);
+      box-shadow: 0 0 32px rgba(44, 37, 32, 0.08);
     }
 
     /* Top Bar (72px) */
@@ -795,7 +798,7 @@
 </head>
 <body>
 
-<div class="kiosk-screen" role="region" aria-label="MediKiosk AI States Demo">
+<div class="app-container kiosk-screen" role="region" aria-label="MediKiosk AI States Demo">
 
   <!-- Top Bar (72px) -->
   <header class="topbar">

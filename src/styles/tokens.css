@@ -99,47 +99,56 @@
   --font-display: 'Baloo 2', 'Noto Sans Devanagari', sans-serif;
   --font-body:    'Noto Sans', 'Noto Sans Devanagari', sans-serif;
 
-  --text-size-hero:         96px;
-  --text-lh-hero:           1.0;
+  /* Explicit Standardized Typography Tokens */
+  --font-size-base:         16px;
+  --font-size-h1:           32px;
+  --font-size-h2:           24px;
+  --font-size-body:         16px;
+  --font-size-small:        14px;
+  --header-height:          88px;
+
+  /* Semantic Typography Hierarchy */
+  --text-size-hero:         48px;
+  --text-lh-hero:           1.1;
   --text-weight-hero:       800;
   --text-font-hero:         var(--font-display);
 
-  --text-size-title:        44px;
-  --text-lh-title:          1.15;
+  --text-size-title:        var(--font-size-h1);
+  --text-lh-title:          1.2;
   --text-weight-title:      700;
   --text-font-title:        var(--font-display);
 
-  --text-size-heading:      32px;
-  --text-lh-heading:        1.2;
+  --text-size-heading:      var(--font-size-h2);
+  --text-lh-heading:        1.25;
   --text-weight-heading:    600;
   --text-font-heading:      var(--font-display);
 
-  --text-size-btn-primary:  26px;
+  --text-size-btn-primary:  18px;
   --text-lh-btn-primary:    1.0;
   --text-weight-btn-primary: 700;
   --text-font-btn-primary:  var(--font-display);
 
-  --text-size-body:         22px;
+  --text-size-body:         var(--font-size-body);
   --text-lh-body:           1.5;
   --text-weight-body:       400;
   --text-font-body:         var(--font-body);
 
-  --text-size-option:       26px;
+  --text-size-option:       18px;
   --text-lh-option:         1.3;
   --text-weight-option:     500;
   --text-font-option:       var(--font-body);
 
-  --text-size-btn-secondary: 20px;
+  --text-size-btn-secondary: 16px;
   --text-lh-btn-secondary:   1.0;
   --text-weight-btn-secondary: 600;
   --text-font-btn-secondary:  var(--font-body);
 
-  --text-size-step-label:   18px;
+  --text-size-step-label:   15px;
   --text-lh-step-label:     1.2;
   --text-weight-step-label: 600;
   --text-font-step-label:   var(--font-body);
 
-  --text-size-caption:      17px;
+  --text-size-caption:      var(--font-size-small);
   --text-lh-caption:        1.4;
   --text-weight-caption:    400;
   --text-font-caption:      var(--font-body);
@@ -164,25 +173,31 @@
    5. TOUCH TARGET ENFORCEMENT
    ───────────────────────────────────────────────── */
 :root {
-  --touch-target-min:        64px;
-  --touch-target-primary:    80px;
+  --touch-target-min:        48px;
+  --touch-target-primary:    56px;
   --touch-target-gap:        16px;
-  --touch-target-back-btn:   72px;
-  --touch-target-audio-btn:  72px;
+  --touch-target-back-btn:   52px;
+  --touch-target-audio-btn:  52px;
 }
 
 /* ─────────────────────────────────────────────────
    6. CLAYMORPHIC RADII & LAYERED SHADOWS
    ───────────────────────────────────────────────── */
 :root {
-  --viewport-w:       800px;
-  --viewport-h:       1280px;
-  --topbar-h:          72px;
+  /* Shared Desktop Browser Layout Tokens */
+  --app-max-width:    1440px;
+  --app-min-width:    1024px;
+  --app-base-height:  900px;
+  --color-canvas-outer: #EDE8DE; /* Light neutral background outside content area */
+
+  --viewport-w:       1440px;
+  --viewport-h:       900px;
+  --topbar-h:          var(--header-height, 88px);
   --stepbar-h:         56px;
-  --actionbar-h:       96px;
+  --actionbar-h:       88px;
   --content-zone-h:   calc(var(--viewport-h) - var(--topbar-h) - var(--stepbar-h) - var(--actionbar-h));
 
-  --page-px:          var(--space-4);
+  --page-px:          40px;
 
   /* Rounded Clay Radii */
   --radius-sm:        14px;
@@ -269,16 +284,29 @@
 }
 
 html, body {
-  width: var(--viewport-w);
-  height: var(--viewport-h);
-  overflow: hidden;
-  background-color: var(--color-bg);
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-canvas-outer, #EDE8DE);
   color: var(--color-text-primary);
   font-family: var(--font-body);
   font-size: var(--text-size-body);
   line-height: var(--text-lh-body);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+/* Outer desktop application shell container */
+.app-container {
+  max-width: var(--app-max-width);
+  min-width: var(--app-min-width);
+  margin: 0 auto;
+  width: 100%;
+  min-height: 100vh;
+  box-sizing: border-box;
+  background-color: var(--color-bg);
+  position: relative;
+  box-shadow: 0 0 32px rgba(44, 37, 32, 0.08);
 }
 
 /* Tactile touch press depression */

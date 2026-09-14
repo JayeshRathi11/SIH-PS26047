@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=800, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MediKiosk — Step 1a: Patient Identity</title>
 
   <!-- Google Fonts: Baloo 2 & Noto Sans -->
@@ -13,26 +13,29 @@
   <link rel="stylesheet" href="../styles/tokens.css" />
 
   <style>
-    /* ── Step 1a Layout (Fixed 800x1280, No Scrollbar) ── */
+    /* ── Standardized Desktop Layout (Base 1440px, Min 1024px) ── */
     html, body {
-      width: 800px;
-      height: 1280px;
+      min-height: 100vh;
       margin: 0;
       padding: 0;
-      overflow: hidden;
-      background-color: var(--color-bg);
+      background-color: var(--color-canvas-outer, #EDE8DE);
       color: var(--color-text-primary);
       font-family: var(--font-body);
       -webkit-font-smoothing: antialiased;
     }
 
+    .app-container,
     .kiosk-screen {
-      width: 800px;
-      height: 1280px;
+      max-width: var(--app-max-width);
+      min-width: var(--app-min-width);
+      margin: 0 auto;
+      width: 100%;
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
       position: relative;
+      background-color: var(--color-bg);
+      box-shadow: 0 0 32px rgba(44, 37, 32, 0.08);
     }
 
     /* Top Bar (72px) */
@@ -194,15 +197,15 @@
     .step-label--active { color: var(--color-text-primary); font-weight: 700; }
     .step-label--upcoming { color: var(--color-text-secondary); }
 
-    /* Content Zone (Height: 1056px exactly, no scrolling) */
+    /* Content Zone (Landscape 1440x900) */
     .content-zone {
       flex: 1;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
-      padding: 36px var(--page-px);
+      justify-content: center;
+      padding: 28px var(--page-px);
       box-sizing: border-box;
-      overflow: hidden;
+      gap: 20px;
     }
 
     .screen-header {
@@ -211,38 +214,41 @@
 
     .screen-title {
       font-family: var(--font-display);
-      font-size: 44px;
+      font-size: var(--font-size-h1);
       font-weight: 700;
-      line-height: 1.15;
+      line-height: 1.2;
       color: var(--color-text-primary);
-      margin: 0 0 8px 0;
+      margin: 0 0 6px 0;
     }
 
     .screen-subtext {
       font-family: var(--font-body);
-      font-size: 24px;
-      line-height: 1.4;
+      font-size: var(--font-size-body);
+      line-height: 1.45;
       color: var(--color-text-secondary);
       margin: 0;
     }
 
-    /* 3 Large Identity Option Cards */
+    /* 3 Side-by-Side Identity Option Cards (Landscape Grid) */
     .id-cards-container {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-      margin: auto 0;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      margin: 8px 0;
     }
 
     .id-card {
       background: var(--color-surface);
-      border: 2.5px solid var(--color-border-subtle);
+      border: 2px solid var(--color-border-subtle);
       border-radius: var(--radius-card);
-      min-height: 156px;
-      padding: 24px 28px;
+      min-height: 240px;
+      padding: 28px 24px;
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 24px;
+      text-align: center;
+      justify-content: space-between;
+      gap: 16px;
       cursor: pointer;
       box-shadow: var(--shadow-card);
       transition: all var(--transition-tap);
@@ -250,18 +256,18 @@
     }
 
     .id-card:active {
-      transform: scale(0.99);
+      transform: scale(0.98);
     }
 
     .id-card--active {
       border-color: var(--primitive-haritaki-gold);
       background: #FFFDF8;
-      box-shadow: 0 4px 18px rgba(200, 138, 34, 0.18);
+      box-shadow: 0 6px 20px rgba(200, 138, 34, 0.22);
     }
 
     .id-card__icon-wrap {
-      width: 84px;
-      height: 84px;
+      width: 72px;
+      height: 72px;
       border-radius: var(--radius-sm);
       background: rgba(200, 138, 34, 0.12);
       border: 1.5px solid rgba(200, 138, 34, 0.25);
@@ -280,32 +286,34 @@
     }
 
     .id-card__icon-wrap svg {
-      width: 46px;
-      height: 46px;
+      width: 38px;
+      height: 38px;
     }
 
     .id-card__content {
       flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      align-items: center;
+      gap: 6px;
     }
 
     .id-card__title {
       font-family: var(--font-display);
-      font-size: 32px;
+      font-size: 22px;
       font-weight: 700;
-      line-height: 1.2;
+      line-height: 1.25;
       color: var(--color-text-primary);
     }
 
-    /* Progressive disclosure detail: appears only when tapped */
+    /* Progressive disclosure detail */
     .id-card__detail {
       font-family: var(--font-body);
-      font-size: 20px;
+      font-size: var(--font-size-small);
       color: var(--primitive-haritaki-deep);
       font-weight: 500;
       display: none;
+      line-height: 1.35;
     }
 
     .id-card--active .id-card__detail {
@@ -313,8 +321,8 @@
     }
 
     .id-card__check {
-      width: 38px;
-      height: 38px;
+      width: 32px;
+      height: 32px;
       border-radius: 50%;
       border: 2px solid var(--primitive-copper-patina);
       display: flex;
@@ -331,26 +339,45 @@
       color: var(--primitive-teak-grey);
     }
 
-    .id-card__check svg { width: 22px; height: 22px; }
+    .id-card__check svg { width: 18px; height: 18px; }
+
+    /* Branching Link to Manual Keypad */
+    .manual-branch-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: var(--font-size-body);
+      color: var(--color-text-secondary);
+    }
+
+    .manual-branch-link {
+      color: var(--primitive-haritaki-deep);
+      font-weight: 700;
+      text-decoration: underline;
+      cursor: pointer;
+    }
 
     /* Audio Guidance Note */
     .audio-hint {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 12px;
-      padding: 14px 20px;
-      border-radius: var(--radius-sm);
+      gap: 10px;
+      padding: 10px 18px;
+      border-radius: var(--radius-pill);
       background: rgba(200, 138, 34, 0.08);
       border: 1px solid var(--color-border-subtle);
       color: var(--primitive-teak-muted);
-      font-size: 20px;
+      font-size: var(--font-size-small);
       font-weight: 500;
+      width: fit-content;
+      margin: 0 auto;
     }
 
-    .audio-hint svg { width: 24px; height: 24px; color: var(--primitive-haritaki-deep); }
+    .audio-hint svg { width: 18px; height: 18px; color: var(--primitive-haritaki-deep); }
 
-    /* Action Bar (96px) */
+    /* Action Bar (88px) */
     .action-bar {
       flex: 0 0 var(--actionbar-h);
       background: var(--color-actionbar-bg);
@@ -360,6 +387,13 @@
       align-items: center;
       justify-content: space-between;
       padding: 0 var(--page-px);
+      box-sizing: border-box;
+    }
+
+    .action-bar__left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
     }
 
     .btn-secondary {
@@ -367,39 +401,39 @@
       height: var(--touch-target-back-btn);
       border-radius: var(--radius-btn);
       background: var(--color-surface);
-      border: 2px solid var(--color-border);
+      border: 1.5px solid var(--color-border);
       color: var(--color-text-primary);
       font-family: var(--font-body);
-      font-size: 20px;
+      font-size: var(--font-size-body);
       font-weight: 600;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      padding: 0 24px;
+      padding: 0 20px;
       box-shadow: 0 1px 4px rgba(44, 37, 32, 0.05);
     }
 
-    .btn-secondary svg { width: 22px; height: 22px; }
+    .btn-secondary svg { width: 20px; height: 20px; }
 
     .btn-primary {
       height: var(--touch-target-primary);
-      min-width: 320px;
-      padding: 0 36px;
+      min-width: 220px;
+      padding: 0 28px;
       border-radius: var(--radius-btn);
       background: var(--color-btn-primary-bg);
       border: none;
       color: var(--color-btn-primary-text);
       font-family: var(--font-display);
-      font-size: 28px;
+      font-size: var(--text-size-btn-primary);
       font-weight: 700;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 12px;
-      box-shadow: 0 2px 8px rgba(200, 138, 34, 0.30);
+      gap: 10px;
+      box-shadow: var(--shadow-btn-gold);
       transition: background var(--transition-tap);
     }
 
@@ -455,7 +489,7 @@
   </style>
 </head>
 <body>
-<div class="kiosk-screen">
+<div class="app-container kiosk-screen">
 
   <!-- TOP BAR -->
   <header class="topbar">
@@ -584,6 +618,12 @@
 
     </div>
 
+    <!-- Contextual Branching Link -->
+    <div class="manual-branch-bar">
+      <span>Entering without scanning?</span>
+      <a href="screen1a-manual-entry.html" class="manual-branch-link">Type ABHA ID or Mobile Number on keypad &rarr;</a>
+    </div>
+
     <!-- Audio Guidance Reminder -->
     <div class="audio-hint">
       <svg viewBox="0 0 24 24" fill="currentColor">
@@ -596,14 +636,23 @@
 
   <!-- ACTION BAR -->
   <footer class="action-bar">
-    <button class="btn-secondary" id="btnStaffHelp" aria-label="Ask for staff assistance">
-      <svg viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/>
-      </svg>
-      <span data-i18n="btnHelp">Staff Help</span>
-    </button>
+    <div class="action-bar__left">
+      <button class="btn-secondary touch-target" id="btnBack" aria-label="Go back to Home">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+        </svg>
+        <span>Back</span>
+      </button>
 
-    <button class="btn-primary" id="btnContinue">
+      <button class="btn-secondary touch-target" id="btnStaffHelp" aria-label="Ask for staff assistance">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/>
+        </svg>
+        <span data-i18n="btnHelp">Staff Help</span>
+      </button>
+    </div>
+
+    <button class="btn-primary touch-target" id="btnContinue">
       <span data-i18n="btnContinue">Continue</span>
       <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
         <path d="M5 13h11.86l-5.43 5.43 1.42 1.42L21 12l-8.15-7.85-1.42 1.42L16.86 11H5v2z"/>
@@ -806,6 +855,10 @@
       }, 700);
     }, 1500);
   }
+
+  document.getElementById('btnBack')?.addEventListener('click', () => {
+    window.location.href = 'home.html';
+  });
 
   document.getElementById('btnContinue')?.addEventListener('click', () => {
     if (selectedOption === 'manual') {

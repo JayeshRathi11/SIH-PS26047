@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=800, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MediKiosk — Step 1a: Manual ABHA / Mobile Entry</title>
 
   <!-- Google Fonts: Baloo 2 & Noto Sans -->
@@ -13,26 +13,29 @@
   <link rel="stylesheet" href="../styles/tokens.css" />
 
   <style>
-    /* ── Step 1a Manual Entry Layout (Fixed 800x1280, No Scrollbar) ── */
+    /* ── Standardized Desktop Layout (Base 1440px, Min 1024px) ── */
     html, body {
-      width: 800px;
-      height: 1280px;
+      min-height: 100vh;
       margin: 0;
       padding: 0;
-      overflow: hidden;
-      background-color: var(--color-bg);
+      background-color: var(--color-canvas-outer, #EDE8DE);
       color: var(--color-text-primary);
       font-family: var(--font-body);
       -webkit-font-smoothing: antialiased;
     }
 
+    .app-container,
     .kiosk-screen {
-      width: 800px;
-      height: 1280px;
+      max-width: var(--app-max-width);
+      min-width: var(--app-min-width);
+      margin: 0 auto;
+      width: 100%;
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
       position: relative;
+      background-color: var(--color-bg);
+      box-shadow: 0 0 32px rgba(44, 37, 32, 0.08);
     }
 
     /* Top Bar (72px) */
@@ -186,15 +189,21 @@
     .step-label--active { color: var(--color-text-primary); font-weight: 700; }
     .step-label--upcoming { color: var(--color-text-secondary); }
 
-    /* Content Zone (1056px, fits entirely without scroll) */
+    /* Content Zone (Landscape 1440x900 2-Column Grid) */
     .content-zone {
       flex: 1;
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 48px;
+      padding: 28px var(--page-px);
+      box-sizing: border-box;
+      align-items: center;
+    }
+
+    .manual-entry-left {
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
-      padding: 32px var(--page-px);
-      box-sizing: border-box;
-      overflow: hidden;
+      gap: 20px;
     }
 
     .screen-header {
@@ -203,17 +212,17 @@
 
     .screen-title {
       font-family: var(--font-display);
-      font-size: 40px;
+      font-size: var(--font-size-h1);
       font-weight: 700;
-      line-height: 1.15;
+      line-height: 1.2;
       color: var(--color-text-primary);
       margin: 0 0 6px 0;
     }
 
     .screen-subtext {
       font-family: var(--font-body);
-      font-size: 22px;
-      line-height: 1.4;
+      font-size: var(--font-size-body);
+      line-height: 1.45;
       color: var(--color-text-secondary);
       margin: 0;
     }
@@ -227,7 +236,7 @@
       box-shadow: var(--shadow-card);
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 10px;
     }
 
     .number-display-header {
@@ -237,14 +246,14 @@
     }
 
     .input-type-label {
-      font-size: 18px;
+      font-size: 15px;
       font-weight: 600;
       color: var(--primitive-haritaki-deep);
       letter-spacing: 0.02em;
     }
 
     .digit-counter {
-      font-size: 18px;
+      font-size: 14px;
       font-weight: 600;
       color: var(--color-text-secondary);
     }
@@ -253,10 +262,10 @@
       display: flex;
       align-items: center;
       justify-content: flex-start;
-      gap: 10px;
-      min-height: 56px;
+      gap: 8px;
+      min-height: 48px;
       font-family: var(--font-display);
-      font-size: 42px;
+      font-size: 32px;
       font-weight: 700;
       color: var(--color-text-primary);
       letter-spacing: 2px;
@@ -266,13 +275,13 @@
     .digits-placeholder {
       color: #A89E92;
       font-weight: 500;
-      font-size: 32px;
+      font-size: 22px;
     }
 
     .cursor-blinker {
       display: inline-block;
-      width: 3px;
-      height: 42px;
+      width: 2.5px;
+      height: 32px;
       background: var(--primitive-haritaki-gold);
       animation: blink 1s infinite;
       vertical-align: middle;
@@ -284,30 +293,50 @@
       50% { opacity: 0; }
     }
 
-    /* Numeric Keypad Grid */
+    .scan-alt-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: var(--font-size-small);
+      color: var(--primitive-haritaki-deep);
+      font-weight: 600;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    /* Right Column: Numeric Keypad Grid */
+    .manual-entry-right {
+      background: var(--color-surface);
+      border: 1.5px solid var(--color-border-subtle);
+      border-radius: var(--radius-card);
+      padding: 24px;
+      box-shadow: var(--shadow-card-elevated);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
     .keypad-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
-      max-width: 600px;
-      margin: 0 auto;
+      gap: 12px;
       width: 100%;
     }
 
     .key-btn {
-      height: 82px;
-      background: var(--color-surface);
-      border: 2px solid var(--color-border-subtle);
-      border-radius: var(--radius-card);
+      height: 64px;
+      background: #FBF9F4;
+      border: 1.5px solid var(--color-border-subtle);
+      border-radius: var(--radius-btn);
       font-family: var(--font-display);
-      font-size: 38px;
+      font-size: 28px;
       font-weight: 700;
       color: var(--color-text-primary);
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      box-shadow: 0 2px 6px rgba(44, 37, 32, 0.06);
+      box-shadow: var(--shadow-btn-neutral);
       transition: all var(--transition-tap);
       user-select: none;
     }
@@ -320,15 +349,15 @@
 
     .key-btn--action {
       font-family: var(--font-body);
-      font-size: 22px;
-      font-weight: 600;
+      font-size: 16px;
+      font-weight: 700;
       color: var(--primitive-teak-muted);
-      background: #FAF8F2;
+      background: #FAF6EE;
     }
 
-    .key-btn--action svg { width: 30px; height: 30px; }
+    .key-btn--action svg { width: 24px; height: 24px; }
 
-    /* Action Bar (96px) */
+    /* Action Bar (88px) */
     .action-bar {
       flex: 0 0 var(--actionbar-h);
       background: var(--color-actionbar-bg);
@@ -338,6 +367,13 @@
       align-items: center;
       justify-content: space-between;
       padding: 0 var(--page-px);
+      box-sizing: border-box;
+    }
+
+    .action-bar__left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
     }
 
     .btn-back {
@@ -345,38 +381,38 @@
       height: var(--touch-target-back-btn);
       border-radius: var(--radius-btn);
       background: var(--color-surface);
-      border: 2px solid var(--color-border);
+      border: 1.5px solid var(--color-border);
       color: var(--color-text-primary);
       font-family: var(--font-body);
-      font-size: 20px;
+      font-size: var(--font-size-body);
       font-weight: 600;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      padding: 0 24px;
+      padding: 0 20px;
     }
 
-    .btn-back svg { width: 22px; height: 22px; }
+    .btn-back svg { width: 20px; height: 20px; }
 
     .btn-primary {
       height: var(--touch-target-primary);
-      min-width: 320px;
-      padding: 0 36px;
+      min-width: 220px;
+      padding: 0 28px;
       border-radius: var(--radius-btn);
       background: var(--color-btn-primary-bg);
       border: none;
       color: var(--color-btn-primary-text);
       font-family: var(--font-display);
-      font-size: 28px;
+      font-size: var(--text-size-btn-primary);
       font-weight: 700;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 12px;
-      box-shadow: 0 2px 8px rgba(200, 138, 34, 0.30);
+      gap: 10px;
+      box-shadow: var(--shadow-btn-gold);
       transition: opacity var(--transition-tap);
     }
 
@@ -457,7 +493,7 @@
   </style>
 </head>
 <body>
-<div class="kiosk-screen">
+<div class="app-container kiosk-screen">
 
   <!-- TOP BAR -->
   <header class="topbar">
@@ -523,68 +559,84 @@
     </div>
   </nav>
 
-  <!-- CONTENT ZONE -->
+  <!-- CONTENT ZONE (Landscape 2-Column Grid) -->
   <main class="content-zone">
 
-    <div class="screen-header">
-      <h1 class="screen-title" data-i18n="title">Enter ABHA or Mobile Number</h1>
-      <p class="screen-subtext" data-i18n="subtext">Use the touch keypad below to enter your 14-digit ABHA or 10-digit mobile number.</p>
-    </div>
-
-    <!-- Number Display Field -->
-    <div class="number-display-card">
-      <div class="number-display-header">
-        <span class="input-type-label" id="typeLabel" data-i18n="detectPrompt">ABHA / Mobile Number</span>
-        <span class="digit-counter" id="digitCounter">0 / 14 digits</span>
+    <!-- Left Column: Input Information & Number Display -->
+    <div class="manual-entry-left">
+      <div class="screen-header">
+        <h1 class="screen-title" data-i18n="title">Enter ABHA or Mobile Number</h1>
+        <p class="screen-subtext" data-i18n="subtext">Use the touch keypad to enter your 14-digit ABHA ID or 10-digit registered mobile number.</p>
       </div>
 
-      <div class="digits-row">
-        <span id="numberText"></span>
-        <span class="cursor-blinker"></span>
-        <span class="digits-placeholder" id="placeholderText" data-i18n="placeholder">Enter 10 or 14 digits...</span>
+      <!-- Number Display Field -->
+      <div class="number-display-card">
+        <div class="number-display-header">
+          <span class="input-type-label" id="typeLabel" data-i18n="detectPrompt">ABHA / Mobile Number</span>
+          <span class="digit-counter" id="digitCounter">0 / 14 digits</span>
+        </div>
+
+        <div class="digits-row">
+          <span id="numberText"></span>
+          <span class="cursor-blinker"></span>
+          <span class="digits-placeholder" id="placeholderText" data-i18n="placeholder">Enter 10 or 14 digits...</span>
+        </div>
+      </div>
+
+      <div>
+        <a href="screen1a-identity.html" class="scan-alt-link">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/>
+          </svg>
+          <span>Have an ABHA QR code? Scan instead &rarr;</span>
+        </a>
       </div>
     </div>
 
-    <!-- 3x4 On-Screen Numeric Keypad -->
-    <div class="keypad-grid" role="group" aria-label="Touch Keypad">
-      <button class="key-btn" data-key="1">1</button>
-      <button class="key-btn" data-key="2">2</button>
-      <button class="key-btn" data-key="3">3</button>
+    <!-- Right Column: 3x4 On-Screen Numeric Keypad -->
+    <div class="manual-entry-right">
+      <div class="keypad-grid" role="group" aria-label="Touch Keypad">
+        <button class="key-btn" data-key="1">1</button>
+        <button class="key-btn" data-key="2">2</button>
+        <button class="key-btn" data-key="3">3</button>
 
-      <button class="key-btn" data-key="4">4</button>
-      <button class="key-btn" data-key="5">5</button>
-      <button class="key-btn" data-key="6">6</button>
+        <button class="key-btn" data-key="4">4</button>
+        <button class="key-btn" data-key="5">5</button>
+        <button class="key-btn" data-key="6">6</button>
 
-      <button class="key-btn" data-key="7">7</button>
-      <button class="key-btn" data-key="8">8</button>
-      <button class="key-btn" data-key="9">9</button>
+        <button class="key-btn" data-key="7">7</button>
+        <button class="key-btn" data-key="8">8</button>
+        <button class="key-btn" data-key="9">9</button>
 
-      <button class="key-btn key-btn--action" id="btnClear" data-i18n="keyClear">Clear</button>
-      <button class="key-btn" data-key="0">0</button>
-      <button class="key-btn key-btn--action" id="btnBackSpace" aria-label="Backspace">
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <path d="M22 3H7c-.69 0-1.23.35-1.59.88L0 12l5.41 8.11c.36.53.9.89 1.59.89h15c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-3 12.59L17.59 17 14 13.41 10.41 17 9 15.59 12.59 12 9 8.41 10.41 7 14 10.59 17.59 7 19 8.41 15.41 12 19 15.59z"/>
-        </svg>
-      </button>
+        <button class="key-btn key-btn--action" id="btnClear" data-i18n="keyClear">Clear</button>
+        <button class="key-btn" data-key="0">0</button>
+        <button class="key-btn key-btn--action" id="btnBackSpace" aria-label="Backspace">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M22 3H7c-.69 0-1.23.35-1.59.88L0 12l5.41 8.11c.36.53.9.89 1.59.89h15c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-3 12.59L17.59 17 14 13.41 10.41 17 9 15.59 12.59 12 9 8.41 10.41 7 14 10.59 17.59 7 19 8.41 15.41 12 19 15.59z"/>
+          </svg>
+        </button>
+      </div>
     </div>
 
   </main>
 
   <!-- ACTION BAR -->
   <footer class="action-bar">
-    <button class="btn-back" onclick="window.location.href='screen1a-identity.html'" aria-label="Back to Identity Selection">
-      <svg viewBox="0 0 24 24" fill="currentColor">
-        <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
-      </svg>
-      <span data-i18n="btnBack">Back</span>
-    </button>
+    <div class="action-bar__left">
+      <button class="btn-back" onclick="window.location.href='screen1a-identity.html'" aria-label="Back to Identity Selection">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+        </svg>
+        <span data-i18n="btnBack">Back</span>
+      </button>
 
-    <button class="btn-secondary" id="btnStaffHelp" aria-label="Ask for staff assistance" style="height: var(--touch-target-back-btn); border-radius: var(--radius-btn); background: var(--color-surface); border: 2px solid var(--color-border); color: var(--color-text-primary); font-family: var(--font-body); font-size: 20px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 20px;">
-      <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22">
-        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/>
-      </svg>
-      <span data-i18n="btnHelp">Staff Help</span>
-    </button>
+      <button class="btn-back" id="btnStaffHelp" aria-label="Ask for staff assistance" style="border-color: var(--color-border-subtle);">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/>
+        </svg>
+        <span data-i18n="btnHelp">Staff Help</span>
+      </button>
+    </div>
 
     <!-- Proceeds forward to simulated OTP verification -->
     <button class="btn-primary" id="btnContinue" disabled>
