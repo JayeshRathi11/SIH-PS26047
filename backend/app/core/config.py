@@ -34,6 +34,7 @@ class Settings:
     SUMMARY_PROVIDER: str = os.getenv("SUMMARY_PROVIDER", "mock")
     TRANSLATION_PROVIDER: str = os.getenv("TRANSLATION_PROVIDER", "mock")
     ASR_PROVIDER: str = os.getenv("ASR_PROVIDER", "mock")
+    TTS_PROVIDER: str = os.getenv("TTS_PROVIDER", "mock")
 
     # Gemini API Configuration
     GEMINI_API_KEY: str | None = os.getenv("GEMINI_API_KEY")
@@ -46,6 +47,7 @@ class Settings:
     SARVAM_MODEL: str = os.getenv("SARVAM_MODEL", os.getenv("SARVAM_MODEL_NAME", "saaras:v3"))
     SARVAM_MODEL_NAME: str = SARVAM_MODEL
     SARVAM_TIMEOUT_SECONDS: int = int(os.getenv("SARVAM_TIMEOUT_SECONDS", "15"))
+    SARVAM_TTS_MODEL: str = os.getenv("SARVAM_TTS_MODEL", "bulbul:v1")
 
     # Step 21C: Controlled LLM Fallback (Gemini -> Groq)
     LLM_FALLBACK_ENABLED: bool = os.getenv("LLM_FALLBACK_ENABLED", "false").lower() in ("true", "1", "yes")
@@ -180,6 +182,7 @@ class Settings:
         self.SUMMARY_PROVIDER = os.getenv("SUMMARY_PROVIDER", "mock")
         self.TRANSLATION_PROVIDER = os.getenv("TRANSLATION_PROVIDER", "mock")
         self.ASR_PROVIDER = os.getenv("ASR_PROVIDER", "mock")
+        self.TTS_PROVIDER = os.getenv("TTS_PROVIDER", "mock")
 
         self.GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
         self.GEMINI_MODEL = os.getenv("GEMINI_MODEL", os.getenv("GEMINI_MODEL_NAME", "gemini-2.5-flash"))
@@ -190,6 +193,7 @@ class Settings:
         self.SARVAM_MODEL = os.getenv("SARVAM_MODEL", os.getenv("SARVAM_MODEL_NAME", "saaras:v3"))
         self.SARVAM_MODEL_NAME = self.SARVAM_MODEL
         self.SARVAM_TIMEOUT_SECONDS = int(os.getenv("SARVAM_TIMEOUT_SECONDS", "15"))
+        self.SARVAM_TTS_MODEL = os.getenv("SARVAM_TTS_MODEL", "bulbul:v1")
 
         self.LLM_FALLBACK_ENABLED = os.getenv("LLM_FALLBACK_ENABLED", "false").lower() in ("true", "1", "yes")
         self.GROQ_API_KEY = os.getenv("GROQ_API_KEY")
@@ -366,6 +370,7 @@ def validate_production_config(settings_obj: Settings | None = None) -> list[str
     sarvam_providers = [
         ("ASR_PROVIDER", cfg.ASR_PROVIDER),
         ("OCR_PROVIDER", cfg.OCR_PROVIDER),
+        ("TTS_PROVIDER", getattr(cfg, "TTS_PROVIDER", "mock")),
     ]
     for name, val in sarvam_providers:
         if (val or "").lower() == "sarvam" and not cfg.SARVAM_API_KEY:

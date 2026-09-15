@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MediKiosk — Step 1a: Patient Identity</title>
+
+  <!-- Google Fonts: Baloo 2 & Noto Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="../styles/tokens.css" />
+
+  <!-- Shared MediKiosk Foundation Scripts -->
+  <script src="../scripts/config.js"></script>
+  <script src="../scripts/session.js"></script>
+  <script src="../scripts/api.js"></script>
+
+  <style>
+    /* ── Standardized Desktop Layout (Base 1440px, Min 1024px) ── */
+    html, body {
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+      background-color: var(--color-canvas-outer, #EDE8DE);
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .app-container,
+    .kiosk-screen {
+      max-width: var(--app-max-width);
+      min-width: var(--app-min-width);
+      margin: 0 auto;
+      width: 100%;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      background-color: var(--color-bg);
+      box-shadow: 0 0 32px rgba(44, 37, 32, 0.08);
+    }
+
+    /* Top Bar (72px) */
+    .topbar {
+      flex: 0 0 var(--topbar-h);
+      background: var(--color-topbar-bg);
+      border-bottom: 1px solid var(--color-topbar-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--page-px);
+    }
+
+    .topbar__brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .topbar__logo-mark {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-sm);
+      background: var(--primitive-haritaki-gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 1px 4px rgba(44, 37, 32, 0.15);
+    }
+
+    .topbar__logo-mark svg { width: 26px; height: 26px; }
+
+    .topbar__name {
+      font-family: var(--font-display);
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--primitive-haritaki-deep);
+      line-height: 1.1;
+    }
+
+    .topbar__sub {
+      font-family: var(--font-body);
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--color-text-secondary);
+    }
+
+    .topbar__controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .audio-btn {
+      width: var(--touch-target-audio-btn);
+      height: var(--touch-target-audio-btn);
+      border-radius: 50%;
+      background: var(--color-audio-btn-bg);
+      border: 2px solid var(--color-audio-btn-border);
+      color: var(--color-audio-btn-text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background var(--transition-tap);
+    }
+
+    .audio-btn:active {
+      background: var(--color-audio-btn-active-bg);
+      color: var(--color-audio-btn-active-text);
+    }
+
+    .audio-btn svg { width: 28px; height: 28px; }
+
+    .lang-chips {
+      display: flex;
+      gap: 6px;
+    }
+
+    .lang-chip {
+      height: var(--touch-target-min);
+      min-width: 58px;
+      padding: 0 14px;
+      border: 1.5px solid var(--color-border-subtle);
+      border-radius: var(--radius-sm);
+      background: var(--color-surface);
+      color: var(--color-text-secondary);
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all var(--transition-tap);
+    }
+
+    .lang-chip.active {
+      background: var(--color-btn-primary-bg);
+      color: var(--color-btn-primary-text);
+      border-color: var(--color-btn-primary-bg);
+      box-shadow: 0 2px 6px rgba(200, 138, 34, 0.25);
+    }
+
+    /* 5-Step Bar (56px) */
+    .stepbar {
+      flex: 0 0 var(--stepbar-h);
+      background: var(--color-bg);
+      border-bottom: 1px solid var(--color-border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+    }
+
+    .step-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .step-track {
+      flex: 1;
+      height: 2px;
+      background: var(--primitive-copper-track);
+      margin: 0 8px 18px 8px;
+    }
+
+    .step-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .step-dot--active {
+      width: 22px;
+      height: 22px;
+      background: var(--primitive-haritaki-gold);
+      border: 3px solid #FFFFFF;
+      box-shadow: 0 0 0 2px var(--primitive-haritaki-gold);
+    }
+
+    .step-dot--upcoming {
+      background: #FFFFFF;
+      border: 2px solid var(--color-step-upcoming);
+    }
+
+    .step-label {
+      font-family: var(--font-body);
+      font-size: 18px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .step-label--active { color: var(--color-text-primary); font-weight: 700; }
+    .step-label--upcoming { color: var(--color-text-secondary); }
+
+    /* Content Zone (Landscape 1440x900) */
+    .content-zone {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 28px var(--page-px);
+      box-sizing: border-box;
+      gap: 20px;
+    }
+
+    .screen-header {
+      text-align: left;
+    }
+
+    .screen-title {
+      font-family: var(--font-display);
+      font-size: var(--font-size-h1);
+      font-weight: 700;
+      line-height: 1.2;
+      color: var(--color-text-primary);
+      margin: 0 0 6px 0;
+    }
+
+    .screen-subtext {
+      font-family: var(--font-body);
+      font-size: var(--font-size-body);
+      line-height: 1.45;
+      color: var(--color-text-secondary);
+      margin: 0;
+    }
+
+    /* 3 Side-by-Side Identity Option Cards (Landscape Grid) */
+    .id-cards-container {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      margin: 8px 0;
+    }
+
+    .id-card {
+      background: var(--color-surface);
+      border: 2px solid var(--color-border-subtle);
+      border-radius: var(--radius-card);
+      min-height: 240px;
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      justify-content: space-between;
+      gap: 16px;
+      cursor: pointer;
+      box-shadow: var(--shadow-card);
+      transition: all var(--transition-tap);
+      position: relative;
+    }
+
+    .id-card:active {
+      transform: scale(0.98);
+    }
+
+    .id-card--active {
+      border-color: var(--primitive-haritaki-gold);
+      background: #FFFDF8;
+      box-shadow: 0 6px 20px rgba(200, 138, 34, 0.22);
+    }
+
+    .id-card__icon-wrap {
+      width: 72px;
+      height: 72px;
+      border-radius: var(--radius-sm);
+      background: rgba(200, 138, 34, 0.12);
+      border: 1.5px solid rgba(200, 138, 34, 0.25);
+      color: var(--primitive-haritaki-deep);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all var(--transition-tap);
+    }
+
+    .id-card--active .id-card__icon-wrap {
+      background: var(--primitive-haritaki-gold);
+      color: var(--primitive-teak-grey);
+      border-color: var(--primitive-haritaki-gold);
+    }
+
+    .id-card__icon-wrap svg {
+      width: 38px;
+      height: 38px;
+    }
+
+    .id-card__content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .id-card__title {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 700;
+      line-height: 1.25;
+      color: var(--color-text-primary);
+    }
+
+    /* Progressive disclosure detail */
+    .id-card__detail {
+      font-family: var(--font-body);
+      font-size: var(--font-size-small);
+      color: var(--primitive-haritaki-deep);
+      font-weight: 500;
+      display: none;
+      line-height: 1.35;
+    }
+
+    .id-card--active .id-card__detail {
+      display: block;
+    }
+
+    .id-card__check {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 2px solid var(--primitive-copper-patina);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: transparent;
+      transition: all var(--transition-tap);
+    }
+
+    .id-card--active .id-card__check {
+      background: var(--primitive-haritaki-gold);
+      border-color: var(--primitive-haritaki-gold);
+      color: var(--primitive-teak-grey);
+    }
+
+    .id-card__check svg { width: 18px; height: 18px; }
+
+    /* Branching Link to Manual Keypad */
+    .manual-branch-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: var(--font-size-body);
+      color: var(--color-text-secondary);
+    }
+
+    .manual-branch-link {
+      color: var(--primitive-haritaki-deep);
+      font-weight: 700;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    /* Audio Guidance Note */
+    .audio-hint {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 10px 18px;
+      border-radius: var(--radius-pill);
+      background: rgba(200, 138, 34, 0.08);
+      border: 1px solid var(--color-border-subtle);
+      color: var(--primitive-teak-muted);
+      font-size: var(--font-size-small);
+      font-weight: 500;
+      width: fit-content;
+      margin: 0 auto;
+    }
+
+    .audio-hint svg { width: 18px; height: 18px; color: var(--primitive-haritaki-deep); }
+
+    /* Action Bar (88px) */
+    .action-bar {
+      flex: 0 0 var(--actionbar-h);
+      background: var(--color-actionbar-bg);
+      border-top: 1px solid var(--color-actionbar-border);
+      box-shadow: var(--shadow-actionbar);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--page-px);
+      box-sizing: border-box;
+    }
+
+    .action-bar__left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .btn-secondary {
+      min-width: var(--touch-target-back-btn);
+      height: var(--touch-target-back-btn);
+      border-radius: var(--radius-btn);
+      background: var(--color-surface);
+      border: 1.5px solid var(--color-border);
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      font-size: var(--font-size-body);
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 20px;
+      box-shadow: 0 1px 4px rgba(44, 37, 32, 0.05);
+    }
+
+    .btn-secondary svg { width: 20px; height: 20px; }
+
+    .btn-primary {
+      height: var(--touch-target-primary);
+      min-width: 220px;
+      padding: 0 28px;
+      border-radius: var(--radius-btn);
+      background: var(--color-btn-primary-bg);
+      border: none;
+      color: var(--color-btn-primary-text);
+      font-family: var(--font-display);
+      font-size: var(--text-size-btn-primary);
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: var(--shadow-btn-gold);
+      transition: background var(--transition-tap);
+    }
+
+    .btn-primary:active {
+      background: var(--color-btn-primary-bg-pressed);
+    }
+
+    /* Modal Overlays */
+    .kiosk-modal-overlay {
+      display: none;
+      position: absolute;
+      inset: 0;
+      background: rgba(44, 37, 32, 0.65);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+      box-sizing: border-box;
+    }
+
+    .scanner-beam-box {
+      position: relative;
+      width: 280px;
+      height: 180px;
+      background: #FAF8F2;
+      border: 2px dashed var(--primitive-haritaki-gold);
+      border-radius: var(--radius-card);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--primitive-haritaki-deep);
+      margin: 0 auto 16px;
+      box-shadow: inset 0 0 12px rgba(200, 138, 34, 0.1);
+    }
+
+    .scanner-beam-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, transparent, #C88A22, #FFD175, #C88A22, transparent);
+      box-shadow: 0 0 12px #C88A22;
+      animation: scanBeam 1.3s infinite ease-in-out alternate;
+    }
+
+    @keyframes scanBeam {
+      0% { top: 10px; }
+      100% { top: 160px; }
+    }
+  </style>
+</head>
+<body>
+<div class="app-container kiosk-screen">
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="topbar__brand">
+      <div class="topbar__logo-mark">
+        <svg viewBox="0 0 22 22" fill="none">
+          <path d="M11 3C11 3 5 7 5 12.5C5 16.09 7.69 19 11 19C14.31 19 17 16.09 17 12.5C17 7 11 3 11 3Z" fill="#2C2520"/>
+          <path d="M11 6C11 6 7 9.5 7 13C7 15.21 8.79 17 11 17" stroke="#2C2520" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M11 6C11 6 15 9.5 15 13C15 15.21 13.21 17 11 17" stroke="#2C2520" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="11" y1="17" x2="11" y2="20" stroke="#2C2520" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="topbar__name">MediKiosk</div>
+        <div class="topbar__sub" data-i18n="topbarSub">All India Institute of Ayurveda</div>
+      </div>
+    </div>
+
+    <div class="topbar__controls">
+      <!-- Audio Replay (Sarvam TTS backend) -->
+      <button class="audio-btn" id="audioBtn" aria-label="Replay audio instruction" title="Listen (Sarvam TTS)">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+        </svg>
+      </button>
+
+      <!-- Language Chips -->
+      <div class="lang-chips" role="radiogroup" aria-label="Language selection">
+        <button class="lang-chip active" data-lang="en" role="radio" aria-checked="true">EN</button>
+        <button class="lang-chip" data-lang="hi" role="radio" aria-checked="false">हि</button>
+        <button class="lang-chip" data-lang="mr" role="radio" aria-checked="false">म</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 5-STEP BAR (Step 1 Active) -->
+  <nav class="stepbar" aria-label="OPD Progress">
+    <div class="step-item">
+      <div class="step-dot step-dot--active"></div>
+      <span class="step-label step-label--active" data-i18n="step1">1. Identity</span>
+    </div>
+    <div class="step-track"></div>
+
+    <div class="step-item">
+      <div class="step-dot step-dot--upcoming"></div>
+      <span class="step-label step-label--upcoming" data-i18n="step2">2. Interview</span>
+    </div>
+    <div class="step-track"></div>
+
+    <div class="step-item">
+      <div class="step-dot step-dot--upcoming"></div>
+      <span class="step-label step-label--upcoming" data-i18n="step3">3. Documents</span>
+    </div>
+    <div class="step-track"></div>
+
+    <div class="step-item">
+      <div class="step-dot step-dot--upcoming"></div>
+      <span class="step-label step-label--upcoming" data-i18n="step4">4. Summary</span>
+    </div>
+    <div class="step-track"></div>
+
+    <div class="step-item">
+      <div class="step-dot step-dot--upcoming"></div>
+      <span class="step-label step-label--upcoming" data-i18n="step5">5. Confirm</span>
+    </div>
+  </nav>
+
+  <!-- CONTENT ZONE (Identity only — zero clutter, fits perfectly) -->
+  <main class="content-zone">
+
+    <div class="screen-header">
+      <h1 class="screen-title" data-i18n="title">How will you check in today?</h1>
+      <p class="screen-subtext" data-i18n="subtext">Choose one option below to start your OPD visit.</p>
+    </div>
+
+    <!-- The 3 Simplified Identity Options -->
+    <div class="id-cards-container" role="radiogroup" aria-label="Identification Options">
+      
+      <!-- Option 1: QR Scan (Active by default) -->
+      <div class="id-card id-card--active" data-option="scan" tabindex="0" role="radio" aria-checked="true">
+        <div class="id-card__icon-wrap">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm13-2h3v2h-3v-2zm-3 2h2v3h-2v-3zm3 3h3v3h-3v-3zm-5 1h2v2h-2v-2z"/>
+          </svg>
+        </div>
+        <div class="id-card__content">
+          <div class="id-card__title" data-i18n="opt1Title">Scan ABHA Card / QR</div>
+          <div class="id-card__detail" data-i18n="opt1Detail">Hold your card or phone screen under the scanner</div>
+        </div>
+        <div class="id-card__check">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+        </div>
+      </div>
+
+      <!-- Option 2: Manual Entry -->
+      <div class="id-card" data-option="manual" tabindex="0" role="radio" aria-checked="false">
+        <div class="id-card__icon-wrap">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 18H5V4h14v16zM7 6h2v2H7V6zm4 0h2v2h-2V6zm4 0h2v2h-2V6zm-8 4h2v2H7v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2zm-8 4h2v2H7v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2zm-8 4h10v2H7v-2z"/>
+          </svg>
+        </div>
+        <div class="id-card__content">
+          <div class="id-card__title" data-i18n="opt2Title">Enter ABHA or Mobile</div>
+          <div class="id-card__detail" data-i18n="opt2Detail">Type your 14-digit ABHA ID or mobile number on screen</div>
+        </div>
+        <div class="id-card__check">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+        </div>
+      </div>
+
+      <!-- Option 3: New Patient -->
+      <div class="id-card" data-option="new" tabindex="0" role="radio" aria-checked="false">
+        <div class="id-card__icon-wrap">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+          </svg>
+        </div>
+        <div class="id-card__content">
+          <div class="id-card__title" data-i18n="opt3Title">New Patient</div>
+          <div class="id-card__detail" data-i18n="opt3Detail">First visit without ABHA? Create a new hospital OPD slip</div>
+        </div>
+        <div class="id-card__check">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Contextual Branching Link -->
+    <div class="manual-branch-bar">
+      <span>Entering without scanning?</span>
+      <a href="screen1a-manual-entry.html" class="manual-branch-link">Type ABHA ID or Mobile Number on keypad &rarr;</a>
+    </div>
+
+    <!-- Audio Guidance Reminder -->
+    <div class="audio-hint">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+      </svg>
+      <span data-i18n="audioPrompt">Tap the speaker icon above if you want audio instructions.</span>
+    </div>
+
+  </main>
+
+  <!-- ACTION BAR -->
+  <footer class="action-bar">
+    <div class="action-bar__left">
+      <button class="btn-secondary touch-target" id="btnBack" aria-label="Go back to Home">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+        </svg>
+        <span>Back</span>
+      </button>
+
+      <button class="btn-secondary touch-target" id="btnStaffHelp" aria-label="Ask for staff assistance">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/>
+        </svg>
+        <span data-i18n="btnHelp">Staff Help</span>
+      </button>
+    </div>
+
+    <button class="btn-primary touch-target" id="btnContinue">
+      <span data-i18n="btnContinue">Continue</span>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M5 13h11.86l-5.43 5.43 1.42 1.42L21 12l-8.15-7.85-1.42 1.42L16.86 11H5v2z"/>
+      </svg>
+    </button>
+  </footer>
+
+  <!-- 1. Simulated Scanner Modal -->
+  <div id="scannerModal" class="kiosk-modal-overlay">
+    <div class="clay-surface" style="width: 100%; max-width: 580px; padding: 36px 32px; border-radius: var(--radius-card); display: flex; flex-direction: column; align-items: center; text-align: center; box-shadow: var(--shadow-card-elevated);">
+      <div class="scanner-beam-box">
+        <div class="scanner-beam-line"></div>
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity: 0.35; margin-bottom: 6px;">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <path d="M7 7h3v3H7zm7 0h3v3h-3zm-7 7h3v3H7zm7 3h3v-3h-3z"/>
+        </svg>
+        <span id="scanProgressLabel" style="font-size: 13px; letter-spacing: 0.08em; font-weight: 700;">[ SCANNING QR ]</span>
+      </div>
+      <h2 id="scanStatusTitle" style="font-family: var(--font-display); font-size: 28px; font-weight: 700; color: var(--primitive-teak-grey); margin: 0 0 8px;" data-i18n="scanningTitle">Scanning ABHA QR Code...</h2>
+      <p id="scanStatusSub" style="font-size: 18px; line-height: 1.45; color: var(--color-text-secondary); margin: 0;" data-i18n="scanningSub">Hold your card or phone steady under the scanner below.</p>
+      <button class="btn-secondary" id="btnScannerClose" style="display: none; height: 48px; min-width: 160px; border-radius: var(--radius-btn); margin-top: 16px;">Close</button>
+    </div>
+  </div>
+
+  <!-- 2. Staff Assistance Modal -->
+  <div id="staffHelpModal" class="kiosk-modal-overlay">
+    <div class="clay-surface" style="width: 100%; max-width: 580px; padding: 36px 32px; border-radius: var(--radius-card); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px; box-shadow: var(--shadow-card-elevated);">
+      <div style="width: 72px; height: 72px; border-radius: 50%; background: #FAF1DF; border: 2px solid #DEC99B; color: var(--primitive-haritaki-deep); display: flex; align-items: center; justify-content: center;">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/>
+        </svg>
+      </div>
+      <h2 style="font-family: var(--font-display); font-size: 28px; font-weight: 700; color: var(--primitive-teak-grey); margin: 0;" data-i18n="staffModalTitle">OPD Assistant Alerted</h2>
+      <p style="font-size: 18px; line-height: 1.45; color: var(--color-text-secondary); margin: 0;" data-i18n="staffModalMsg">A staff member has been notified and will assist you shortly at Counter 1.</p>
+      <button class="btn-primary" id="btnStaffClose" style="height: 56px; min-width: 220px; border-radius: var(--radius-btn); margin-top: 10px;" data-i18n="btnStaffClose">Got It</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- SCRIPT: Language Switching & Card Interaction -->
+<script>
+  const i18n = {
+    en: {
+      topbarSub: "All India Institute of Ayurveda",
+      step1: "1. Identity",
+      step2: "2. Interview",
+      step3: "3. Documents",
+      step4: "4. Summary",
+      step5: "5. Confirm",
+      title: "How will you check in today?",
+      subtext: "Choose one option below to start your OPD visit.",
+      opt1Title: "Scan ABHA Card / QR",
+      opt1Detail: "Hold your card or phone screen under the scanner",
+      opt2Title: "Enter ABHA or Mobile",
+      opt2Detail: "Type your 14-digit ABHA ID or mobile number on screen",
+      opt3Title: "New Patient",
+      opt3Detail: "First visit without ABHA? Create a new hospital OPD slip",
+      audioPrompt: "Tap the speaker icon above if you want audio instructions.",
+      btnHelp: "Staff Help",
+      btnContinue: "Continue",
+      scanningTitle: "Scanning ABHA QR Code...",
+      scanningSub: "Hold your card or phone steady under the scanner below.",
+      scanSuccessTitle: "✓ ABHA Card Verified!",
+      scanSuccessSub: "Rajesh Sharma • ABHA: 91-4210-8891-2304",
+      staffModalTitle: "OPD Assistant Alerted",
+      staffModalMsg: "A staff member has been notified and will assist you shortly at Counter 1.",
+      btnStaffClose: "Got It"
+    },
+    hi: {
+      topbarSub: "अखिल भारतीय आयुर्वेद संस्थान",
+      step1: "१. पहचान",
+      step2: "२. लक्षण चर्चा",
+      step3: "३. दस्तावेज़",
+      step4: "४. सारांश",
+      step5: "५. पुष्टि",
+      title: "आज आप कैसे पहचान करेंगे?",
+      subtext: "अपनी ओपीडी पर्ची शुरू करने के लिए नीचे एक विकल्प चुनें।",
+      opt1Title: "आभा (ABHA) कार्ड स्कैन करें",
+      opt1Detail: "अपना कार्ड या मोबाइल स्क्रीन स्कैनर के सामने रखें",
+      opt2Title: "आभा या मोबाइल नंबर लिखें",
+      opt2Detail: "टचस्क्रीन पर अपना १४ अंकों का आभा या मोबाइल नंबर लिखें",
+      opt3Title: "नया मरीज (पहली बार)",
+      opt3Detail: "आभा नहीं है? अस्पताल की नई ओपीडी पर्ची बनाएं",
+      audioPrompt: "आवाज में सुनने के लिए ऊपर दिए गए स्पीकर को छुएं।",
+      btnHelp: "कर्मचारी सहायता",
+      btnContinue: "आगे बढ़ें",
+      scanningTitle: "आभा क्यूआर कोड स्कैन हो रहा है...",
+      scanningSub: "अपना कार्ड या फोन नीचे स्कैनर के सामने स्थिर रखें।",
+      scanSuccessTitle: "✓ आभा कार्ड सत्यापित हुआ!",
+      scanSuccessSub: "राजेश शर्मा • आभा: ९१-४२१०-८८९१-२३०४",
+      staffModalTitle: "ओपीडी सहायक को सूचित किया गया",
+      staffModalMsg: "कर्मचारी को सूचित कर दिया गया है, काउंटर १ से कोई आपकी सहायता के लिए आ रहा है।",
+      btnStaffClose: "समझ गया"
+    },
+    mr: {
+      topbarSub: "अखिल भारतीय आयुर्वेद संस्था",
+      step1: "१. ओळख",
+      step2: "२. लक्षण तपासणी",
+      step3: "३. कागदपत्रे",
+      step4: "४. सारांश",
+      step5: "५. पुष्टी",
+      title: "आज आपली ओळख कशी कराल?",
+      subtext: "ओपीडी नोंदणी सुरू करण्यासाठी खालील एक पर्याय निवडा.",
+      opt1Title: "आभा (ABHA) कार्ड स्कॅन करा",
+      opt1Detail: "आपले कार्ड किंवा मोबाइल स्क्रीन स्कॅनर समोर धरा",
+      opt2Title: "आभा किंवा मोबाइल नंबर टाका",
+      opt2Detail: "स्क्रीनवर आपला १४ अंकी आभा किंवा मोबाइल नंबर टाका",
+      opt3Title: "नवीन रुग्ण (पहिली भेट)",
+      opt3Detail: "आभा नाही? हॉस्पिटलची नवीन ओपीडी स्लिप तयार करा",
+      audioPrompt: "आवाज ऐकण्यासाठी वर दिलेल्या स्पीकर आयकॉनला स्पर्श करा.",
+      btnHelp: "कर्मचारी मदत",
+      btnContinue: "पुढे जा",
+      scanningTitle: "आभा क्यूआर कोड स्कॅन होत आहे...",
+      scanningSub: "आपले कार्ड किंवा फोन खालील स्कॅनरसमोर स्थिर ठेवा.",
+      scanSuccessTitle: "✓ आभा कार्ड सत्यापित झाले!",
+      scanSuccessSub: "राजेश शर्मा • आभा: ९१-४२१०-८८९१-२३०४",
+      staffModalTitle: "ओपीडी कर्मचाऱ्यांना कळवले आहे",
+      staffModalMsg: "कर्मचाऱ्यांना संदेश पाठवला आहे, काउंटर १ वरून कोणीतरी आपल्या मदतीस लवकरच येईल.",
+      btnStaffClose: "समजले"
+    }
+  };
+
+  let currentLang = 'en';
+
+  function setLanguage(lang) {
+    if (!i18n[lang]) return;
+    currentLang = lang;
+    try { localStorage.setItem('medikiosk_lang', lang); } catch(e){}
+    document.documentElement.lang = lang;
+
+    // Toggle chips
+    document.querySelectorAll('.lang-chip').forEach(chip => {
+      const isMatch = chip.getAttribute('data-lang') === lang;
+      chip.classList.toggle('active', isMatch);
+      chip.setAttribute('aria-checked', isMatch ? 'true' : 'false');
+    });
+
+    // Swap text
+    const t = i18n[lang];
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      if (t[key]) el.textContent = t[key];
+    });
+  }
+
+  // Language chips click
+  document.querySelectorAll('.lang-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      setLanguage(chip.getAttribute('data-lang'));
+    });
+  });
+
+  let selectedOption = 'scan'; // default
+  
+  // Card Selection click
+  document.querySelectorAll('.id-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const prevOption = selectedOption;
+      document.querySelectorAll('.id-card').forEach(c => {
+        c.classList.remove('id-card--active');
+        c.setAttribute('aria-checked', 'false');
+      });
+      card.classList.add('id-card--active');
+      card.setAttribute('aria-checked', 'true');
+      selectedOption = card.getAttribute('data-option');
+
+      // If already active or tapped on scan directly, run simulated scan
+      if (selectedOption === 'scan' && prevOption === 'scan') {
+        triggerScanSimulation();
+      } else if (selectedOption === 'manual' && prevOption === 'manual') {
+        window.location.href = 'screen1a-manual-entry.html';
+      }
+    });
+  });
+
+  // Real Backend Patient Registration via Scanned ABHA Demographics
+  let isScanning = false;
+  async function triggerScanSimulation() {
+    if (isScanning) return;
+    const modal = document.getElementById('scannerModal');
+    const title = document.getElementById('scanStatusTitle');
+    const sub = document.getElementById('scanStatusSub');
+    const label = document.getElementById('scanProgressLabel');
+    const closeBtn = document.getElementById('btnScannerClose');
+    const btnContinue = document.getElementById('btnContinue');
+    if (!modal) return;
+
+    isScanning = true;
+    if (btnContinue) btnContinue.disabled = true;
+    if (closeBtn) closeBtn.style.display = 'none';
+
+    modal.style.display = 'flex';
+    const t = i18n[currentLang] || i18n.en;
+    title.textContent = t.scanningTitle;
+    sub.textContent = t.scanningSub;
+    label.textContent = '[ SCANNING QR ]';
+    label.style.color = 'var(--primitive-haritaki-deep)';
+
+    // Demographic data extracted from simulated ABHA QR scan
+    const abhaScanData = {
+      phone_number: "+919876543210",
+      name: "Sunita Sharma",
+      date_of_birth: "1985-07-20",
+      gender: "Female",
+      preferred_language: currentLang || "en"
+    };
+
+    try {
+      // Step 1: Register patient in backend
+      const patientRes = await MediKioskApi.post('/api/patients', abhaScanData);
+      const patientId = patientRes.data.id;
+      MediKioskSession.setPatientId(patientId);
+
+      // Step 2: Establish session for active patient encounter
+      try {
+        const sessionRes = await MediKioskApi.post('/api/sessions', { patient_id: patientId });
+        if (sessionRes && sessionRes.data && sessionRes.data.id) {
+          MediKioskSession.setSessionId(sessionRes.data.id);
+        }
+      } catch (sessErr) {
+        // Gracefully handle if session status returns active conflict
+      }
+
+      title.textContent = t.scanSuccessTitle;
+      title.style.color = 'var(--primitive-herbal-green)';
+      sub.textContent = t.scanSuccessSub;
+      label.textContent = '[ VERIFIED ✓ ]';
+      label.style.color = 'var(--primitive-herbal-green)';
+
+      setTimeout(() => {
+        window.location.href = 'screen1b-consent.html';
+      }, 700);
+    } catch (err) {
+      isScanning = false;
+      if (btnContinue) btnContinue.disabled = false;
+      if (closeBtn) {
+        closeBtn.style.display = 'block';
+        closeBtn.onclick = () => { modal.style.display = 'none'; };
+      }
+
+      label.style.color = 'var(--primitive-signal-red, #B91C1C)';
+      if (err.isConflict) {
+        label.textContent = '[ ALREADY REGISTERED ]';
+        title.textContent = 'Patient Already Registered';
+        title.style.color = 'var(--primitive-signal-red, #B91C1C)';
+        sub.textContent = 'This patient record is already registered. Please proceed via manual check-in or visit staff.';
+      } else if (err.isValidationError) {
+        label.textContent = '[ VALIDATION ERROR ]';
+        title.textContent = 'Registration Validation Failed';
+        title.style.color = 'var(--primitive-signal-red, #B91C1C)';
+        sub.textContent = err.message || 'Invalid demographic format.';
+      } else {
+        label.textContent = '[ CONNECTION ERROR ]';
+        title.textContent = 'Server Connection Failed';
+        title.style.color = 'var(--primitive-signal-red, #B91C1C)';
+        sub.textContent = err.message || 'Unable to connect to hospital server. Please try again.';
+      }
+    }
+  }
+
+  document.getElementById('btnBack')?.addEventListener('click', () => {
+    window.location.href = 'home.html';
+  });
+
+  document.getElementById('btnContinue')?.addEventListener('click', () => {
+    if (selectedOption === 'manual' || selectedOption === 'new') {
+      window.location.href = 'screen1a-manual-entry.html';
+    } else if (selectedOption === 'scan') {
+      triggerScanSimulation();
+    }
+  });
+
+  // Staff Help Modal Handlers
+  document.getElementById('btnStaffHelp')?.addEventListener('click', () => {
+    document.getElementById('staffHelpModal').style.display = 'flex';
+  });
+
+  document.getElementById('btnStaffClose')?.addEventListener('click', () => {
+    document.getElementById('staffHelpModal').style.display = 'none';
+  });
+
+  // Default Language
+  const savedLang = (function(){ try { return localStorage.getItem('medikiosk_lang'); } catch(e){ return null; } })() || 'en';
+  setLanguage(savedLang);
+</script>
+</body>
+</html>

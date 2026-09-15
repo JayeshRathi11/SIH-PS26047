@@ -1,0 +1,1736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MediKiosk — Step 4: Summary &amp; Patient Confirmation</title>
+
+  <!-- Google Fonts: Baloo 2 & Noto Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="../styles/tokens.css" />
+
+  <!-- Shared MediKiosk Foundation Scripts -->
+  <script src="../scripts/config.js"></script>
+  <script src="../scripts/session.js"></script>
+  <script src="../scripts/api.js"></script>
+
+  <style>
+    /* ── Standardized Desktop Layout (Base 1440px, Min 1024px) ── */
+    html, body {
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+      background-color: var(--color-canvas-outer, #EDE8DE);
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .app-container,
+    .kiosk-screen {
+      max-width: var(--app-max-width);
+      min-width: var(--app-min-width);
+      margin: 0 auto;
+      width: 100%;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      background-color: var(--color-bg);
+      box-shadow: 0 0 32px rgba(44, 37, 32, 0.08);
+    }
+
+    /* Top Bar (72px) */
+    .topbar {
+      flex: 0 0 var(--topbar-h);
+      background: var(--color-topbar-bg);
+      border-bottom: 1px solid var(--color-topbar-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--page-px);
+    }
+
+    .topbar__brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .topbar__logo-mark {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-sm);
+      background: var(--primitive-haritaki-gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(44, 37, 32, 0.12);
+    }
+
+    .topbar__logo-mark svg { width: 26px; height: 26px; }
+
+    .topbar__name {
+      font-family: var(--font-display);
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--primitive-haritaki-deep);
+      line-height: 1.1;
+    }
+
+    .topbar__sub {
+      font-family: var(--font-body);
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--color-text-secondary);
+    }
+
+    .topbar__controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .audio-btn {
+      width: var(--touch-target-audio-btn);
+      height: var(--touch-target-audio-btn);
+      border-radius: 50%;
+      background: var(--color-audio-btn-bg);
+      border: 2px solid var(--color-audio-btn-border);
+      color: var(--color-audio-btn-text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background var(--transition-tap);
+    }
+
+    .audio-btn:active {
+      background: var(--color-audio-btn-active-bg);
+      color: var(--color-audio-btn-active-text);
+    }
+
+    .audio-btn svg { width: 28px; height: 28px; }
+
+    .lang-chips {
+      display: flex;
+      gap: 6px;
+    }
+
+    .lang-chip {
+      height: var(--touch-target-min);
+      min-width: 58px;
+      padding: 0 14px;
+      border: 1.5px solid var(--color-border-subtle);
+      border-radius: var(--radius-sm);
+      background: var(--color-surface);
+      color: var(--color-text-secondary);
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all var(--transition-tap);
+    }
+
+    .lang-chip.active {
+      background: var(--color-btn-primary-bg);
+      color: var(--color-btn-primary-text);
+      border-color: var(--color-btn-primary-bg);
+      box-shadow: 0 2px 6px rgba(200, 138, 34, 0.25);
+    }
+
+    /* 5-Step Bar: Steps 1, 2, 3 Complete, Step 4 Active */
+    .stepbar {
+      flex: 0 0 var(--stepbar-h);
+      background: var(--color-bg);
+      border-bottom: 1px solid var(--color-border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+    }
+
+    .step-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .step-track {
+      flex: 1;
+      height: 6px;
+      background: #EDE5D3;
+      margin: 0 8px 18px 8px;
+    }
+
+    .step-track--done {
+      background: linear-gradient(90deg, #D49E34, #BE8722);
+      box-shadow: 0 1px 4px rgba(200, 146, 42, 0.4);
+    }
+
+    .step-dot {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .step-dot--complete {
+      background: linear-gradient(135deg, #D7A23A, #B47F20);
+      color: #FFFFFF;
+      box-shadow: var(--shadow-check-disk);
+    }
+
+    .step-dot--complete svg { width: 14px; height: 14px; }
+
+    .step-dot--active {
+      width: 26px;
+      height: 26px;
+      background: #FCFAF6;
+      border: 2.5px solid #C8922A;
+      box-shadow: 0 2px 8px rgba(44, 37, 32, 0.12), inset 2px 2px 4px rgba(255, 255, 255, 0.9);
+      position: relative;
+    }
+
+    .step-dot--active::after {
+      content: '';
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #C8922A;
+      box-shadow: 0 1px 3px rgba(200, 146, 42, 0.5);
+    }
+
+    .step-dot--upcoming {
+      background: #EDE5D3;
+      box-shadow: var(--shadow-concave-disc);
+      border: 1px solid #D5C9B3;
+    }
+
+    .step-label {
+      font-family: var(--font-body);
+      font-size: 16px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .step-label--complete { color: var(--primitive-haritaki-deep); font-weight: 700; }
+    .step-label--active   { color: var(--color-text-primary); font-weight: 700; }
+    .step-label--upcoming { color: var(--color-text-secondary); opacity: 0.75; }
+
+    /* Content Zone (1056px strictly budgeted) */
+    .content-zone {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 22px var(--page-px);
+      box-sizing: border-box;
+      overflow: hidden;
+      gap: 16px;
+    }
+
+    /* Header */
+    .screen-header {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .header-top-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .summary-step-tag {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--primitive-haritaki-deep);
+      background: #FAF1DF;
+      border: 1.5px solid #DEC99B;
+      padding: 5px 14px;
+      border-radius: var(--radius-pill);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .screen-title {
+      font-family: var(--font-display);
+      font-size: 38px;
+      font-weight: 700;
+      line-height: 1.15;
+      color: var(--color-text-primary);
+      margin: 2px 0 0 0;
+    }
+
+    .screen-subtext {
+      font-family: var(--font-body);
+      font-size: 20px;
+      line-height: 1.35;
+      color: var(--color-text-secondary);
+      margin: 0;
+    }
+
+    /* ── Main Patient Summary Clay Container ── */
+    .summary-card {
+      padding: 24px 26px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      position: relative;
+    }
+
+    .summary-intro-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #EBE2D2;
+      padding-bottom: 12px;
+    }
+
+    .summary-patient-meta {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .patient-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: #FAF1DF;
+      border: 2px solid #DEC99B;
+      color: var(--primitive-haritaki-deep);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .patient-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .patient-name {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--primitive-teak-grey);
+    }
+
+    .patient-sub {
+      font-size: 15px;
+      color: var(--color-text-secondary);
+      font-weight: 500;
+    }
+
+    .bilingual-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: var(--radius-pill);
+      background: #F4FBF6;
+      border: 1px solid rgba(46, 107, 57, 0.3);
+      color: var(--primitive-herbal-green);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    /* 4 Consolidated Statements (Screen 1, 2, 3 Data) */
+    .statements-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .statement-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 14px 18px;
+      border-radius: 20px;
+      background: #FBF9F4;
+      border: 1.5px solid #EBE2D2;
+      box-shadow: 0 2px 6px rgba(44, 37, 32, 0.04);
+      transition: var(--transition-tactile);
+    }
+
+    .statement-item:hover {
+      border-color: #DEC99B;
+    }
+
+    .statement-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .statement-icon--chest {
+      background: #FAF1DF;
+      color: var(--primitive-haritaki-deep);
+      border: 1.5px solid #DEC99B;
+    }
+
+    .statement-icon--ayush {
+      background: #F4FBF6;
+      color: var(--primitive-herbal-green);
+      border: 1.5px solid rgba(46, 107, 57, 0.3);
+    }
+
+    .statement-icon--rx {
+      background: #EFF6FF;
+      color: #1D4ED8;
+      border: 1.5px solid #BFDBFE;
+    }
+
+    .statement-icon--lab {
+      background: #FDEDEB;
+      color: var(--primitive-manjistha-red);
+      border: 1.5px solid rgba(181, 56, 38, 0.3);
+    }
+
+    .statement-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .statement-category {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--primitive-teak-muted);
+    }
+
+    .statement-text {
+      font-family: var(--font-body);
+      font-size: 19px;
+      font-weight: 600;
+      line-height: 1.35;
+      color: var(--color-text-primary);
+    }
+
+    .statement-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 2px 10px;
+      border-radius: var(--radius-pill);
+      width: fit-content;
+      margin-top: 2px;
+    }
+
+    .tag-calm-flag {
+      background: rgba(181, 56, 38, 0.1);
+      color: var(--primitive-manjistha-red);
+      border: 1px solid rgba(181, 56, 38, 0.25);
+    }
+
+    .tag-verified {
+      background: rgba(46, 107, 57, 0.1);
+      color: var(--primitive-herbal-green);
+      border: 1px solid rgba(46, 107, 57, 0.25);
+    }
+
+    /* ── Action Decision Cards (Two Large Unambiguous Touch Targets) ── */
+    .decision-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .decision-label {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--primitive-teak-muted);
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .decision-buttons-row {
+      display: grid;
+      grid-template-columns: 1fr 1.35fr;
+      gap: 16px;
+    }
+
+    /* Primary Gold Button: "Yes, this is correct" */
+    .btn-confirm-yes {
+      height: 80px;
+      padding: 0 28px;
+      border-radius: var(--radius-btn);
+      background: linear-gradient(145deg, #D49E34, #BE8722);
+      border: none;
+      color: #FFFFFF;
+      box-shadow: var(--shadow-btn-gold);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: var(--transition-tactile);
+      text-align: left;
+    }
+
+    .btn-confirm-yes__text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .btn-confirm-yes__title {
+      font-family: var(--font-display);
+      font-size: 24px;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+
+    .btn-confirm-yes__sub {
+      font-size: 14px;
+      font-weight: 500;
+      opacity: 0.9;
+    }
+
+    .btn-confirm-yes svg {
+      width: 32px;
+      height: 32px;
+      flex-shrink: 0;
+    }
+
+    /* Secondary Neutral Button: "Something's wrong, let me fix it" */
+    .btn-confirm-no {
+      height: 80px;
+      padding: 0 22px;
+      border-radius: var(--radius-btn);
+      background: var(--primitive-cream-neutral);
+      border: 1.5px solid #E4DAC6;
+      color: var(--primitive-teak-grey);
+      box-shadow: var(--shadow-btn-neutral);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      cursor: pointer;
+      transition: var(--transition-tactile);
+      text-align: left;
+    }
+
+    .btn-confirm-no__icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #EDE5D3;
+      border: 1px solid #D5C9B3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: var(--primitive-teak-muted);
+    }
+
+    .btn-confirm-no__text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .btn-confirm-no__title {
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 1.15;
+      color: var(--color-text-primary);
+    }
+
+    .btn-confirm-no__sub {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--color-text-secondary);
+    }
+
+    /* Action Bar (96px) */
+    .action-bar {
+      flex: 0 0 var(--actionbar-h);
+      background: var(--color-actionbar-bg);
+      border-top: 1px solid var(--color-actionbar-border);
+      box-shadow: var(--shadow-actionbar);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--page-px);
+    }
+
+    .btn-back {
+      min-width: var(--touch-target-back-btn);
+      height: var(--touch-target-back-btn);
+      border-radius: var(--radius-btn);
+      background: var(--primitive-cream-neutral);
+      border: 1.5px solid #E4DAC6;
+      color: var(--primitive-teak-grey);
+      font-family: var(--font-body);
+      font-size: 20px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 24px;
+      box-shadow: var(--shadow-btn-neutral);
+      transition: var(--transition-tactile);
+    }
+
+    .btn-back svg { width: 22px; height: 22px; }
+
+    .action-bar-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .kiosk-help-hint {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--primitive-teak-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ── CORRECTION FOLLOW-UP MODAL (Interaction Pattern) ── */
+    .correction-overlay {
+      display: none;
+      position: absolute;
+      inset: 0;
+      background: rgba(44, 37, 32, 0.65);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+      box-sizing: border-box;
+    }
+
+    .correction-card {
+      width: 100%;
+      max-width: 680px;
+      padding: 36px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      position: relative;
+    }
+
+    .correction-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+    }
+
+    .correction-title {
+      font-family: var(--font-display);
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--primitive-teak-grey);
+    }
+
+    .correction-subtitle {
+      font-size: 18px;
+      color: var(--color-text-secondary);
+      margin-top: 4px;
+    }
+
+    .correction-options {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .correction-choice-btn {
+      padding: 18px 22px;
+      border-radius: var(--radius-btn);
+      background: #FBF9F4;
+      border: 1.5px solid #EBE2D2;
+      box-shadow: var(--shadow-card-unselected);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: var(--transition-tactile);
+      text-align: left;
+    }
+
+    .correction-choice-btn:active {
+      transform: scale(0.98);
+      background: var(--primitive-cream-warm);
+      border-color: var(--primitive-haritaki-gold);
+    }
+
+    .correction-choice-text {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--primitive-teak-grey);
+    }
+
+    .correction-choice-desc {
+      font-family: var(--font-body);
+      font-size: 15px;
+      color: var(--color-text-secondary);
+      font-weight: 500;
+    }
+
+    .btn-close-correction {
+      height: 60px;
+      border-radius: var(--radius-btn);
+      background: var(--primitive-cream-neutral);
+      border: 1.5px solid #E4DAC6;
+      color: var(--primitive-teak-grey);
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: var(--shadow-btn-neutral);
+      transition: var(--transition-tactile);
+    }
+
+    /* ── QUEUE TOKEN & CALM CONFIRMATION STATE (Final Done State) ── */
+    .confirmation-view {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 24px var(--page-px);
+      box-sizing: border-box;
+      text-align: center;
+    }
+
+    .done-hero-card {
+      padding: 36px 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      margin: auto 0;
+    }
+
+    .done-check-dome {
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #388E3C, #2E6B39);
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 24px rgba(46, 107, 57, 0.35), inset 3px 3px 6px rgba(255, 255, 255, 0.4);
+    }
+
+    .done-check-dome svg { width: 52px; height: 52px; }
+
+    .token-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 36px;
+      border-radius: var(--radius-card);
+      background: #FAF1DF;
+      border: 2.5px solid #DEC99B;
+      box-shadow: var(--shadow-card-selected);
+      width: fit-content;
+    }
+
+    .token-label {
+      font-size: 16px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--primitive-haritaki-deep);
+    }
+
+    .token-number {
+      font-family: var(--font-display);
+      font-size: 68px;
+      font-weight: 800;
+      line-height: 1.05;
+      color: var(--primitive-teak-grey);
+    }
+
+    .token-dept {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--primitive-haritaki-deep);
+    }
+
+    .done-reassurance-msg {
+      max-width: 580px;
+      font-size: 21px;
+      line-height: 1.45;
+      color: var(--primitive-teak-grey);
+    }
+
+    .done-guidance-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 22px;
+      border-radius: var(--radius-pill);
+      background: #FAF8F2;
+      border: 1px solid #EBE2D2;
+      box-shadow: var(--shadow-pill);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--primitive-teak-muted);
+    }
+
+    .btn-finish-restart {
+      height: 72px;
+      padding: 0 36px;
+      border-radius: var(--radius-btn);
+      background: linear-gradient(145deg, #D49E34, #BE8722);
+      border: none;
+      color: #FFFFFF;
+      font-family: var(--font-display);
+      font-size: 24px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: var(--shadow-btn-gold);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin: 0 auto;
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-container kiosk-screen" role="region" aria-label="Step 4: Clinical Summary & Patient Confirmation">
+
+  <!-- TOP BAR (72px) -->
+  <header class="topbar">
+    <div class="topbar__brand">
+      <div class="topbar__logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 22 22" fill="none">
+          <path d="M11 3C11 3 5 7 5 12.5C5 16.09 7.69 19 11 19C14.31 19 17 16.09 17 12.5C17 7 11 3 11 3Z" fill="#2C2520"/>
+          <path d="M11 6C11 6 7 9.5 7 13C7 15.21 8.79 17 11 17" stroke="#2C2520" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M11 6C11 6 15 9.5 15 13C15 15.21 13.21 17 11 17" stroke="#2C2520" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="11" y1="17" x2="11" y2="20" stroke="#2C2520" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="topbar__name">MediKiosk</div>
+        <div class="topbar__sub" data-i18n="topbarSub">All India Institute of Ayurveda</div>
+      </div>
+    </div>
+
+    <div class="topbar__controls">
+      <!-- Audio Replay (Sarvam TTS backend) -->
+      <button class="audio-btn" id="audioBtn" aria-label="Listen to summary audio" title="Listen (Sarvam TTS)">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+        </svg>
+      </button>
+
+      <!-- Language Chips -->
+      <div class="lang-chips" role="radiogroup" aria-label="Language selection">
+        <button class="lang-chip active" data-lang="en" role="radio" aria-checked="true">EN</button>
+        <button class="lang-chip" data-lang="hi" role="radio" aria-checked="false">हि</button>
+        <button class="lang-chip" data-lang="mr" role="radio" aria-checked="false">म</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 5-STEP BAR: Steps 1-3 Complete, Step 4 Active, Step 5 Upcoming -->
+  <nav class="stepbar" id="kioskStepbar" aria-label="OPD Intake Progress">
+    <div class="step-item">
+      <div class="step-dot step-dot--complete" aria-label="Step 1 complete">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+      </div>
+      <span class="step-label step-label--complete" data-i18n="step1">✓ 1. Identity</span>
+    </div>
+    <div class="step-track step-track--done"></div>
+
+    <div class="step-item">
+      <div class="step-dot step-dot--complete" aria-label="Step 2 complete">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+      </div>
+      <span class="step-label step-label--complete" data-i18n="step2">✓ 2. Interview</span>
+    </div>
+    <div class="step-track step-track--done"></div>
+
+    <div class="step-item">
+      <div class="step-dot step-dot--complete" aria-label="Step 3 complete">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+      </div>
+      <span class="step-label step-label--complete" data-i18n="step3">✓ 3. Documents</span>
+    </div>
+    <div class="step-track step-track--done"></div>
+
+    <div class="step-item" id="step4Item">
+      <div class="step-dot step-dot--active" id="step4Dot" aria-current="step"></div>
+      <span class="step-label step-label--active" id="step4Label" data-i18n="step4">4. Summary</span>
+    </div>
+    <div class="step-track" id="step4to5Track"></div>
+
+    <div class="step-item" id="step5Item">
+      <div class="step-dot step-dot--upcoming" id="step5Dot"></div>
+      <span class="step-label step-label--upcoming" id="step5Label" data-i18n="step5">5. Confirm</span>
+    </div>
+  </nav>
+
+  <!-- ── VIEW 1: SUMMARY REVIEW & PATIENT CONFIRMATION ── -->
+  <main class="content-zone" id="summaryView">
+
+    <!-- Error Alert Banner -->
+    <div id="summaryErrorMsg" role="alert" style="display: none; background: #FFEBEE; border: 1.5px solid #E57373; border-radius: var(--radius-sm); color: #C62828; padding: 12px 18px; font-size: 16px; font-weight: 600; margin-bottom: 16px; text-align: center; box-shadow: 0 2px 6px rgba(198, 40, 40, 0.1);"></div>
+
+    <!-- Screen Header -->
+    <div class="screen-header">
+      <div class="header-top-row">
+        <span class="summary-step-tag">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
+          </svg>
+          <span data-i18n="summaryTag">Patient Review • OPD Intake File</span>
+        </span>
+
+        <div class="bilingual-badge">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+          </svg>
+          <span id="bilingualNoticeText" data-i18n="bilingualNotice">Shown in your preferred language</span>
+        </div>
+      </div>
+
+      <h1 class="screen-title" data-i18n="screenTitle">Please check what we noted down</h1>
+      <p class="screen-subtext" data-i18n="screenSubtext">Here is a simple summary of what you shared before we send it to your doctor.</p>
+    </div>
+
+    <!-- Main Patient Summary Clay Container -->
+    <section class="clay-surface summary-card" aria-label="Intake Summary Details">
+      <!-- Patient Identity Header Line -->
+      <div class="summary-intro-row">
+        <div class="summary-patient-meta">
+          <div class="patient-avatar" id="patientAvatar">PT</div>
+          <div class="patient-info">
+            <span class="patient-name" id="patientDisplayName">Patient Encounter</span>
+            <span class="patient-sub" id="patientMetaSub" data-i18n="patientMeta">OPD Consultation • Intake Summary</span>
+          </div>
+        </div>
+        <span class="statement-tag tag-verified" id="summaryStatusBadge" data-i18n="badgeIdentityVerified">✓ Identity &amp; Consent Verified</span>
+      </div>
+
+      <!-- Clear Simplified Statements Container -->
+      <div class="statements-list" id="statementsList">
+        <div style="padding: 24px; text-align: center; color: var(--color-text-secondary); font-size: 18px; font-weight: 500;" id="summaryLoadingText">
+          Generating clinical intake summary from your answers and documents...
+        </div>
+      </div>
+
+      <!-- Mandatory Clinical Disclaimer -->
+      <div id="summaryDisclaimerBox" style="margin-top: 20px; padding: 14px 18px; border-radius: var(--radius-sm); background: #FAF7F0; border-left: 4px solid var(--primitive-haritaki-gold); font-size: 13px; color: var(--color-text-secondary); line-height: 1.5;">
+        <strong>Clinical Notice:</strong> <span id="summaryDisclaimerText">DRAFT summary generated by AI for physician review only. Does not constitute a clinical diagnosis or treatment recommendation.</span>
+      </div>
+    </section>
+
+    <!-- ── Two Large, Distinct, Unambiguous Action Buttons ── -->
+    <section class="decision-container" aria-label="Confirmation Choices">
+      <div class="decision-label" data-i18n="decisionPrompt">Is this information accurate?</div>
+
+      <div class="decision-buttons-row">
+        <!-- Secondary Action: Something's wrong -->
+        <button class="btn-confirm-no" id="btnSomethingWrong" type="button">
+          <div class="btn-confirm-no__icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+            </svg>
+          </div>
+          <div class="btn-confirm-no__text">
+            <span class="btn-confirm-no__title" data-i18n="btnWrongTitle">Something's wrong</span>
+            <span class="btn-confirm-no__sub" data-i18n="btnWrongSub">Flag for doctor attention</span>
+          </div>
+        </button>
+
+        <!-- Primary Action: Yes, this is correct -->
+        <button class="btn-confirm-yes" id="btnConfirmYes" type="button">
+          <div class="btn-confirm-yes__text">
+            <span class="btn-confirm-yes__title" data-i18n="btnYesTitle">Yes, this is correct</span>
+            <span class="btn-confirm-yes__sub" data-i18n="btnYesSub">Confirm and get queue token</span>
+          </div>
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>
+          </svg>
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ── VIEW 2: FINAL CONFIRMATION & QUEUE TOKEN STATE ── -->
+  <main class="confirmation-view" id="doneConfirmationView">
+    <div class="screen-header">
+      <div class="summary-step-tag" style="margin: 0 auto; background: #F4FBF6; border-color: rgba(46, 107, 57, 0.3); color: var(--primitive-herbal-green);">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+        <span data-i18n="badgeDone">Intake Registration Complete</span>
+      </div>
+      <h1 class="screen-title" style="margin-top: 10px;" id="doneTitle" data-i18n="doneTitle">You're all set!</h1>
+      <p class="screen-subtext" data-i18n="doneSubtext">Your summary has been forwarded directly to your OPD consulting doctor.</p>
+    </div>
+
+    <!-- Done Hero Card -->
+    <div class="clay-surface done-hero-card">
+      <div class="done-check-dome">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>
+        </svg>
+      </div>
+
+      <!-- Queue Token Box -->
+      <div class="token-box">
+        <span class="token-label" data-i18n="tokenLabel">Your OPD Queue Token</span>
+        <span class="token-number" id="tokenNumberDisplay">A-24</span>
+        <span class="token-dept" id="tokenDeptDisplay" data-i18n="tokenDept">Kayachikitsa (General Medicine) • Room 104</span>
+      </div>
+
+      <p class="done-reassurance-msg" id="doneReassuranceMsg" data-i18n="doneReassurance">
+        Please take a seat in <strong>Waiting Area 1</strong>. Your token number will be called and displayed on the screen above Room 104.
+      </p>
+
+      <div class="done-guidance-pill" id="tokenGuidancePill">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--primitive-haritaki-deep)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+        <span id="tokenGuidanceText" data-i18n="doneGuidance">Your intake file is ready for physician verification.</span>
+      </div>
+
+      <button class="btn-finish-restart" id="btnRestartSession" type="button">
+        <span data-i18n="btnFinish">Finish &amp; Return to Home</span>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+        </svg>
+      </button>
+    </div>
+
+    <div style="font-size: 15px; color: var(--primitive-teak-muted);" data-i18n="kioskSanitizing">
+      This kiosk will reset automatically in 60 seconds for the next patient.
+    </div>
+  </main>
+
+  <!-- ACTION BAR (96px, Shown on Review Screen) -->
+  <footer class="action-bar" id="kioskActionBar">
+    <button class="btn-back" onclick="window.location.href='screen3-documents.html'" aria-label="Go back to Documents">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+      </svg>
+      <span data-i18n="btnBack">Back to Documents</span>
+    </button>
+
+    <div class="action-bar-right">
+      <span class="kiosk-help-hint" data-i18n="staffHint">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+        <span>Need assistance? Ask OPD Helper at Desk 1</span>
+      </span>
+    </div>
+  </footer>
+
+  <!-- ── CORRECTION FOLLOW-UP OVERLAY (Interaction Pattern) ── -->
+  <div class="correction-overlay" id="correctionOverlay" role="dialog" aria-modal="true" aria-labelledby="correctionTitle">
+    <div class="clay-surface correction-card">
+      <div class="correction-header">
+        <div>
+          <h2 class="correction-title" id="correctionTitle" data-i18n="fixTitle">Which part needs fixing?</h2>
+          <p class="correction-subtitle" data-i18n="fixSubtitle">Provide a note or choose what to review:</p>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <label for="patientCorrectionInput" style="display: block; font-size: 16px; font-weight: 600; margin-bottom: 8px; color: var(--color-text-primary);">
+          Note for your doctor:
+        </label>
+        <textarea id="patientCorrectionInput" rows="3" style="width: 100%; box-sizing: border-box; border-radius: var(--radius-sm); border: 1.5px solid #EBE2D2; padding: 12px; font-family: var(--font-body); font-size: 16px; resize: vertical;" placeholder="Tell the doctor what is incorrect or needs change..."></textarea>
+      </div>
+
+      <div class="correction-options" style="margin-bottom: 16px;">
+        <button class="correction-choice-btn" id="btnSubmitCorrectionFlag" type="button" style="background: #FDEDEB; border-color: #E57373;">
+          <div>
+            <div class="correction-choice-text" style="color: #C62828;">Flag Item & Submit Note to Doctor</div>
+            <div class="correction-choice-desc">Record this correction in your intake file for clinician review</div>
+          </div>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#C62828"><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z"/></svg>
+        </button>
+      </div>
+
+      <div class="correction-options">
+        <button class="correction-choice-btn" onclick="window.location.href='screen2a-standard.html'">
+          <div>
+            <div class="correction-choice-text" data-i18n="fixOpt1">Fix Symptom / Question Answers</div>
+            <div class="correction-choice-desc" data-i18n="fixOpt1Desc">Re-record your answer or choose a different option</div>
+          </div>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--primitive-haritaki-deep)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
+        </button>
+
+        <button class="correction-choice-btn" onclick="window.location.href='screen3-documents.html'">
+          <div>
+            <div class="correction-choice-text" data-i18n="fixOpt3">Fix Medicines or Lab Records</div>
+            <div class="correction-choice-desc" data-i18n="fixOpt3Desc">Re-scan a document or remove a linked prescription</div>
+          </div>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--primitive-haritaki-deep)"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
+        </button>
+      </div>
+
+      <button class="btn-close-correction" id="btnCloseCorrection" type="button" data-i18n="btnCloseCorrection">
+        Never mind, keep everything as is
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<!-- SCRIPT: Language Switching &amp; Interaction Logic -->
+<script>
+  const i18n = {
+    en: {
+      topbarSub: "All India Institute of Ayurveda",
+      step1: "✓ 1. Identity",
+      step2: "✓ 2. Interview",
+      step3: "✓ 3. Documents",
+      step4: "4. Summary",
+      step5: "5. Confirm",
+      summaryTag: "Patient Review • OPD Intake File",
+      bilingualNotice: "Shown in your preferred language",
+      screenTitle: "Please check what we noted down",
+      screenSubtext: "Here is a simple summary of what you shared before we send it to your doctor.",
+      patientMeta: "ABHA ID: 91-4820-1923-4410 • Male, 54 yrs",
+      badgeIdentityVerified: "✓ Identity & Consent Verified",
+      catConcern: "Main Concern (Symptoms)",
+      stmt1: "You told us your main concern is chest tightness & pressure for the past 2 days.",
+      catAyush: "Ayurvedic Assessment (Agni Pariksha)",
+      stmt2: "Your digestive fire (Agni) was evaluated as Mandagni (Slow Digestion) with post-meal bloating.",
+      catMedications: "Current Medicines",
+      stmt3: "You take Metformin 500mg twice daily and Ashwagandha Churna (1 tsp) at bedtime.",
+      catLab: "Lab Records",
+      flagGlucoseNote: "Flagged for doctor review",
+      stmt4: "Recent lab record (05 Aug 2024) shows Fasting Blood Sugar at 142 mg/dL (elevated).",
+      decisionPrompt: "Is this information accurate?",
+      btnWrongTitle: "Something's wrong",
+      btnWrongSub: "Let me fix an answer",
+      btnYesTitle: "Yes, this is correct",
+      btnYesSub: "Submit and get queue token",
+      btnBack: "Back to Documents",
+      staffHint: "Need assistance? Ask OPD Helper at Desk 1",
+      fixTitle: "Which part needs fixing?",
+      fixSubtitle: "Select what you would like to change:",
+      fixOpt1: "Fix Symptom / Chest Pain Details",
+      fixOpt1Desc: "Re-record your voice answer or choose a different option",
+      fixOpt2: "Fix Digestive (Agni) Answers",
+      fixOpt2Desc: "Update your appetite and digestion selection",
+      fixOpt3: "Fix Medicines or Lab Records",
+      fixOpt3Desc: "Re-scan a document or remove a linked prescription",
+      btnCloseCorrection: "Never mind, keep everything as is",
+      badgeDone: "Intake Registration Complete",
+      doneTitle: "You're all set, Ramesh ji!",
+      doneSubtext: "Your summary has been forwarded directly to your OPD consulting doctor.",
+      tokenLabel: "Your OPD Queue Token",
+      tokenDept: "Kayachikitsa (General Medicine) • Room 104",
+      doneReassurance: "Please take a seat in Waiting Area 1. Your token number will be called and displayed on the screen above Room 104.",
+      doneGuidance: "An SMS with your token has been sent to +91 98*** **410",
+      btnFinish: "Finish & Return to Home",
+      kioskSanitizing: "This kiosk will reset automatically in 60 seconds for the next patient."
+    },
+    hi: {
+      topbarSub: "अखिल भारतीय आयुर्वेद संस्थान",
+      step1: "✓ १. पहचान",
+      step2: "✓ २. लक्षण चर्चा",
+      step3: "✓ ३. दस्तावेज़",
+      step4: "४. सारांश",
+      step5: "५. पुष्टि",
+      summaryTag: "मरीज़ समीक्षा • ओपीडी फ़ाइल",
+      bilingualNotice: "आपकी चुनी हुई भाषा में प्रदर्शित",
+      screenTitle: "कृपया जाँचे जो आपने हमें बताया है",
+      screenSubtext: "डॉक्टर के पास भेजने से पहले आपकी दी गई जानकारी का यह सरल सारांश है।",
+      patientMeta: "आभा आईडी: 91-4820-1923-4410 • पुरुष, ५४ वर्ष",
+      badgeIdentityVerified: "✓ पहचान एवं सहमति सत्यापित",
+      catConcern: "मुख्य समस्या (लक्षण)",
+      stmt1: "आपने बताया कि आपकी मुख्य परेशानी पिछले २ दिनों से छाती में भारीपन व जकड़न है।",
+      catAyush: "आयुर्वेदिक परीक्षण (अग्नि परीक्षा)",
+      stmt2: "आपकी पाचन शक्ति (अग्नि) मन्दाग्नि (धीमी पाचन क्रिया) पाई गई, जिसमें भोजन के बाद भारीपन रहता है।",
+      catMedications: "वर्तमान दवाइयाँ",
+      stmt3: "आप रोज़ मेटफॉर्मिन 500mg (दिन में दो बार) और रात को अश्वगंधा चूर्ण (१ चम्मच) लेते हैं।",
+      catLab: "जाँच रिपोर्ट",
+      flagGlucoseNote: "डॉक्टर के ध्यानार्थ चिह्नित",
+      stmt4: "हालिया रिपोर्ट (०५ अगस्त २०२४) के अनुसार फास्टिंग ब्लड शुगर 142 mg/dL (अधिक) है।",
+      decisionPrompt: "क्या यह जानकारी सही है?",
+      btnWrongTitle: "कुछ गलत है",
+      btnWrongSub: "उत्तर सुधारें",
+      btnYesTitle: "हाँ, यह सब सही है",
+      btnYesSub: "जमा करें व टोकन लें",
+      btnBack: "दस्तावेज़ पर वापस",
+      staffHint: "मदद चाहिए? डेस्क १ पर ओपीडी सहायक से पूछें",
+      fixTitle: "आप क्या सुधारना चाहते हैं?",
+      fixSubtitle: "वह विकल्प चुनें जिसे बदलना है:",
+      fixOpt1: "छाती में दर्द / लक्षण सुधारें",
+      fixOpt1Desc: "अपनी आवाज़ में दोबारा बोलें या दूसरा विकल्प चुनें",
+      fixOpt2: "पाचन (अग्नि) का उत्तर सुधारें",
+      fixOpt2Desc: "भूख और पाचन की जानकारी बदलें",
+      fixOpt3: "दवाइयाँ या रिपोर्ट बदलें",
+      fixOpt3Desc: "दस्तावेज़ दोबारा स्कैन करें या हटाएँ",
+      btnCloseCorrection: "रहने दें, सब कुछ सही है",
+      badgeDone: "ओपीडी पंजीकरण पूर्ण",
+      doneTitle: "आपका काम पूरा हुआ, रमेश जी!",
+      doneSubtext: "आपकी जानकारी सीधे ओपीडी चिकित्सक कक्ष में भेज दी गई है।",
+      tokenLabel: "आपका ओपीडी टोकन नंबर",
+      tokenDept: "कायचिकित्सा (सामान्य चिकित्सा) • कक्ष १०४",
+      doneReassurance: "कृपया प्रतीक्षालय १ में बैठें। आपका टोकन नंबर कक्ष १०४ के ऊपर लगी स्क्रीन पर पुकारा जाएगा।",
+      doneGuidance: "टोकन की जानकारी आपके मोबाइल नंबर +91 98*** **410 पर भेज दी गई है।",
+      btnFinish: "समाप्त करें एवं मुख्य पृष्ठ पर जाएँ",
+      kioskSanitizing: "यह कियोस्क ६० सेकंड में अगले मरीज़ के लिए रीसेट हो जाएगा।"
+    },
+    mr: {
+      topbarSub: "अखिल भारतीय आयुर्वेद संस्था",
+      step1: "✓ १. ओळख",
+      step2: "✓ २. लक्षण तपासणी",
+      step3: "✓ ३. कागदपत्रे",
+      step4: "४. सारांश",
+      step5: "५. पुष्टी",
+      summaryTag: "रुग्ण तपासणी • ओपीडी सारांश",
+      bilingualNotice: "आपल्या पसंतीच्या भाषेत उपलब्ध",
+      screenTitle: "कृपया आम्ही नोंदवलेली माहिती तपासा",
+      screenSubtext: "डॉक्टरांकडे पाठवण्यापूर्वी आपण सांगितलेल्या माहितीचा हा सोपा सारांश आहे.",
+      patientMeta: "आभा आयडी: 91-4820-1923-4410 • पुरुष, ५४ वर्षे",
+      badgeIdentityVerified: "✓ ओळख व संमती सत्यापित",
+      catConcern: "मुख्य तक्रार (लक्षणे)",
+      stmt1: "आपण सांगितले की आपल्याला गेल्या २ दिवसांपासून छातीत जडपणा व आवळल्यासारखे वाटत आहे.",
+      catAyush: "आयुर्वेदिक तपासणी (अग्नी परीक्षा)",
+      stmt2: "आपली पचनशक्ती मन्दाग्नि (मंद पचन) आढळली असून जेवणानंतर पोट जड होते.",
+      catMedications: "सध्याची औषधे",
+      stmt3: "आपण मेटफॉर्मिन 500mg (दिवसातून २ वेळा) आणि रात्री अश्वगंधा चूर्ण (१ चमचा) घेत आहात.",
+      catLab: "तपासणी अहवाल",
+      flagGlucoseNote: "डॉक्टरांच्या निदर्शनास आणले",
+      stmt4: "नुकत्याच केलेल्या तपासणीत (०५ ऑगस्ट २०२४) फास्टिंग ब्लड शुगर 142 mg/dL (वाढलेली) आहे.",
+      decisionPrompt: "ही माहिती बरोबर आहे का?",
+      btnWrongTitle: "काहीतरी चूक आहे",
+      btnWrongSub: "उत्तर दुरुस्त करा",
+      btnYesTitle: "होय, सर्व माहिती बरोबर आहे",
+      btnYesSub: "नोंदवा आणि टोकन घ्या",
+      btnBack: "कागदपत्रांवर परत",
+      staffHint: "मदत हवी आहे? डेस्क १ वरील सहाय्यकाशी संपर्क साधा",
+      fixTitle: "आपल्याला काय दुरुस्त करायचे आहे?",
+      fixSubtitle: "बदलायचा असलेला पर्याय निवडा:",
+      fixOpt1: "छातीतील दुखणे / लक्षणे दुरुस्त करा",
+      fixOpt1Desc: "पुन्हा बोलून सांगा किंवा पर्याय बदला",
+      fixOpt2: "पचन (अग्नी) उत्तर दुरुस्त करा",
+      fixOpt2Desc: "भूक आणि पचनाची माहिती बदला",
+      fixOpt3: "औषधे किंवा अहवाल दुरुस्त करा",
+      fixOpt3Desc: "कागदपत्र पुन्हा स्कॅन करा किंवा काढा",
+      btnCloseCorrection: "असू द्या, सर्व माहिती बरोबर आहे",
+      badgeDone: "ओपीडी नोंदणी पूर्ण झाली",
+      doneTitle: "आपली नोंदणी पूर्ण झाली, रमेश जी!",
+      doneSubtext: "आपला सारांश थेट ओपीडी डॉक्टरांच्या संगणकावर पाठवला गेला आहे.",
+      tokenLabel: "आपला ओपीडी टोकन क्रमांक",
+      tokenDept: "कायचिकित्सा (सामान्य चिकित्सा) • कक्ष १०४",
+      doneReassurance: "कृपया प्रतीक्षालय १ मध्ये बसा. आपला टोकन क्रमांक कक्ष १०४ वरील पडद्यावर दाखवला जाईल.",
+      doneGuidance: "टोकनचा तपशील आपल्या +91 98*** **410 या क्रमांकावर पाठवला आहे.",
+      btnFinish: "पूर्ण करा व सुरुवातीला जा",
+      kioskSanitizing: "हे कियोस्क पुढील रुग्णासाठी ६० सेकंदात पुन्हा सज्ज होईल."
+    }
+  };
+
+  let currentLang = 'en';
+
+  function setLanguage(lang) {
+    if (!i18n[lang]) return;
+    try { localStorage.setItem('medikiosk_lang', lang); } catch(e){}
+    currentLang = lang;
+    document.documentElement.lang = lang;
+
+    // Toggle chip active styles
+    document.querySelectorAll('.lang-chip').forEach(chip => {
+      const isMatch = chip.getAttribute('data-lang') === lang;
+      chip.classList.toggle('active', isMatch);
+      chip.setAttribute('aria-checked', isMatch ? 'true' : 'false');
+    });
+
+    // Update all text nodes with data-i18n
+    const t = i18n[lang];
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      if (t[key]) {
+        el.textContent = t[key];
+      }
+    });
+
+    console.log(`[MediKiosk Screen 4]: Language switched to ${lang}`);
+  }
+
+  // Bind Language Chips
+  document.querySelectorAll('.lang-chip').forEach(chip => {
+    chip.addEventListener('click', () => setLanguage(chip.getAttribute('data-lang')));
+  });
+
+  // Audio Replay Button Hook (Sarvam TTS simulation)
+  document.getElementById('audioBtn')?.addEventListener('click', () => {
+    const audioBtn = document.getElementById('audioBtn');
+    if (audioBtn) {
+      audioBtn.style.background = "var(--primitive-haritaki-gold)";
+      audioBtn.style.color = "#FFFFFF";
+      setTimeout(() => {
+        audioBtn.style.background = "var(--color-audio-btn-bg)";
+        audioBtn.style.color = "var(--color-audio-btn-text)";
+      }, 3000);
+    }
+  });
+
+  // Correction overlay hooks
+  const correctionOverlay = document.getElementById('correctionOverlay');
+  document.getElementById('btnSomethingWrong')?.addEventListener('click', () => {
+    if (correctionOverlay) correctionOverlay.style.display = 'flex';
+  });
+
+  document.getElementById('btnCloseCorrection')?.addEventListener('click', () => {
+    if (correctionOverlay) correctionOverlay.style.display = 'none';
+  });
+
+  // Finish button returns to Home Screen (home.html)
+  document.getElementById('btnRestartSession')?.addEventListener('click', () => {
+    window.location.href = 'home.html';
+  });
+
+  // ---------------------------------------------------------------------------
+  // STEP 6: REAL BACKEND INTEGRATION LOGIC
+  // ---------------------------------------------------------------------------
+  let currentSummary = null;
+  let activeConfirmation = null;
+  let isSubmitting = false;
+
+  function showSummaryError(msg) {
+    const errBox = document.getElementById('summaryErrorMsg');
+    if (errBox) {
+      errBox.textContent = msg;
+      errBox.style.display = 'block';
+      errBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }
+
+  function clearSummaryError() {
+    const errBox = document.getElementById('summaryErrorMsg');
+    if (errBox) {
+      errBox.textContent = '';
+      errBox.style.display = 'none';
+    }
+  }
+
+  function setActionButtonsDisabled(disabled) {
+    const btnYes = document.getElementById('btnConfirmYes');
+    const btnNo = document.getElementById('btnSomethingWrong');
+    const btnFlag = document.getElementById('btnSubmitCorrectionFlag');
+    if (btnYes) {
+      btnYes.disabled = disabled;
+      btnYes.style.opacity = disabled ? '0.6' : '1';
+      btnYes.style.pointerEvents = disabled ? 'none' : 'auto';
+    }
+    if (btnNo) {
+      btnNo.disabled = disabled;
+      btnNo.style.opacity = disabled ? '0.6' : '1';
+      btnNo.style.pointerEvents = disabled ? 'none' : 'auto';
+    }
+    if (btnFlag) {
+      btnFlag.disabled = disabled;
+      btnFlag.style.opacity = disabled ? '0.6' : '1';
+      btnFlag.style.pointerEvents = disabled ? 'none' : 'auto';
+    }
+  }
+
+  function renderSummaryStatements(summaryData, bilingualData) {
+    const listEl = document.getElementById('statementsList');
+    if (!listEl) return;
+    listEl.innerHTML = '';
+
+    const sectionLabels = {
+      chief_complaint: { label: "Main Concern / Chief Complaint", icon: "chest", i18nKey: "catConcern" },
+      history_of_present_illness: { label: "History of Present Illness", icon: "chest", i18nKey: "catConcern" },
+      ayush_profile: { label: "Ayurvedic Assessment (Agni & Profile)", icon: "ayush", i18nKey: "catAyush" },
+      medication_history: { label: "Current Medicines & Treatments", icon: "rx", i18nKey: "catMedications" },
+      allergy_history: { label: "Allergies & Sensitivities", icon: "lab", i18nKey: "catLab" },
+      past_medical_history: { label: "Past Medical History", icon: "lab", i18nKey: "catLab" },
+      personal_history: { label: "Personal & Lifestyle History", icon: "ayush", i18nKey: "catAyush" },
+      review_of_systems: { label: "Review of Systems", icon: "chest", i18nKey: "catConcern" }
+    };
+
+    let renderedCount = 0;
+
+    // Check if translated content is available for current language
+    const translatedSections = (bilingualData && bilingualData.translated && bilingualData.translated.sections)
+      ? bilingualData.translated.sections
+      : null;
+
+    for (const [secKey, meta] of Object.entries(sectionLabels)) {
+      let items = [];
+      let displayLabel = meta.label;
+
+      if (translatedSections && translatedSections[secKey]) {
+        displayLabel = translatedSections[secKey].display_label || meta.label;
+        items = translatedSections[secKey].items || [];
+      } else if (summaryData && summaryData[secKey]) {
+        items = summaryData[secKey].items || [];
+      }
+
+      // Filter out empty or "Not documented" items
+      const validItems = items.filter(it => it && it.text && it.text.trim() !== "Not documented");
+      if (validItems.length === 0) continue;
+
+      validItems.forEach(item => {
+        renderedCount++;
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'statement-item';
+
+        let iconSvg = '<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
+        if (meta.icon === 'ayush') {
+          iconSvg = '<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22l1-2.3A4.49 4.49 0 0 0 8 20C19 20 22 3 22 3c-1 2-8 2.25-13 3.25S2 11.5 2 13.5s1.75 3.75 1.75 3.75C7 8 17 8 17 8z"/></svg>';
+        } else if (meta.icon === 'rx') {
+          iconSvg = '<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M4.5 10.5C3.67 10.5 3 11.17 3 12s.67 1.5 1.5 1.5h15c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5h-15zM6 6h12v2H6V6zm2 10h8v2H8v-2z"/></svg>';
+        } else if (meta.icon === 'lab') {
+          iconSvg = '<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>';
+        }
+
+        const sourceCount = (item.sources && item.sources.length) ? item.sources.length : 0;
+        const sourceBadge = sourceCount > 0
+          ? `<span class="statement-tag tag-verified" style="margin-left: 8px; font-size: 11px;">✓ Grounded (${sourceCount} source${sourceCount > 1 ? 's' : ''})</span>`
+          : '';
+
+        itemDiv.innerHTML = `
+          <div class="statement-icon statement-icon--${meta.icon}">
+            ${iconSvg}
+          </div>
+          <div class="statement-content">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <span class="statement-category">${displayLabel}</span>
+              ${sourceBadge}
+            </div>
+            <span class="statement-text">${item.text}</span>
+          </div>
+        `;
+        listEl.appendChild(itemDiv);
+      });
+    }
+
+    if (renderedCount === 0) {
+      listEl.innerHTML = `
+        <div style="padding: 24px; text-align: center; color: var(--color-text-secondary); font-size: 16px;">
+          No clinical observations were captured during this encounter.
+        </div>
+      `;
+    }
+  }
+
+  async function loadCaseSummaryWorkflow() {
+    clearSummaryError();
+
+    const patientId = MediKioskSession.getPatientId();
+    const sessionId = MediKioskSession.getSessionId();
+    const interviewId = MediKioskSession.getInterviewId();
+
+    // 1. Validate required identifiers
+    if (!patientId || !sessionId || !interviewId) {
+      showSummaryError("Missing active session or interview details. Redirecting to start...");
+      setTimeout(() => { window.location.href = "screen1a-identity.html"; }, 2500);
+      return;
+    }
+
+    // 2. Verify authoritative AI_SUMMARIZATION consent
+    try {
+      const consentRes = await MediKioskApi.get(`/api/patients/${patientId}/consents/active/AI_SUMMARIZATION`);
+      if (!consentRes.ok || !consentRes.data || consentRes.data.active !== true) {
+        showSummaryError("AI clinical summarization consent is required. Please grant consent to review your summary.");
+        setTimeout(() => { window.location.href = "screen1b-consent.html"; }, 2500);
+        return;
+      }
+    } catch (err) {
+      showSummaryError("Failed to verify clinical summarization consent. Please grant consent to proceed.");
+      setTimeout(() => { window.location.href = "screen1b-consent.html"; }, 2500);
+      return;
+    }
+
+    // 3. Fetch or Generate Case Summary
+    try {
+      setActionButtonsDisabled(true);
+
+      // Check if a draft summary already exists
+      let summary = null;
+      try {
+        const getRes = await MediKioskApi.get(`/api/interviews/${interviewId}/summary`);
+        if (getRes.ok && getRes.data && getRes.data.id) {
+          summary = getRes.data;
+        }
+      } catch (e) {
+        // 404 is expected if not generated yet
+      }
+
+      // Generate if no summary exists or if generating
+      if (!summary || summary.summary_status === "GENERATING") {
+        const genRes = await MediKioskApi.post(`/api/interviews/${interviewId}/summary/generate`, {});
+        if (genRes.ok && genRes.data) {
+          summary = genRes.data;
+        } else {
+          throw new Error("Unable to generate case summary.");
+        }
+      }
+
+      currentSummary = summary;
+
+      // Update disclaimer if provided by backend
+      const disclaimerEl = document.getElementById('summaryDisclaimerText');
+      if (disclaimerEl && summary.disclaimer) {
+        disclaimerEl.textContent = summary.disclaimer;
+      }
+
+      // 4. Handle Bilingual Output if requested language is not English
+      let bilingualSummary = null;
+      if (currentLang !== 'en') {
+        try {
+          const bilConsent = await MediKioskApi.get(`/api/patients/${patientId}/consents/active/BILINGUAL_OUTPUT`);
+          if (bilConsent.ok && bilConsent.data && bilConsent.data.active === true) {
+            const bilRes = await MediKioskApi.post(`/api/interviews/${interviewId}/summary/${summary.id}/bilingual`, {
+              target_language_code: currentLang
+            });
+            if (bilRes.ok && bilRes.data) {
+              bilingualSummary = bilRes.data;
+            }
+          }
+        } catch (e) {
+          // Fallback gracefully to canonical English
+        }
+      }
+
+      // 5. Render structured summary data
+      renderSummaryStatements(summary.summary_data, bilingualSummary);
+
+      // 6. Start or retrieve Patient Confirmation session
+      try {
+        const startConfRes = await MediKioskApi.post(`/api/interviews/${interviewId}/summary/${summary.id}/confirmation/start`, {});
+        if (startConfRes.ok && startConfRes.data) {
+          activeConfirmation = startConfRes.data;
+        }
+      } catch (e) {
+        // Active confirmation may already exist
+        try {
+          const listConf = await MediKioskApi.get(`/api/interviews/${interviewId}/confirmations`);
+          if (listConf.ok && listConf.data && listConf.data.confirmations && listConf.data.confirmations.length) {
+            activeConfirmation = listConf.data.confirmations[0];
+          }
+        } catch (err) {}
+      }
+
+    } catch (err) {
+      if (err.isForbidden || (err.message && err.message.includes('Consent required'))) {
+        showSummaryError("AI clinical summarization consent is missing. Redirecting to consent screen...");
+        setTimeout(() => { window.location.href = "screen1b-consent.html"; }, 2500);
+      } else {
+        showSummaryError(err.message || "Failed to generate or load intake summary.");
+      }
+    } finally {
+      setActionButtonsDisabled(false);
+    }
+  }
+
+  // Confirm All Items and Complete Patient Confirmation
+  async function handleConfirmYes() {
+    if (isSubmitting) return;
+    isSubmitting = true;
+    clearSummaryError();
+    setActionButtonsDisabled(true);
+
+    const interviewId = MediKioskSession.getInterviewId();
+    const patientId = MediKioskSession.getPatientId();
+
+    try {
+      if (activeConfirmation && activeConfirmation.items && activeConfirmation.items.length) {
+        // Confirm any pending confirmable items
+        for (const itm of activeConfirmation.items) {
+          if (itm.patient_response === 'PENDING') {
+            await MediKioskApi.post(
+              `/api/interviews/${interviewId}/confirmations/${activeConfirmation.id}/items/${itm.id}/confirm`,
+              {}
+            );
+          }
+        }
+
+        // Complete confirmation session
+        const compRes = await MediKioskApi.post(
+          `/api/interviews/${interviewId}/confirmations/${activeConfirmation.id}/complete`,
+          {}
+        );
+        if (compRes.ok && compRes.data) {
+          activeConfirmation = compRes.data;
+        }
+      }
+
+      // Allocate OPD Queue Token for patient
+      let allocatedToken = null;
+      try {
+        const queueRes = await MediKioskApi.post('/api/opd/queue/entries', {
+          patient_id: parseInt(patientId, 10),
+          interview_id: parseInt(interviewId, 10),
+          priority: 'NORMAL'
+        });
+        if (queueRes.ok && queueRes.data) {
+          allocatedToken = queueRes.data.token_number;
+        }
+      } catch (e) {
+        // Non-blocking queue allocation fallback
+      }
+
+      // Transition UI to Final Done State
+      document.getElementById('summaryView').style.display = 'none';
+      document.getElementById('kioskActionBar').style.display = 'none';
+
+      const doneView = document.getElementById('doneConfirmationView');
+      if (doneView) doneView.style.display = 'flex';
+
+      if (allocatedToken) {
+        const tokenDisplay = document.getElementById('tokenNumberDisplay');
+        if (tokenDisplay) tokenDisplay.textContent = `A-${allocatedToken}`;
+      }
+
+      // Update step indicators
+      const s4Dot = document.getElementById('step4Dot');
+      const s4Label = document.getElementById('step4Label');
+      const s4to5Track = document.getElementById('step4to5Track');
+      const s5Dot = document.getElementById('step5Dot');
+      const s5Label = document.getElementById('step5Label');
+
+      if (s4Dot) {
+        s4Dot.className = "step-dot step-dot--complete";
+        s4Dot.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>';
+      }
+      if (s4Label) s4Label.className = "step-label step-label--complete";
+      if (s4to5Track) s4to5Track.className = "step-track step-track--done";
+
+      if (s5Dot) {
+        s5Dot.className = "step-dot step-dot--complete";
+        s5Dot.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>';
+      }
+      if (s5Label) {
+        s5Label.className = "step-label step-label--complete";
+        s5Label.textContent = (currentLang === 'hi' ? "✓ ५. पूर्ण" : (currentLang === 'mr' ? "✓ ५. पूर्ण" : "✓ 5. Confirmed"));
+      }
+
+    } catch (err) {
+      showSummaryError(err.message || "Failed to complete confirmation. Please inform OPD staff.");
+      setActionButtonsDisabled(false);
+    } finally {
+      isSubmitting = false;
+    }
+  }
+
+  // Flag Item with Correction Note
+  async function handleFlagCorrection() {
+    if (isSubmitting) return;
+    isSubmitting = true;
+    clearSummaryError();
+
+    const interviewId = MediKioskSession.getInterviewId();
+    const patientId = MediKioskSession.getPatientId();
+    const noteEl = document.getElementById('patientCorrectionInput');
+    const noteText = noteEl ? noteEl.value.trim() : '';
+
+    try {
+      if (activeConfirmation && activeConfirmation.items && activeConfirmation.items.length) {
+        const itemToFlag = activeConfirmation.items[0];
+        await MediKioskApi.post(
+          `/api/interviews/${interviewId}/confirmations/${activeConfirmation.id}/items/${itemToFlag.id}/flag`,
+          { correction: noteText || "Patient noted inaccuracies on intake review" }
+        );
+
+        // Confirm remaining items so session can be completed
+        for (let i = 1; i < activeConfirmation.items.length; i++) {
+          const remItem = activeConfirmation.items[i];
+          if (remItem.patient_response === 'PENDING') {
+            await MediKioskApi.post(
+              `/api/interviews/${interviewId}/confirmations/${activeConfirmation.id}/items/${remItem.id}/confirm`,
+              {}
+            );
+          }
+        }
+
+        // Complete confirmation with FLAGGED outcome
+        await MediKioskApi.post(
+          `/api/interviews/${interviewId}/confirmations/${activeConfirmation.id}/complete`,
+          {}
+        );
+      }
+
+      // Close correction modal and transition to queue screen
+      if (correctionOverlay) correctionOverlay.style.display = 'none';
+
+      // Allocate queue token
+      let allocatedToken = null;
+      try {
+        const queueRes = await MediKioskApi.post('/api/opd/queue/entries', {
+          patient_id: parseInt(patientId, 10),
+          interview_id: parseInt(interviewId, 10),
+          priority: 'NORMAL'
+        });
+        if (queueRes.ok && queueRes.data) {
+          allocatedToken = queueRes.data.token_number;
+        }
+      } catch (e) {}
+
+      document.getElementById('summaryView').style.display = 'none';
+      document.getElementById('kioskActionBar').style.display = 'none';
+
+      const doneView = document.getElementById('doneConfirmationView');
+      if (doneView) doneView.style.display = 'flex';
+
+      if (allocatedToken) {
+        const tokenDisplay = document.getElementById('tokenNumberDisplay');
+        if (tokenDisplay) tokenDisplay.textContent = `A-${allocatedToken}`;
+      }
+
+      const guidanceText = document.getElementById('tokenGuidanceText');
+      if (guidanceText) {
+        guidanceText.textContent = "Your correction note has been attached for the doctor to review.";
+      }
+
+    } catch (err) {
+      showSummaryError(err.message || "Failed to submit correction note.");
+    } finally {
+      isSubmitting = false;
+    }
+  }
+
+  // Bind confirmation actions
+  document.getElementById('btnConfirmYes')?.addEventListener('click', handleConfirmYes);
+  document.getElementById('btnSubmitCorrectionFlag')?.addEventListener('click', handleFlagCorrection);
+
+  // Initialize summary workflow on load
+  const savedLang = (function(){ try { return localStorage.getItem('medikiosk_lang'); } catch(e){ return null; } })() || 'en';
+  setLanguage(savedLang);
+  loadCaseSummaryWorkflow();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MediKiosk — Step 1b: Patient Consent</title>
+
+  <!-- Google Fonts: Baloo 2 & Noto Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="../styles/tokens.css" />
+
+  <!-- Shared MediKiosk Foundation Scripts -->
+  <script src="../scripts/config.js"></script>
+  <script src="../scripts/session.js"></script>
+  <script src="../scripts/api.js"></script>
+
+  <style>
+    /* ── Standardized Desktop Layout (Base 1440px, Min 1024px) ── */
+    html, body {
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+      background-color: var(--color-canvas-outer, #EDE8DE);
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .app-container,
+    .kiosk-screen {
+      max-width: var(--app-max-width);
+      min-width: var(--app-min-width);
+      margin: 0 auto;
+      width: 100%;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      background-color: var(--color-bg);
+      box-shadow: 0 0 32px rgba(44, 37, 32, 0.08);
+    }
+
+    /* Top Bar (72px) */
+    .topbar {
+      flex: 0 0 var(--topbar-h);
+      background: var(--color-topbar-bg);
+      border-bottom: 1px solid var(--color-topbar-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--page-px);
+    }
+
+    .topbar__brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .topbar__logo-mark {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-sm);
+      background: var(--primitive-haritaki-gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 1px 4px rgba(44, 37, 32, 0.15);
+    }
+
+    .topbar__logo-mark svg { width: 26px; height: 26px; }
+
+    .topbar__name {
+      font-family: var(--font-display);
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--primitive-haritaki-deep);
+      line-height: 1.1;
+    }
+
+    .topbar__sub {
+      font-family: var(--font-body);
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--color-text-secondary);
+    }
+
+    .topbar__controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .audio-btn {
+      width: var(--touch-target-audio-btn);
+      height: var(--touch-target-audio-btn);
+      border-radius: 50%;
+      background: var(--color-audio-btn-bg);
+      border: 2px solid var(--color-audio-btn-border);
+      color: var(--color-audio-btn-text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background var(--transition-tap);
+    }
+
+    .audio-btn:active {
+      background: var(--color-audio-btn-active-bg);
+      color: var(--color-audio-btn-active-text);
+    }
+
+    .audio-btn svg { width: 28px; height: 28px; }
+
+    .lang-chips {
+      display: flex;
+      gap: 6px;
+    }
+
+    .lang-chip {
+      height: var(--touch-target-min);
+      min-width: 58px;
+      padding: 0 14px;
+      border: 1.5px solid var(--color-border-subtle);
+      border-radius: var(--radius-sm);
+      background: var(--color-surface);
+      color: var(--color-text-secondary);
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all var(--transition-tap);
+    }
+
+    .lang-chip.active {
+      background: var(--color-btn-primary-bg);
+      color: var(--color-btn-primary-text);
+      border-color: var(--color-btn-primary-bg);
+      box-shadow: 0 2px 6px rgba(200, 138, 34, 0.25);
+    }
+
+    /* 5-Step Bar (56px) */
+    .stepbar {
+      flex: 0 0 var(--stepbar-h);
+      background: var(--color-bg);
+      border-bottom: 1px solid var(--color-border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+    }
+
+    .step-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .step-track {
+      flex: 1;
+      height: 2px;
+      background: var(--primitive-copper-track);
+      margin: 0 8px 18px 8px;
+    }
+
+    .step-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .step-dot--active {
+      width: 22px;
+      height: 22px;
+      background: var(--primitive-haritaki-gold);
+      border: 3px solid #FFFFFF;
+      box-shadow: 0 0 0 2px var(--primitive-haritaki-gold);
+    }
+
+    .step-dot--upcoming {
+      background: #FFFFFF;
+      border: 2px solid var(--color-step-upcoming);
+    }
+
+    .step-label {
+      font-family: var(--font-body);
+      font-size: 18px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .step-label--active { color: var(--color-text-primary); font-weight: 700; }
+    .step-label--upcoming { color: var(--color-text-secondary); }
+
+    /* Content Zone (Landscape 1440x900 2-Column Grid) */
+    .content-zone {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      padding: 28px var(--page-px);
+      box-sizing: border-box;
+      align-items: center;
+    }
+
+    .consent-left {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .screen-header {
+      text-align: left;
+    }
+
+    .screen-title {
+      font-family: var(--font-display);
+      font-size: var(--font-size-h1);
+      font-weight: 700;
+      line-height: 1.2;
+      color: var(--color-text-primary);
+      margin: 0 0 6px 0;
+    }
+
+    .screen-subtext {
+      font-family: var(--font-body);
+      font-size: var(--font-size-body);
+      line-height: 1.45;
+      color: var(--color-text-secondary);
+      margin: 0;
+    }
+
+    /* Prominent Audio Trigger */
+    .consent-audio-trigger {
+      height: 54px;
+      border-radius: var(--radius-pill);
+      background: rgba(200, 138, 34, 0.14);
+      border: 1.5px solid var(--primitive-haritaki-deep);
+      color: var(--primitive-haritaki-deep);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      font-family: var(--font-display);
+      font-size: 17px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(200, 138, 34, 0.15);
+      transition: background var(--transition-tap);
+    }
+
+    .consent-audio-trigger:active {
+      background: var(--primitive-haritaki-gold);
+      color: var(--primitive-teak-grey);
+    }
+
+    .consent-audio-trigger svg { width: 24px; height: 24px; }
+
+    /* Trust Assurance Points */
+    .trust-points {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: #FAF8F2;
+      border: 1px solid var(--color-border-subtle);
+      border-radius: var(--radius-card);
+      padding: 18px 20px;
+    }
+
+    .trust-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: var(--font-size-small);
+      color: var(--color-text-secondary);
+      line-height: 1.4;
+      font-weight: 500;
+    }
+
+    .trust-item svg {
+      width: 20px;
+      height: 20px;
+      color: var(--primitive-herbal-green);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* Right Column: Consent Card Container */
+    .consent-right {
+      background: var(--color-surface);
+      border: 1.5px solid var(--color-border-subtle);
+      border-radius: var(--radius-card);
+      padding: 24px 28px;
+      box-shadow: var(--shadow-card-elevated);
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .consent-statement {
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.5;
+      color: var(--color-text-primary);
+      background: #FAF8F2;
+      padding: 16px 18px;
+      border-radius: var(--radius-sm);
+      border-left: 4px solid var(--primitive-haritaki-gold);
+    }
+
+    .consent-checkpoints {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .consent-checkpoint {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: var(--font-size-small);
+      color: var(--color-text-primary);
+      font-weight: 500;
+    }
+
+    .consent-checkpoint input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      accent-color: var(--primitive-haritaki-gold);
+      cursor: pointer;
+    }
+
+    /* Consent Action Buttons */
+    .consent-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 4px;
+    }
+
+    .btn-agree {
+      height: 56px;
+      border-radius: var(--radius-btn);
+      background: var(--color-btn-primary-bg);
+      border: none;
+      color: var(--color-btn-primary-text);
+      font-family: var(--font-display);
+      font-size: var(--text-size-btn-primary);
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: var(--shadow-btn-gold);
+      transition: background var(--transition-tap);
+    }
+
+    .btn-agree:active {
+      background: var(--color-btn-primary-bg-pressed);
+    }
+
+    .btn-agree svg { width: 22px; height: 22px; }
+
+    .btn-decline {
+      height: 48px;
+      border-radius: var(--radius-btn);
+      background: var(--color-surface);
+      border: 1.5px solid var(--color-border);
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background var(--transition-tap);
+    }
+
+    .btn-decline:active {
+      background: #EFE9DC;
+    }
+
+    /* Action Bar (88px) */
+    .action-bar {
+      flex: 0 0 var(--actionbar-h);
+      background: var(--color-actionbar-bg);
+      border-top: 1px solid var(--color-actionbar-border);
+      box-shadow: var(--shadow-actionbar);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--page-px);
+      box-sizing: border-box;
+    }
+
+    .btn-back {
+      min-width: var(--touch-target-back-btn);
+      height: var(--touch-target-back-btn);
+      border-radius: var(--radius-btn);
+      background: var(--color-surface);
+      border: 1.5px solid var(--color-border);
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      font-size: var(--font-size-body);
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 24px;
+      box-shadow: 0 1px 4px rgba(44, 37, 32, 0.05);
+    }
+
+    .btn-back svg { width: 22px; height: 22px; }
+
+    .step-counter {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--primitive-teak-muted);
+    }
+  </style>
+</head>
+<body>
+<div class="app-container kiosk-screen">
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="topbar__brand">
+      <div class="topbar__logo-mark">
+        <svg viewBox="0 0 22 22" fill="none">
+          <path d="M11 3C11 3 5 7 5 12.5C5 16.09 7.69 19 11 19C14.31 19 17 16.09 17 12.5C17 7 11 3 11 3Z" fill="#2C2520"/>
+          <path d="M11 6C11 6 7 9.5 7 13C7 15.21 8.79 17 11 17" stroke="#2C2520" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M11 6C11 6 15 9.5 15 13C15 15.21 13.21 17 11 17" stroke="#2C2520" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="11" y1="17" x2="11" y2="20" stroke="#2C2520" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="topbar__name">MediKiosk</div>
+        <div class="topbar__sub" data-i18n="topbarSub">All India Institute of Ayurveda</div>
+      </div>
+    </div>
+
+    <div class="topbar__controls">
+      <button class="audio-btn" id="audioBtn" aria-label="Replay audio" title="Listen (Sarvam TTS)">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+        </svg>
+      </button>
+
+      <div class="lang-chips" role="radiogroup" aria-label="Language selection">
+        <button class="lang-chip active" data-lang="en" role="radio" aria-checked="true">EN</button>
+        <button class="lang-chip" data-lang="hi" role="radio" aria-checked="false">हि</button>
+        <button class="lang-chip" data-lang="mr" role="radio" aria-checked="false">म</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 5-STEP BAR (Step 1 Still Active) -->
+  <nav class="stepbar" aria-label="OPD Progress">
+    <div class="step-item">
+      <div class="step-dot step-dot--active"></div>
+      <span class="step-label step-label--active" data-i18n="step1">1. Consent</span>
+    </div>
+    <div class="step-track"></div>
+
+    <div class="step-item">
+      <div class="step-dot step-dot--upcoming"></div>
+      <span class="step-label step-label--upcoming" data-i18n="step2">2. Interview</span>
+    </div>
+    <div class="step-track"></div>
+
+    <div class="step-item">
+      <div class="step-dot step-dot--upcoming"></div>
+      <span class="step-label step-label--upcoming" data-i18n="step3">3. Documents</span>
+    </div>
+    <div class="step-track"></div>
+
+    <div class="step-item">
+      <div class="step-dot step-dot--upcoming"></div>
+      <span class="step-label step-label--upcoming" data-i18n="step4">4. Summary</span>
+    </div>
+    <div class="step-track"></div>
+
+    <div class="step-item">
+      <div class="step-dot step-dot--upcoming"></div>
+      <span class="step-label step-label--upcoming" data-i18n="step5">5. Confirm</span>
+    </div>
+  </nav>
+
+  <!-- CONTENT ZONE (Consent Landscape 2-Column Grid) -->
+  <main class="content-zone">
+
+    <!-- Left Column: Header, Audio Trigger & Trust Badges -->
+    <div class="consent-left">
+      <div class="screen-header">
+        <h1 class="screen-title" data-i18n="title">Patient Care Consent</h1>
+        <p class="screen-subtext" data-i18n="subtext">Please confirm permission to register your OPD visit today.</p>
+      </div>
+
+      <!-- Big Audio Listen Trigger -->
+      <button class="consent-audio-trigger" id="listenAudioBtn" aria-label="Listen to consent explanation">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M8 5v14l11-7z"/>
+        </svg>
+        <span data-i18n="audioTrigger">Listen to Consent (Audio)</span>
+      </button>
+
+      <!-- Trust Assurances -->
+      <div class="trust-points">
+        <div class="trust-item">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/>
+          </svg>
+          <span data-i18n="trust1">Your health details remain private and confidential</span>
+        </div>
+        <div class="trust-item">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
+          </svg>
+          <span data-i18n="trust2">Used exclusively for your doctor's appointment today</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Consent Statement Card & Actions -->
+    <div class="consent-box consent-right">
+      <!-- Plain First-Person Consent Text -->
+      <div class="consent-statement" data-i18n="statement">
+        "I voluntarily permit the doctors and staff at All India Institute of Ayurveda to access my health records and record my symptoms for today's OPD consultation."
+      </div>
+
+      <!-- Specific Consent Purposes (Independent & Fail-Closed) -->
+      <div class="consent-checkpoints" role="group" aria-label="Consent Purposes">
+        <label class="consent-checkpoint" id="label-CLINICAL_HISTORY">
+          <input type="checkbox" id="chk-CLINICAL_HISTORY" value="CLINICAL_HISTORY" checked required />
+          <span>
+            <strong data-i18n="pClinicalTitle">Clinical History &amp; Symptoms (Required):</strong>
+            <span data-i18n="pClinicalDesc">Record symptoms &amp; health history for today's doctor consultation</span>
+          </span>
+        </label>
+
+        <label class="consent-checkpoint" id="label-DOCUMENT_PROCESSING">
+          <input type="checkbox" id="chk-DOCUMENT_PROCESSING" value="DOCUMENT_PROCESSING" checked />
+          <span>
+            <strong data-i18n="pDocTitle">Medical Document Processing:</strong>
+            <span data-i18n="pDocDesc">Scan &amp; extract previous prescriptions, lab reports &amp; records</span>
+          </span>
+        </label>
+
+        <label class="consent-checkpoint" id="label-AI_SUMMARIZATION">
+          <input type="checkbox" id="chk-AI_SUMMARIZATION" value="AI_SUMMARIZATION" checked />
+          <span>
+            <strong data-i18n="pSummaryTitle">AI Clinical Summarization:</strong>
+            <span data-i18n="pSummaryDesc">Generate consultation summary to assist your examining doctor</span>
+          </span>
+        </label>
+
+        <label class="consent-checkpoint" id="label-BILINGUAL_OUTPUT">
+          <input type="checkbox" id="chk-BILINGUAL_OUTPUT" value="BILINGUAL_OUTPUT" checked />
+          <span>
+            <strong data-i18n="pBilingualTitle">Bilingual Output &amp; Translation:</strong>
+            <span data-i18n="pBilingualDesc">Translate clinical notes into your preferred language</span>
+          </span>
+        </label>
+
+        <label class="consent-checkpoint" id="label-DATA_SHARING">
+          <input type="checkbox" id="chk-DATA_SHARING" value="DATA_SHARING" />
+          <span>
+            <strong data-i18n="pSharingTitle">Hospital HIS Data Sharing:</strong>
+            <span data-i18n="pSharingDesc">Share today's OPD encounter with AIIA hospital management system</span>
+          </span>
+        </label>
+
+        <label class="consent-checkpoint" id="label-ABHA_LINKAGE">
+          <input type="checkbox" id="chk-ABHA_LINKAGE" value="ABHA_LINKAGE" />
+          <span>
+            <strong data-i18n="pAbhaTitle">Ayushman Bharat (ABHA) Linkage:</strong>
+            <span data-i18n="pAbhaDesc">Link visit records to your national health account (ABDM)</span>
+          </span>
+        </label>
+
+        <!-- Optional ABHA Linkage Card (Step 9: ABDM / ABHA Health Identity) -->
+        <div class="consent-checkpoint" id="abhaLinkageCard" style="display: flex; flex-direction: column; gap: 10px; background: #FAF7F2; border: 1.5px dashed var(--primitive-haritaki-gold, #C88A22); border-radius: var(--radius-sm, 8px); padding: 14px; margin-top: 6px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--primitive-haritaki-deep, #2C2520)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/></svg>
+              <strong style="font-size: 15px; color: var(--primitive-haritaki-deep, #2C2520);">Optional: Link National Health ID (ABHA)</strong>
+            </div>
+            <span id="abhaStatusBadge" style="font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 10px; background: #E5E7EB; color: #4B5563;">Status: Not Linked (Optional)</span>
+          </div>
+          <div style="font-size: 13px; color: var(--color-text-secondary, #7C7365); line-height: 1.4;">
+            ABHA linkage is an <strong>optional health-identity linkage</strong> to ABDM (Mock/Sandbox environment), not a login requirement. Linking enables digital health record continuity. Requires active <em>ABHA_LINKAGE</em> consent.
+          </div>
+          <div id="abhaFormRow" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; width: 100%;">
+            <input type="text" id="abhaIdInput" placeholder="14-digit ABHA (e.g. 12-3456-7890-1234)" maxlength="17" style="flex: 2; min-width: 200px; padding: 8px 12px; border: 1px solid #D6CFC4; border-radius: 6px; font-size: 14px; background: white;" />
+            <input type="text" id="abhaAddressInput" placeholder="Optional handle (e.g. user@abdm)" style="flex: 1; min-width: 160px; padding: 8px 12px; border: 1px solid #D6CFC4; border-radius: 6px; font-size: 14px; background: white;" />
+            <button type="button" id="btnLinkAbha" style="padding: 8px 16px; background: var(--primitive-haritaki-gold, #C88A22); color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer;">
+              Link ABHA
+            </button>
+            <button type="button" id="btnUnlinkAbha" style="display: none; padding: 8px 16px; background: #DC2626; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer;">
+              Unlink
+            </button>
+          </div>
+          <div id="abhaFeedbackMsg" style="font-size: 13px; font-weight: 600; display: none;"></div>
+        </div>
+      </div>
+
+      <!-- Consent Error Display -->
+      <div id="consentErrorMsg" style="font-size: 14px; font-weight: 600; color: var(--primitive-signal-red, #B91C1C); display: none; padding: 10px 14px; background: #FEE2E2; border: 1px solid #FCA5A5; border-radius: var(--radius-sm); text-align: center;"></div>
+
+      <!-- Clear Action Buttons -->
+      <div class="consent-buttons">
+        <button class="btn-agree" id="btnAgree">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>
+          </svg>
+          <span data-i18n="btnAgree">I Agree &amp; Continue</span>
+        </button>
+
+        <button class="btn-decline" onclick="document.getElementById('declineModal').style.display='flex';">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/>
+          </svg>
+          <span data-i18n="btnDecline">Ask Staff for Help</span>
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+  
+  <!-- Staff Assistance / Consent Declined Modal Overlay -->
+  <div id="declineModal" style="display: none; position: absolute; inset: 0; background: rgba(44,37,32,0.65); backdrop-filter: blur(4px); z-index: 100; align-items: center; justify-content: center; padding: 32px; box-sizing: border-box;">
+    <div class="clay-surface" style="width: 100%; max-width: 600px; padding: 32px; border-radius: var(--radius-card); display: flex; flex-direction: column; gap: 20px; text-align: center; box-shadow: var(--shadow-card-elevated);">
+      <div style="width: 72px; height: 72px; border-radius: 50%; background: #FAF1DF; border: 2px solid #DEC99B; color: var(--primitive-haritaki-deep); display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/></svg>
+      </div>
+      <h2 style="font-family: var(--font-display); font-size: 28px; font-weight: 700; color: var(--primitive-teak-grey); margin: 0;" data-i18n="declineModalTitle">OPD Helper Notified</h2>
+      <p style="font-size: 18px; line-height: 1.45; color: var(--color-text-secondary); margin: 0;" data-i18n="declineModalMsg">A kiosk assistance representative has been notified and will assist you with registration at Counter 1. You can also proceed whenever you feel comfortable.</p>
+      <div style="display: flex; gap: 14px; justify-content: center;">
+        <button class="btn-secondary" onclick="document.getElementById('declineModal').style.display='none';" style="flex: 1; height: 60px; border-radius: var(--radius-btn);" data-i18n="btnBackToConsent">Review Consent</button>
+        <button class="btn-primary" onclick="window.location.href='screen1a-identity.html';" style="flex: 1; height: 60px; border-radius: var(--radius-btn);" data-i18n="btnCancelRegistration">Return to Start</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTION BAR -->
+  <footer class="action-bar">
+    <button class="btn-back" onclick="window.location.href='screen1a-identity.html'" aria-label="Go Back to Identity">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+      </svg>
+      <span data-i18n="btnBack">Back</span>
+    </button>
+
+    <div class="step-counter" data-i18n="stepCounter">
+      Step 1 of 5
+    </div>
+  </footer>
+
+</div>
+
+<!-- SCRIPT: Language Switching & Consent API Integration -->
+<script>
+  let currentLang = 'en';
+
+  const i18n = {
+    en: {
+      topbarSub: "All India Institute of Ayurveda",
+      step1: "1. Consent",
+      step2: "2. Interview",
+      step3: "3. Documents",
+      step4: "4. Summary",
+      step5: "5. Confirm",
+      title: "Patient Care Consent",
+      subtext: "Please confirm permission to register your OPD visit today.",
+      audioTrigger: "Listen to Consent (Audio)",
+      statement: "\"I voluntarily permit the doctors and staff at All India Institute of Ayurveda to access my health records and record my symptoms for today's OPD consultation.\"",
+      trust1: "Your health details remain private and confidential",
+      trust2: "Used exclusively for your doctor's appointment today",
+      btnAgree: "I Agree & Continue",
+      btnDecline: "Ask Staff for Help",
+      declineModalTitle: "OPD Staff Assistance Notified",
+      declineModalMsg: "A hospital helper at Desk 1 has been alerted to assist you in person. You may also review and agree whenever you are ready.",
+      btnBackToConsent: "Review Consent",
+      btnCancelRegistration: "Return to Start",
+      btnBack: "Back",
+      stepCounter: "Step 1 of 5",
+      pClinicalTitle: "Clinical History & Symptoms (Required):",
+      pClinicalDesc: "Record symptoms & health history for today's doctor consultation",
+      pDocTitle: "Medical Document Processing:",
+      pDocDesc: "Scan & extract previous prescriptions, lab reports & records",
+      pSummaryTitle: "AI Clinical Summarization:",
+      pSummaryDesc: "Generate consultation summary to assist your examining doctor",
+      pBilingualTitle: "Bilingual Output & Translation:",
+      pBilingualDesc: "Translate clinical notes into your preferred language",
+      pSharingTitle: "Hospital HIS Data Sharing:",
+      pSharingDesc: "Share today's OPD encounter with AIIA hospital management system",
+      pAbhaTitle: "Ayushman Bharat (ABHA) Linkage:",
+      pAbhaDesc: "Link visit records to your national health account (ABDM)"
+    },
+    hi: {
+      topbarSub: "अखिल भारतीय आयुर्वेद संस्थान",
+      step1: "१. सहमति",
+      step2: "२. लक्षण चर्चा",
+      step3: "३. दस्तावेज़",
+      step4: "४. सारांश",
+      step5: "५. पुष्टि",
+      title: "रोगी उपचार सहमति",
+      subtext: "कृपया आज अपनी ओपीडी पर्ची बनाने के लिए अनुमति दें।",
+      audioTrigger: "सहमति बोलकर सुनें (ऑडियो)",
+      statement: "\"मैं स्वेच्छा से अखिल भारतीय आयुर्वेद संस्थान के चिकित्सकों को मेरे स्वास्थ्य रिकॉर्ड देखने और आज मेरे लक्षणों की जांच करने की अनुमति देता/देती हूँ।\"",
+      trust1: "आपकी स्वास्थ्य जानकारी सुरक्षित और गोपनीय रहेगी",
+      trust2: "इसका उपयोग केवल आज डॉक्टर परामर्श के लिए होगा",
+      btnAgree: "हाँ, मैं सहमत हूँ",
+      btnDecline: "कर्मचारी की सहायता लें",
+      declineModalTitle: "ओपीडी सहायक को सूचित किया गया",
+      declineModalMsg: "डेस्क १ पर मौजूद सहायक को आपकी मदद के लिए सूचित कर दिया गया है। आप जब चाहें सहमति पढ़कर आगे भी बढ़ सकते हैं।",
+      btnBackToConsent: "सहमति दोबारा देखें",
+      btnCancelRegistration: "शुरुआत पर वापस जाएँ",
+      btnBack: "पीछे",
+      stepCounter: "चरण १ / ५",
+      pClinicalTitle: "रोग इतिहास और लक्षण (अनिवार्य):",
+      pClinicalDesc: "आज डॉक्टर परामर्श के लिए लक्षण और स्वास्थ्य इतिहास दर्ज करने की अनुमति",
+      pDocTitle: "दस्तावेज़ प्रसंस्करण:",
+      pDocDesc: "पुराने पर्चे और लैब रिपोर्ट स्कैन करने की अनुमति",
+      pSummaryTitle: "एआई परामर्श सारांश:",
+      pSummaryDesc: "डॉक्टर की सहायता हेतु लक्षणों का संक्षिप्त सारांश बनाने की अनुमति",
+      pBilingualTitle: "द्विभाषी अनुवाद:",
+      pBilingualDesc: "आपकी पसंदीदा भाषा में परामर्श नोट्स का अनुवाद",
+      pSharingTitle: "अस्पताल प्रणाली साझाकरण:",
+      pSharingDesc: "आज की ओपीडी जानकारी अस्पताल रिकॉर्ड में सुरक्षित रखने की अनुमति",
+      pAbhaTitle: "आभा (ABHA) खाता जुड़ाव:",
+      pAbhaDesc: "आयुष्मान भारत डिजिटल स्वास्थ्य खाते से रिकॉर्ड जोड़ने की अनुमति"
+    },
+    mr: {
+      topbarSub: "अखिल भारतीय आयुर्वेद संस्था",
+      step1: "१. संमती",
+      step2: "२. लक्षण तपासणी",
+      step3: "३. कागदपत्रे",
+      step4: "४. सारांश",
+      step5: "५. पुष्टी",
+      title: "रुग्ण उपचार संमती",
+      subtext: "कृपया आज आपली ओपीडी नोंदणी करण्यासाठी परवानगी द्या.",
+      audioTrigger: "संमती ऐका (ऑडिओ)",
+      statement: "\"मी स्वेच्छेने अखिल भारतीय आयुर्वेद संस्थेच्या डॉक्टरांना माझे आरोग्य रेकॉर्ड तपासण्याची आणि आज लक्षणांची नोंद घेण्याची परवानगी देतो/देते.\"",
+      trust1: "आपली माहिती पूर्णपणे सुरक्षित आणि गोपनीय राहील",
+      trust2: "फक्त आजच्या डॉक्टर भेटीसाठीच वापरली जाईल",
+      btnAgree: "होय, मी सहमत आहे",
+      btnDecline: "कर्मचाऱ्यांची मदत घ्या",
+      declineModalTitle: "ओपीडी कर्मचाऱ्यांना कळवले आहे",
+      declineModalMsg: "डेस्क १ वरील मदतनीसांना आपल्या मदतीसाठी संदेश पाठवला आहे. आपण पुन्हा विचार करून संमती देऊ शकता.",
+      btnBackToConsent: "संमती पुन्हा वाचा",
+      btnCancelRegistration: "सुरुवातीला परत जा",
+      btnBack: "मागे",
+      stepCounter: "टप्पा १ / ५",
+      pClinicalTitle: "वैद्यकीय इतिहास आणि लक्षणे (आवश्यक):",
+      pClinicalDesc: "आजच्या डॉक्टर सल्ल्यासाठी लक्षणे आणि इतिहास नोंदवण्याची परवानगी",
+      pDocTitle: "कागदपत्रे तपासणी:",
+      pDocDesc: "जुनी प्रिस्क्रिप्शन आणि लॅब रिपोर्ट स्कॅन करण्याची परवानगी",
+      pSummaryTitle: "एआय सल्ला सारांश:",
+      pSummaryDesc: "डॉक्टरांच्या मदतीसाठी लक्षणांचा सारांश तयार करण्याची परवानगी",
+      pBilingualTitle: "द्विभाषिक भाषांतर:",
+      pBilingualDesc: "आपल्या पसंतीच्या भाषेत सल्ल्याचे भाषांतर",
+      pSharingTitle: "रुग्णालय प्रणाली सामायिकरण:",
+      pSharingDesc: "आजची ओपीडी माहिती रुग्णालयाच्या सिस्टीममध्ये नोंदवण्याची परवानगी",
+      pAbhaTitle: "आभा (ABHA) खाते जोडणी:",
+      pAbhaDesc: "आयुष्मान भारत डिजिटल आरोग्य खात्याशी रेकॉर्ड जोडण्याची परवानगी"
+    }
+  };
+
+  function setLanguage(lang) {
+    if (!i18n[lang]) return;
+    currentLang = lang;
+    try { localStorage.setItem('medikiosk_lang', lang); } catch(e){}
+    document.documentElement.lang = lang;
+
+    document.querySelectorAll('.lang-chip').forEach(chip => {
+      const isMatch = chip.getAttribute('data-lang') === lang;
+      chip.classList.toggle('active', isMatch);
+      chip.setAttribute('aria-checked', isMatch ? 'true' : 'false');
+    });
+
+    const t = i18n[lang];
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      if (t[key]) el.textContent = t[key];
+    });
+  }
+
+  document.querySelectorAll('.lang-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      setLanguage(chip.getAttribute('data-lang'));
+    });
+  });
+
+  // Consent Submission Logic
+  let isSubmitting = false;
+  const btnAgree = document.getElementById('btnAgree');
+  const consentErrorMsg = document.getElementById('consentErrorMsg');
+
+  btnAgree?.addEventListener('click', async () => {
+    if (isSubmitting) return;
+
+    if (consentErrorMsg) {
+      consentErrorMsg.textContent = '';
+      consentErrorMsg.style.display = 'none';
+    }
+
+    const patientId = MediKioskSession.getPatientId();
+    if (!patientId) {
+      if (consentErrorMsg) {
+        consentErrorMsg.textContent = 'No active patient found. Please start from registration.';
+        consentErrorMsg.style.display = 'block';
+      }
+      setTimeout(() => {
+        window.location.href = 'screen1a-identity.html';
+      }, 1500);
+      return;
+    }
+
+    const chkClinical = document.getElementById('chk-CLINICAL_HISTORY');
+    if (!chkClinical || !chkClinical.checked) {
+      if (consentErrorMsg) {
+        consentErrorMsg.textContent = 'Clinical History & Symptoms consent is required to proceed with your OPD consultation.';
+        consentErrorMsg.style.display = 'block';
+      }
+      return;
+    }
+
+    const purposesToGrant = [];
+    const allPurposes = [
+      'CLINICAL_HISTORY',
+      'DOCUMENT_PROCESSING',
+      'AI_SUMMARIZATION',
+      'BILINGUAL_OUTPUT',
+      'DATA_SHARING',
+      'ABHA_LINKAGE'
+    ];
+
+    allPurposes.forEach(p => {
+      const el = document.getElementById(`chk-${p}`);
+      if (el && el.checked) {
+        purposesToGrant.push(p);
+      }
+    });
+
+    isSubmitting = true;
+    btnAgree.disabled = true;
+    const origBtnContent = btnAgree.innerHTML;
+    btnAgree.innerHTML = '<span>Saving Consent...</span>';
+
+    try {
+      // Grant each purpose explicitly via backend API
+      for (const purpose of purposesToGrant) {
+        const payload = {
+          purpose: purpose,
+          language_code: currentLang || 'en',
+          consent_version: '1.0',
+          collection_method: 'PATIENT_SELF'
+        };
+        await MediKioskApi.post(`/api/patients/${patientId}/consents`, payload);
+      }
+
+      // Success: proceed to interview screen
+      window.location.href = 'screen2-interview.html';
+    } catch (err) {
+      isSubmitting = false;
+      btnAgree.disabled = false;
+      btnAgree.innerHTML = origBtnContent;
+
+      if (consentErrorMsg) {
+        consentErrorMsg.style.display = 'block';
+        if (err.isAuthError) {
+          consentErrorMsg.textContent = 'Authentication required. Please consult OPD staff.';
+        } else if (err.isForbidden) {
+          consentErrorMsg.textContent = 'Consent authorization denied. Please visit Counter 1.';
+        } else if (err.isNotFound) {
+          consentErrorMsg.textContent = 'Patient record not found. Please re-register at start.';
+        } else if (err.isValidationError) {
+          consentErrorMsg.textContent = err.message || 'Validation error in consent parameters.';
+        } else if (err.isNetworkError) {
+          consentErrorMsg.textContent = 'Unable to connect to hospital server. Please try again.';
+        } else {
+          consentErrorMsg.textContent = err.message || 'Failed to record consent. Please alert staff.';
+        }
+      }
+    }
+  });
+
+  // --- Step 9: ABHA / ABDM Health Identity Linkage ---
+  const abhaStatusBadge = document.getElementById('abhaStatusBadge');
+  const abhaIdInput = document.getElementById('abhaIdInput');
+  const abhaAddressInput = document.getElementById('abhaAddressInput');
+  const btnLinkAbha = document.getElementById('btnLinkAbha');
+  const btnUnlinkAbha = document.getElementById('btnUnlinkAbha');
+  const abhaFeedbackMsg = document.getElementById('abhaFeedbackMsg');
+  const chkAbhaConsent = document.getElementById('chk-ABHA_LINKAGE');
+
+  function showAbhaFeedback(text, isError) {
+    if (!abhaFeedbackMsg) return;
+    abhaFeedbackMsg.textContent = text;
+    abhaFeedbackMsg.style.display = 'block';
+    abhaFeedbackMsg.style.color = isError ? 'var(--primitive-signal-red, #B91C1C)' : 'var(--primitive-herbal-green, #23542C)';
+  }
+
+  async function loadAbhaStatus() {
+    const patientId = MediKioskSession.getPatientId();
+    if (!patientId || !abhaStatusBadge) return;
+    try {
+      const res = await MediKioskApi.get(`/api/patients/${patientId}/abha`);
+      if (res && res.data && res.data.linked) {
+        abhaStatusBadge.textContent = `Linked (${res.data.verification_status || 'VERIFIED'}) • ${res.data.environment || 'MOCK'}`;
+        abhaStatusBadge.style.background = '#DEF7EC';
+        abhaStatusBadge.style.color = '#03543F';
+        if (chkAbhaConsent) chkAbhaConsent.checked = true;
+        if (btnLinkAbha) btnLinkAbha.style.display = 'none';
+        if (btnUnlinkAbha) btnUnlinkAbha.style.display = 'inline-block';
+        if (abhaIdInput) {
+          abhaIdInput.value = res.data.abha_id || '';
+          abhaIdInput.disabled = true;
+        }
+        if (abhaAddressInput) {
+          abhaAddressInput.value = res.data.abha_address || '';
+          abhaAddressInput.disabled = true;
+        }
+      } else {
+        abhaStatusBadge.textContent = 'Status: Not Linked (Optional)';
+        abhaStatusBadge.style.background = '#E5E7EB';
+        abhaStatusBadge.style.color = '#4B5563';
+        if (btnLinkAbha) btnLinkAbha.style.display = 'inline-block';
+        if (btnUnlinkAbha) btnUnlinkAbha.style.display = 'none';
+        if (abhaIdInput) {
+          abhaIdInput.disabled = false;
+        }
+        if (abhaAddressInput) {
+          abhaAddressInput.disabled = false;
+        }
+      }
+    } catch (err) {
+      if (abhaStatusBadge) abhaStatusBadge.textContent = 'Status: Offline / Unchecked';
+    }
+  }
+
+  btnLinkAbha?.addEventListener('click', async () => {
+    const patientId = MediKioskSession.getPatientId();
+    if (!patientId) {
+      showAbhaFeedback('No active patient found. Please start from registration.', true);
+      return;
+    }
+
+    if (!chkAbhaConsent || !chkAbhaConsent.checked) {
+      showAbhaFeedback('ABHA_LINKAGE consent is required before linking. Please check the consent box above.', true);
+      return;
+    }
+
+    const rawId = (abhaIdInput && abhaIdInput.value || '').trim();
+    if (!rawId) {
+      showAbhaFeedback('Please enter a valid 14-digit ABHA ID.', true);
+      return;
+    }
+
+    btnLinkAbha.disabled = true;
+    btnLinkAbha.textContent = 'Verifying...';
+    if (abhaFeedbackMsg) abhaFeedbackMsg.style.display = 'none';
+
+    try {
+      // Gate 1: Ensure active ABHA_LINKAGE consent is recorded on backend
+      await MediKioskApi.post(`/api/patients/${patientId}/consents`, {
+        purpose: 'ABHA_LINKAGE',
+        language_code: currentLang || 'en',
+        consent_version: '1.0',
+        collection_method: 'PATIENT_SELF'
+      });
+
+      // Gate 2: Link ABHA
+      const linkPayload = { abha_id: rawId };
+      const rawAddr = (abhaAddressInput && abhaAddressInput.value || '').trim();
+      if (rawAddr) linkPayload.abha_address = rawAddr;
+
+      await MediKioskApi.post(`/api/patients/${patientId}/abha/link`, linkPayload);
+      showAbhaFeedback('✓ ABHA identity successfully linked and verified with ABDM.', false);
+      await loadAbhaStatus();
+    } catch (err) {
+      if (err.isForbidden) {
+        showAbhaFeedback('Consent required: Active ABHA_LINKAGE consent is mandatory for linking.', true);
+      } else if (err.isConflict) {
+        showAbhaFeedback('Conflict: This ABHA is already linked or patient has active linkage.', true);
+      } else if (err.status === 502) {
+        showAbhaFeedback('ABDM Gateway error: Unable to connect to verification registry.', true);
+      } else {
+        showAbhaFeedback(err.message || 'ABHA verification failed.', true);
+      }
+    } finally {
+      btnLinkAbha.disabled = false;
+      btnLinkAbha.textContent = 'Link ABHA';
+    }
+  });
+
+  btnUnlinkAbha?.addEventListener('click', async () => {
+    const patientId = MediKioskSession.getPatientId();
+    if (!patientId) return;
+
+    btnUnlinkAbha.disabled = true;
+    btnUnlinkAbha.textContent = 'Unlinking...';
+    try {
+      await MediKioskApi.post(`/api/patients/${patientId}/abha/unlink`, {});
+      showAbhaFeedback('ABHA identifier unlinked successfully.', false);
+      if (abhaIdInput) abhaIdInput.value = '';
+      if (abhaAddressInput) abhaAddressInput.value = '';
+      await loadAbhaStatus();
+    } catch (err) {
+      showAbhaFeedback(err.message || 'Failed to unlink ABHA.', true);
+    } finally {
+      btnUnlinkAbha.disabled = false;
+      btnUnlinkAbha.textContent = 'Unlink';
+    }
+  });
+
+  loadAbhaStatus();
+
+  const savedLang = (function(){ try { return localStorage.getItem('medikiosk_lang'); } catch(e){ return null; } })() || 'en';
+  setLanguage(savedLang);
+</script>
+</body>
+</html>

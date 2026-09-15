@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MediKiosk — Patient Welcome | All India Institute of Ayurveda</title>
+
+  <!-- Google Fonts: Baloo 2 & Noto Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="../styles/tokens.css" />
+
+  <!-- Shared MediKiosk Foundation Scripts -->
+  <script src="../scripts/config.js"></script>
+  <script src="../scripts/session.js"></script>
+  <script src="../scripts/api.js"></script>
+
+  <style>
+    /* ── Desktop Landscape 1440x900 Base Layout ── */
+    html, body {
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+      background-color: var(--color-canvas-outer, #EDE8DE);
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: auto;
+    }
+
+    .app-container {
+      max-width: var(--app-max-width);
+      min-width: var(--app-min-width);
+      margin: 0 auto;
+      width: 100%;
+      min-height: 100vh;
+      box-sizing: border-box;
+      background-color: var(--color-bg);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      box-shadow: 0 0 32px rgba(44, 37, 32, 0.08);
+    }
+
+    /* Top Bar (88px) */
+    .topbar {
+      flex: 0 0 var(--topbar-h);
+      background: var(--color-topbar-bg);
+      border-bottom: 1px solid var(--color-topbar-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--page-px);
+      box-sizing: border-box;
+    }
+
+    .topbar__brand {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .topbar__logo-mark {
+      width: 50px;
+      height: 50px;
+      border-radius: var(--radius-sm);
+      background: var(--primitive-haritaki-gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(44, 37, 32, 0.15);
+    }
+
+    .topbar__logo-mark svg { width: 30px; height: 30px; }
+
+    .topbar__name {
+      font-family: var(--font-display);
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--primitive-haritaki-deep);
+      line-height: 1.1;
+    }
+
+    .topbar__sub {
+      font-family: var(--font-body);
+      font-size: var(--font-size-small);
+      font-weight: 500;
+      color: var(--color-text-secondary);
+    }
+
+    .topbar__controls {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .audio-btn {
+      width: var(--touch-target-audio-btn);
+      height: var(--touch-target-audio-btn);
+      border-radius: 50%;
+      background: var(--color-audio-btn-bg);
+      border: 1.5px solid var(--color-audio-btn-border);
+      color: var(--color-audio-btn-text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      box-shadow: var(--shadow-btn-neutral);
+      transition: var(--transition-tactile);
+    }
+
+    .audio-btn svg { width: 24px; height: 24px; }
+
+    .lang-chips {
+      display: flex;
+      gap: 8px;
+    }
+
+    .lang-chip {
+      height: var(--touch-target-min);
+      padding: 0 16px;
+      border: 1.5px solid var(--color-border-subtle);
+      border-radius: var(--radius-pill);
+      background: var(--color-surface);
+      color: var(--color-text-secondary);
+      font-family: var(--font-display);
+      font-size: var(--font-size-body);
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--shadow-pill);
+      transition: var(--transition-tactile);
+    }
+
+    .lang-chip.active {
+      background: var(--color-btn-primary-bg);
+      color: #FFFFFF;
+      border-color: var(--primitive-haritaki-gold);
+    }
+
+    /* Content Zone (Side-by-Side Landscape Grid) */
+    .content-zone {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 40px;
+      padding: 36px var(--page-px);
+      box-sizing: border-box;
+      align-items: center;
+    }
+
+    /* Left Column: Welcome & Journey Preview */
+    .welcome-info {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .welcome-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: var(--radius-pill);
+      background: rgba(200, 146, 42, 0.12);
+      border: 1px solid rgba(200, 146, 42, 0.3);
+      color: var(--primitive-haritaki-deep);
+      font-size: var(--font-size-small);
+      font-weight: 700;
+      width: fit-content;
+    }
+
+    .welcome-title {
+      font-family: var(--font-display);
+      font-size: var(--font-size-h1);
+      font-weight: 800;
+      line-height: 1.18;
+      color: var(--color-text-primary);
+      margin: 0;
+    }
+
+    .welcome-title span {
+      color: var(--primitive-haritaki-deep);
+    }
+
+    .welcome-desc {
+      font-size: var(--font-size-body);
+      line-height: 1.55;
+      color: var(--color-text-secondary);
+      margin: 0;
+      max-width: 640px;
+    }
+
+    /* 4-Step Journey Cards Grid */
+    .journey-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-top: 8px;
+    }
+
+    .journey-card {
+      background: #FBF9F4;
+      border: 1.5px solid #EBE2D2;
+      border-radius: var(--radius-card);
+      padding: 16px 20px;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      box-shadow: var(--shadow-card-unselected);
+    }
+
+    .journey-card__num {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--primitive-cream-warm);
+      border: 1px solid var(--primitive-haritaki-gold);
+      color: var(--primitive-haritaki-deep);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .journey-card__text h4 {
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--color-text-primary);
+      margin: 0 0 3px 0;
+    }
+
+    .journey-card__text p {
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      line-height: 1.35;
+      margin: 0;
+    }
+
+    /* Right Column: Interactive Start Card */
+    .start-card {
+      background: var(--color-surface);
+      border: 2px solid var(--primitive-copper-border);
+      border-radius: var(--radius-card);
+      padding: 36px 32px;
+      box-shadow: var(--shadow-card-elevated);
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      text-align: center;
+      position: relative;
+    }
+
+    .start-card__icon {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(200, 146, 42, 0.2), rgba(200, 146, 42, 0.05));
+      border: 2px solid var(--primitive-haritaki-gold);
+      color: var(--primitive-haritaki-deep);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto;
+      box-shadow: var(--shadow-pill);
+    }
+
+    .start-card__icon svg { width: 44px; height: 44px; }
+
+    .start-card__status {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: var(--radius-pill);
+      background: rgba(46, 107, 57, 0.1);
+      border: 1px solid rgba(46, 107, 57, 0.25);
+      color: var(--primitive-herbal-green);
+      font-size: var(--font-size-small);
+      font-weight: 600;
+      margin: 0 auto;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--primitive-herbal-green);
+      animation: pulseDot 2s infinite;
+    }
+
+    .btn-begin {
+      height: 68px;
+      border-radius: var(--radius-btn);
+      background: var(--color-btn-primary-bg);
+      color: #FFFFFF;
+      border: none;
+      font-family: var(--font-display);
+      font-size: 24px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      text-decoration: none;
+      cursor: pointer;
+      box-shadow: var(--shadow-btn-gold);
+      transition: var(--transition-tactile);
+    }
+
+    .btn-begin:hover {
+      box-shadow: 0 10px 24px rgba(200, 146, 42, 0.4);
+    }
+
+    .btn-begin svg { width: 28px; height: 28px; }
+
+    .start-help {
+      font-size: var(--font-size-small);
+      color: var(--color-text-secondary);
+      line-height: 1.4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    /* Action / Status Bar */
+    .action-bar {
+      flex: 0 0 var(--actionbar-h);
+      background: var(--color-actionbar-bg);
+      border-top: 1px solid var(--color-actionbar-border);
+      box-shadow: var(--shadow-actionbar);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--page-px);
+      box-sizing: border-box;
+      font-size: var(--font-size-small);
+      color: var(--primitive-teak-muted);
+    }
+
+    .action-bar__left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .compliance-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--primitive-herbal-green);
+      font-weight: 600;
+    }
+
+    .action-bar__right a {
+      color: var(--primitive-haritaki-deep);
+      font-weight: 600;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-container">
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="topbar__brand">
+      <div class="topbar__logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 22 22" fill="none">
+          <path d="M11 3C11 3 5 7 5 12.5C5 16.09 7.69 19 11 19C14.31 19 17 16.09 17 12.5C17 7 11 3 11 3Z" fill="#2C2520"/>
+          <path d="M11 6C11 6 7 9.5 7 13C7 15.21 8.79 17 11 17" stroke="#2C2520" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M11 6C11 6 15 9.5 15 13C15 15.21 13.21 17 11 17" stroke="#2C2520" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="11" y1="17" x2="11" y2="20" stroke="#2C2520" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="topbar__name">MediKiosk</div>
+        <div class="topbar__sub" id="instituteSubtitle">All India Institute of Ayurveda — New Delhi</div>
+      </div>
+    </div>
+
+    <div class="topbar__controls">
+      <!-- Sarvam TTS Audio Replay Button -->
+      <button class="audio-btn" id="audioBtn" aria-label="Listen audio instructions" title="Listen instructions in your language">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+        </svg>
+      </button>
+
+      <!-- Language Switcher Chips -->
+      <div class="lang-chips">
+        <button class="lang-chip active" data-lang="en">English</button>
+        <button class="lang-chip" data-lang="hi">हिन्दी</button>
+        <button class="lang-chip" data-lang="mr">मराठी</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTENT ZONE (Landscape 2-Column Grid) -->
+  <main class="content-zone">
+
+    <!-- Left Column: Welcome & Guided Steps -->
+    <section class="welcome-info">
+      <div class="welcome-badge">
+        <span>Ayurveda OPD Smart Check-in</span>
+      </div>
+
+      <h1 class="welcome-title" id="welcomeTitle">
+        Welcome to <span>AIIA OPD</span> Check-in
+      </h1>
+
+      <p class="welcome-desc" id="welcomeDesc">
+        Get your OPD consultation token quickly in 4 easy steps. Our Dr. Charaka AI assistant will help you prepare your chief complaints and Ayurvedic health records before seeing the doctor.
+      </p>
+
+      <!-- 4 Quick Journey Cards -->
+      <div class="journey-grid">
+        <div class="journey-card">
+          <div class="journey-card__num">1</div>
+          <div class="journey-card__text">
+            <h4 id="step1Title">Identity Check</h4>
+            <p id="step1Desc">Scan ABHA QR code or enter mobile number</p>
+          </div>
+        </div>
+
+        <div class="journey-card">
+          <div class="journey-card__num">2</div>
+          <div class="journey-card__text">
+            <h4 id="step2Title">AI Doctor Interview</h4>
+            <p id="step2Desc">Speak or tap your symptoms in your own language</p>
+          </div>
+        </div>
+
+        <div class="journey-card">
+          <div class="journey-card__num">3</div>
+          <div class="journey-card__text">
+            <h4 id="step3Title">Records &amp; OCR</h4>
+            <p id="step3Desc">Scan old prescriptions or lab test reports</p>
+          </div>
+        </div>
+
+        <div class="journey-card">
+          <div class="journey-card__num">4</div>
+          <div class="journey-card__text">
+            <h4 id="step4Title">OPD Queue Token</h4>
+            <p id="step4Desc">Receive consultation room &amp; token slip</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Column: Interactive Start CTA Card -->
+    <aside class="start-card">
+      <div class="start-card__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+        </svg>
+      </div>
+
+      <div class="start-card__status">
+        <span class="status-dot"></span>
+        <span>AIIA Central OPD Kiosk Active</span>
+      </div>
+
+      <div>
+        <h2 style="font-family: var(--font-display); font-size: var(--font-size-h2); font-weight: 700; color: var(--color-text-primary); margin: 0 0 6px 0;" id="ctaHeading">
+          Begin Your Registration
+        </h2>
+        <p style="font-size: var(--font-size-small); color: var(--color-text-secondary); margin: 0;" id="ctaSub">
+          Touch the button below to start
+        </p>
+      </div>
+
+      <!-- Main Begin CTA -->
+      <a href="screen1a-identity.html" class="btn-begin touch-target" id="btnBegin">
+        <span id="btnBeginText">Begin / प्रारंभ करें</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </a>
+
+      <div class="start-help">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M12 16v-4M12 8h.01"></path>
+        </svg>
+        <span>Hospital Sahayak staff available at Helpdesk 1</span>
+      </div>
+    </aside>
+
+  </main>
+
+  <!-- ACTION BAR / FOOTER -->
+  <footer class="action-bar">
+    <div class="action-bar__left">
+      <span class="compliance-tag">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        DPDP Act 2023 Compliant &bull; ABHA ABDM Verified
+      </span>
+      <span>&bull; Helpline: 1800-11-2233</span>
+    </div>
+    <div class="action-bar__right">
+      <a href="qa-launcher.html">Developer / QA Screen Launcher &rarr;</a>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+  // Simple Multilingual Content Switcher
+  const translations = {
+    en: {
+      sub: "All India Institute of Ayurveda — New Delhi",
+      title: "Welcome to <span>AIIA OPD</span> Check-in",
+      desc: "Get your OPD consultation token quickly in 4 easy steps. Our Dr. Charaka AI assistant will help you prepare your chief complaints and Ayurvedic health records before seeing the doctor.",
+      step1T: "Identity Check",
+      step1D: "Scan ABHA QR code or enter mobile number",
+      step2T: "AI Doctor Interview",
+      step2D: "Speak or tap your symptoms in your own language",
+      step3T: "Records & OCR",
+      step3D: "Scan old prescriptions or lab test reports",
+      step4T: "OPD Queue Token",
+      step4D: "Receive consultation room & token slip",
+      ctaH: "Begin Your Registration",
+      ctaS: "Touch the button below to start",
+      btn: "Begin / प्रारंभ करें"
+    },
+    hi: {
+      sub: "अखिल भारतीय आयुर्वेद संस्थान — नई दिल्ली",
+      title: "<span>AIIA ओपीडी</span> में आपका स्वागत है",
+      desc: "केवल 4 आसान चरणों में अपना ओपीडी परामर्श टोकन प्राप्त करें। डॉक्टर से मिलने से पहले हमारा डॉ. चरक एआई सहायक आपकी समस्याओं और स्वास्थ्य रिकॉर्ड को दर्ज करने में मदद करेगा।",
+      step1T: "पहचान सत्यापन",
+      step1D: "आभा (ABHA) क्यूआर कोड स्कैन करें या मोबाइल नंबर दर्ज करें",
+      step2T: "एआई डॉक्टर साक्षात्कार",
+      step2D: "अपनी भाषा में बोलकर या चुनकर लक्षण बताएं",
+      step3T: "दस्तावेज व रिपोर्ट",
+      step3D: "पुराने पर्चे या लैब रिपोर्ट स्कैन करें",
+      step4T: "ओपीडी कतार टोकन",
+      step4D: "कमरा नंबर और परामर्श टोकन पर्ची प्राप्त करें",
+      ctaH: "पंजीकरण शुरू करें",
+      ctaS: "शुरू करने के लिए नीचे दिए गए बटन को दबाएं",
+      btn: "प्रारंभ करें / Begin"
+    },
+    mr: {
+      sub: "अखिल भारतीय आयुर्वेद संस्था — नवी दिल्ली",
+      title: "<span>AIIA ओपीडी</span> मध्ये आपले स्वागत आहे",
+      desc: "फक्त 4 सोप्या चरणांमध्ये आपले ओपीडी टोकन मिळवा. डॉक्टरांना भेटण्यापूर्वी आमचा डॉ. चरक एआय सहाय्यक आपल्या तक्रारी नोंदविण्यात मदत करेल.",
+      step1T: "ओळख पडताळणी",
+      step1D: "आभा क्यूआर कोड स्कॅन करा किंवा मोबाइल नंबर टाका",
+      step2T: "एआय डॉक्टर संवाद",
+      step2D: "आपल्या भाषेत लक्षणे सांगा किंवा निवडा",
+      step3T: "कागदपत्रे आणि अहवाल",
+      step3D: "जुनी प्रिस्क्रिप्शन किंवा लॅब रिपोर्ट स्कॅन करा",
+      step4T: "ओपीडी टोकन",
+      step4D: "सल्लागार कक्ष क्रमांक व टोकन स्लिप मिळवा",
+      ctaH: "नोंदणी सुरू करा",
+      ctaS: "सुरू करण्यासाठी खालील बटण दाबा",
+      btn: "सुरू करा / Begin"
+    }
+  };
+
+  function setLanguage(lang) {
+    const t = translations[lang] || translations.en;
+    document.getElementById('instituteSubtitle').innerText = t.sub;
+    document.getElementById('welcomeTitle').innerHTML = t.title;
+    document.getElementById('welcomeDesc').innerText = t.desc;
+    document.getElementById('step1Title').innerText = t.step1T;
+    document.getElementById('step1Desc').innerText = t.step1D;
+    document.getElementById('step2Title').innerText = t.step2T;
+    document.getElementById('step2Desc').innerText = t.step2D;
+    document.getElementById('step3Title').innerText = t.step3T;
+    document.getElementById('step3Desc').innerText = t.step3D;
+    document.getElementById('step4Title').innerText = t.step4T;
+    document.getElementById('step4Desc').innerText = t.step4D;
+    document.getElementById('ctaHeading').innerText = t.ctaH;
+    document.getElementById('ctaSub').innerText = t.ctaS;
+    document.getElementById('btnBeginText').innerText = t.btn;
+
+    document.querySelectorAll('.lang-chip').forEach(c => {
+      c.classList.toggle('active', c.getAttribute('data-lang') === lang);
+    });
+    try { localStorage.setItem('medikiosk_lang', lang); } catch(e){}
+  }
+
+  document.querySelectorAll('.lang-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      setLanguage(btn.getAttribute('data-lang'));
+    });
+  });
+
+  const savedLang = (function(){ try { return localStorage.getItem('medikiosk_lang'); } catch(e){ return null; } })() || 'en';
+  setLanguage(savedLang);
+</script>
+</body>
+</html>
