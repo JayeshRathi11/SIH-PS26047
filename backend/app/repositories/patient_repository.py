@@ -17,6 +17,7 @@ class PatientRepository:
             date_of_birth=patient_in.date_of_birth,
             gender=patient_in.gender,
             preferred_language=patient_in.preferred_language,
+            emergency_contact_phone=patient_in.emergency_contact_phone,
         )
         db.add(db_patient)
         db.commit()

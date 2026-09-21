@@ -61,11 +61,39 @@ class OpdQueueService:
             return (position - 1) * 3
         return (position - 1) * self.average_service_minutes
 
+    def calculate_priority_score(self, db: Session, entry: OpdQueueEntry) -> float:
+        """
+        Calculates the weighted triage priority score according to specification:
+        Priority_Score = (is_red_flag * 1000) + (patient_age >= 65 ? 50 : 0) + (wait_time_minutes * 1.5)
+        """
+        is_red_flag = 1.0 if (
+            entry.priority == OpdQueuePriority.EMERGENCY.value
+            or self._has_active_critical_red_flag(db, entry.interview_id)
+        ) else 0.0
+
+        patient = self.patient_repo.get_by_id(db, entry.patient_id)
+        age_bonus = 0.0
+        if patient and patient.date_of_birth:
+            today = date.today()
+            age = (today - patient.date_of_birth).days / 365.25
+            if age >= 65:
+                age_bonus = 50.0
+
+        now = datetime.now(timezone.utc)
+        checked_in = entry.checked_in_at
+        if checked_in and checked_in.tzinfo is None:
+            checked_in = checked_in.replace(tzinfo=timezone.utc)
+        wait_minutes = max(0.0, (now - checked_in).total_seconds() / 60.0) if checked_in else 0.0
+
+        score = (is_red_flag * 1000.0) + age_bonus + (wait_minutes * 1.5)
+        return round(score, 2)
+
     def _to_response(
         self, entry: OpdQueueEntry, db: Session
     ) -> OpdQueueEntryResponse:
         pos = self.repository.calculate_position(db, entry)
         est = self._calculate_estimated_wait(pos, entry.priority)
+        score = self.calculate_priority_score(db, entry)
         return OpdQueueEntryResponse(
             id=entry.id,
             patient_id=entry.patient_id,
@@ -82,6 +110,7 @@ class OpdQueueService:
             cancelled_at=entry.cancelled_at,
             position=pos,
             estimated_wait_minutes=est,
+            priority_score=score,
         )
 
     def _has_active_critical_red_flag(
@@ -433,10 +462,12 @@ class OpdQueueService:
             status=status.value if status else None,
             priority=priority.value if priority else None,
         )
+        responses = [self._to_response(e, db) for e in entries]
+        responses.sort(key=lambda r: (r.priority_score or 0.0, -r.token_number), reverse=True)
         return OpdQueueListResponse(
             queue_date=queue_date,
-            total_count=len(entries),
-            entries=[self._to_response(e, db) for e in entries],
+            total_count=len(responses),
+            entries=responses,
         )
 
     def get_summary(

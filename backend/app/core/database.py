@@ -1,7 +1,13 @@
 from typing import Generator
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import declarative_base, sessionmaker, Session
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.ext.compiler import compiles
 from app.core.config import settings
+
+@compiles(JSONB, "sqlite")
+def _compile_jsonb_sqlite(type_, compiler, **kw):
+    return "JSON"
 
 Base = declarative_base()
 

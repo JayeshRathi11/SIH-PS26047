@@ -726,7 +726,7 @@
     </div>
 
     <!-- Advances to Step 3: Documents -->
-    <button class="btn-primary" onclick="window.location.href='screen3-documents.html'">
+    <button class="btn-primary" id="btnContinueAyush" type="button">
       <span data-i18n="btnNext">Continue to Documents</span>
       <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
         <path d="M5 13h11.86l-5.43 5.43 1.42 1.42L21 12l-8.15-7.85-1.42 1.42L16.86 11H5v2z"/>
@@ -925,7 +925,34 @@
   const savedLang = (function(){ try { return localStorage.getItem('medikiosk_lang'); } catch(e){ return null; } })() || 'en';
   setLanguage(savedLang);
 
-  // Synchronize Interview Mode to AYUSH
+  // Synchronize Interview Mode to AYUSH & Persist Agni Observation
+  document.getElementById('btnContinueAyush')?.addEventListener('click', async () => {
+    const selected = document.querySelector('.option-card--selected');
+    let agniText = 'मन्दाग्नि (Mandagni)';
+    if (selected) {
+      const title = selected.querySelector('.option-card__title')?.textContent.trim() || '';
+      const sub = selected.querySelector('.option-card__sub')?.textContent.trim() || '';
+      agniText = sub ? `${title}: ${sub}` : title;
+    }
+
+    const interviewId = MediKioskSession.getInterviewId();
+    if (interviewId) {
+      try {
+        await MediKioskApi.put(`/api/interviews/${interviewId}/mode`, { mode: 'AYUSH' });
+      } catch (e) {}
+
+      try {
+        await MediKioskApi.post(`/api/interviews/${interviewId}/messages/process`, {
+          role: 'PATIENT',
+          content: `AYUSH Dashavidha Pariksha Agni assessment: ${agniText}`,
+          language: localStorage.getItem('medikiosk_lang') || 'en'
+        });
+      } catch (e) {}
+    }
+
+    window.location.href = 'screen3-documents.html';
+  });
+
   (async function() {
     const interviewId = MediKioskSession.getInterviewId();
     if (interviewId) {
@@ -933,9 +960,7 @@
         await MediKioskApi.put(`/api/interviews/${interviewId}/mode`, {
           mode: 'AYUSH'
         });
-      } catch (e) {
-        // Mode synchronization non-blocking for UI preview
-      }
+      } catch (e) {}
     }
   })();
 </script>

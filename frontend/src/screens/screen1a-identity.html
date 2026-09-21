@@ -892,6 +892,38 @@
         window.location.href = 'screen1b-consent.html';
       }, 700);
     } catch (err) {
+      if (err.isConflict) {
+        try {
+          // Returning patient: look up existing patient by phone
+          const lookupRes = await MediKioskApi.get(`/api/patients/by-phone/${encodeURIComponent(abhaScanData.phone_number)}`);
+          if (lookupRes.ok && lookupRes.data && lookupRes.data.id) {
+            const patientId = lookupRes.data.id;
+            MediKioskSession.setPatientId(patientId);
+
+            // Establish active session
+            try {
+              const sessionRes = await MediKioskApi.post('/api/sessions', { patient_id: patientId });
+              if (sessionRes && sessionRes.data && sessionRes.data.id) {
+                MediKioskSession.setSessionId(sessionRes.data.id);
+              }
+            } catch (sessErr) {}
+
+            title.textContent = "Welcome Back, " + (lookupRes.data.name || "Patient");
+            title.style.color = 'var(--primitive-herbal-green)';
+            sub.textContent = "Existing patient record verified. Proceeding to consent...";
+            label.textContent = '[ VERIFIED ✓ ]';
+            label.style.color = 'var(--primitive-herbal-green)';
+
+            setTimeout(() => {
+              window.location.href = 'screen1b-consent.html';
+            }, 700);
+            return;
+          }
+        } catch (lookupErr) {
+          // Fallback to error display if lookup fails
+        }
+      }
+
       isScanning = false;
       if (btnContinue) btnContinue.disabled = false;
       if (closeBtn) {

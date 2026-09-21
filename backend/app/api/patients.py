@@ -23,6 +23,14 @@ def register_patient(
     return patient_service.register_patient(db=db, patient_in=patient_in)
 
 
+@router.get("/by-phone/{phone_number}", response_model=PatientResponse, status_code=status.HTTP_200_OK)
+def get_patient_by_phone(
+    phone_number: str = Path(..., min_length=5, max_length=25),
+    db: Session = Depends(get_db),
+):
+    return patient_service.get_by_phone(db=db, phone_number=phone_number)
+
+
 @router.get("/{patient_id}", response_model=PatientResponse, status_code=status.HTTP_200_OK)
 def get_patient(
     patient_id: int = Path(..., gt=0),

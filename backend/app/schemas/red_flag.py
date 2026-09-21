@@ -36,3 +36,21 @@ class RedFlagEvaluationResponse(BaseModel):
     has_active_red_flags: bool
     highest_severity: Optional[RedFlagSeverity] = None
     red_flags: List[RedFlagResponse]
+
+
+class ClinicianFeedbackRequest(BaseModel):
+    is_valid: bool
+    feedback_notes: Optional[str] = None
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class ClinicianFeedbackResponse(BaseModel):
+    id: int
+    red_flag_id: int
+    clinician_id: Optional[int] = None
+    is_valid: bool
+    feedback_notes: Optional[str] = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)

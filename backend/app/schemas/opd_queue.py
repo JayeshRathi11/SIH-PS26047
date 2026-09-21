@@ -55,6 +55,7 @@ class OpdQueueEntryResponse(BaseModel):
     cancelled_at: Optional[datetime] = None
     position: Optional[int] = None
     estimated_wait_minutes: Optional[int] = None
+    priority_score: Optional[float] = None
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -14,6 +14,13 @@ class PatientBase(BaseModel):
     date_of_birth: date = Field(..., examples=["1990-05-15"])
     gender: str = Field(..., min_length=1, max_length=20, examples=["Male"])
     preferred_language: str = Field(default="en", min_length=2, max_length=20, examples=["en"])
+    emergency_contact_phone: str | None = Field(
+        default=None,
+        min_length=8,
+        max_length=20,
+        pattern=r"^\+?[0-9\s\-]{8,20}$",
+        examples=["+919876543211"],
+    )
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 

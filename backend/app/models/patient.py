@@ -13,6 +13,7 @@ class Patient(Base):
     date_of_birth = Column(Date, nullable=False)
     gender = Column(String(20), nullable=False)
     preferred_language = Column(String(20), nullable=False, default="en")
+    emergency_contact_phone = Column(String(20), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(
         DateTime(timezone=True),

@@ -1009,6 +1009,35 @@
         window.location.href = 'screen1b-consent.html';
       }, 700);
     } catch (err) {
+      if (err.isConflict) {
+        try {
+          // Returning patient: look up existing patient by phone
+          const lookupRes = await MediKioskApi.get(`/api/patients/by-phone/${encodeURIComponent(formattedPhone)}`);
+          if (lookupRes.ok && lookupRes.data && lookupRes.data.id) {
+            const patientId = lookupRes.data.id;
+            MediKioskSession.setPatientId(patientId);
+
+            // Establish active encounter session
+            try {
+              const sessionRes = await MediKioskApi.post('/api/sessions', { patient_id: patientId });
+              if (sessionRes && sessionRes.data && sessionRes.data.id) {
+                MediKioskSession.setSessionId(sessionRes.data.id);
+              }
+            } catch (sessErr) {}
+
+            otpFeedbackMsg.textContent = "✓ Welcome back, " + (lookupRes.data.name || "Patient") + "! Proceeding to Consent...";
+            otpFeedbackMsg.style.color = "var(--primitive-herbal-green)";
+
+            setTimeout(() => {
+              window.location.href = 'screen1b-consent.html';
+            }, 700);
+            return;
+          }
+        } catch (lookupErr) {
+          // Fallback to error alert if lookup fails
+        }
+      }
+
       isSubmitting = false;
       if (btnSubmit) {
         btnSubmit.disabled = false;

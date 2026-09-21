@@ -28,9 +28,13 @@ from app.schemas.language import (
     InterviewLanguageUpdate,
 )
 from app.schemas.red_flag import (
+    ClinicianFeedbackRequest,
+    ClinicianFeedbackResponse,
     RedFlagEvaluationResponse,
     RedFlagResponse,
 )
+from app.models.clinician_feedback import ClinicianRedFlagFeedback
+from app.models.red_flag import InterviewRedFlag
 from app.schemas.medical_document import (
     MedicalDocumentListResponse,
     MedicalDocumentResponse,
@@ -405,6 +409,42 @@ def resolve_interview_red_flag(
         interview_id=interview_id,
         red_flag_id=red_flag_id,
     )
+
+
+@router.post(
+    "/{interview_id}/red-flags/{red_flag_id}/feedback",
+    response_model=ClinicianFeedbackResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Submit clinician evaluation feedback on a detected red flag (Valid vs False Alarm)",
+)
+def submit_red_flag_feedback(
+    interview_id: int,
+    red_flag_id: int,
+    payload: ClinicianFeedbackRequest,
+    db: Session = Depends(get_db),
+    current_user: AppUser | None = Depends(get_optional_current_user),
+):
+    rf = (
+        db.query(InterviewRedFlag)
+        .filter(InterviewRedFlag.id == red_flag_id, InterviewRedFlag.interview_id == interview_id)
+        .first()
+    )
+    if not rf:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Red flag with id {red_flag_id} not found for interview {interview_id}.",
+        )
+    clinician_id = current_user.id if current_user else None
+    feedback = ClinicianRedFlagFeedback(
+        red_flag_id=red_flag_id,
+        clinician_id=clinician_id,
+        is_valid=payload.is_valid,
+        feedback_notes=payload.feedback_notes,
+    )
+    db.add(feedback)
+    db.commit()
+    db.refresh(feedback)
+    return feedback
 
 
 # Medical Document Endpoints

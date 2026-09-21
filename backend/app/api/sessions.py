@@ -177,3 +177,17 @@ def get_patient_sessions_history(
     if current_user is not None and current_user.role == UserRole.PATIENT:
         require_patient_owner(patient_id, current_user)
     return session_status_service.get_patient_sessions_history(db, patient_id)
+
+
+@router.post(
+    "/sessions/watchdog/purge",
+    status_code=status.HTTP_200_OK,
+    summary="Trigger Zero-Retention TTL Watchdog to purge idle/abandoned sessions and documents",
+    description="Enforces DPDP Act 2023 zero-retention by purging uploaded files and cancelling sessions idle >15 minutes.",
+)
+def purge_abandoned_sessions(
+    timeout_minutes: Optional[int] = None,
+    db: Session = Depends(get_db),
+):
+    from app.services.session_watchdog_service import session_watchdog_service
+    return session_watchdog_service.purge_abandoned_sessions(db, timeout_minutes=timeout_minutes)

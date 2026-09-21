@@ -334,7 +334,7 @@
   </div>
 
   <!-- Flow 3: Clinician Desktop Dashboard -->
-  <div class="section-title">Clinician Portal (Doctor-Side)</div>
+  <div class="section-title">Clinician &amp; Hospital Management Portals</div>
   <div class="grid">
 
     <!-- Screen 5 -->
@@ -350,12 +350,58 @@
       </div>
     </a>
 
+    <!-- Screen 6 -->
+    <a href="screen6-analytics-dashboard.html" class="screen-card">
+      <div class="card-top">
+        <div class="card-title">Hospital Analytics Portal</div>
+        <span class="card-step tag-highlight">Executive Telemetry</span>
+      </div>
+      <p class="card-desc">9-stage conversion funnel, intake duration benchmarks, Indian language adoption, and emergency triage response metrics.</p>
+      <div class="card-footer">
+        <span class="file-name">screen6-analytics-dashboard.html</span>
+        <span class="open-tag">Open &rarr;</span>
+      </div>
+    </a>
+
   </div>
 
-  <div class="quick-bar">
-    <div><strong>Notice:</strong> All screens have been standardized to 1440&times;900 desktop base with side-by-side landscape layout.</div>
-    <div><a href="home.html">Launch Patient Flow (home.html) &rarr;</a></div>
+  <div class="quick-bar" style="display: flex; justify-content: space-between; align-items: center; background: #FAF1DF; border: 1.5px solid #DEC99B; padding: 14px 20px; border-radius: 12px; margin-top: 24px;">
+    <div>
+      <strong style="color: var(--primitive-haritaki-deep, #6B4916);">Fast QA &amp; Evaluation Launch:</strong>
+      <span style="color: var(--primitive-teak-grey, #4A4036); margin-left: 6px;">Seed database with doctor/staff accounts and 4 clinical queue patients.</span>
+    </div>
+    <div style="display: flex; gap: 10px;">
+      <button type="button" id="btnQaSeedDemo" style="padding: 8px 16px; font-size: 13px; font-weight: 700; border-radius: 8px; border: none; background: #2E6B39; color: #FFF; cursor: pointer;">
+        + Seed Demo Clinical Data
+      </button>
+      <a href="home.html" style="padding: 8px 16px; font-size: 13px; font-weight: 700; border-radius: 8px; border: 1px solid #DEC99B; background: #FFF; color: var(--primitive-haritaki-deep, #6B4916); text-decoration: none;">
+        Launch Kiosk Flow (home.html) &rarr;
+      </a>
+    </div>
   </div>
+
+  <script>
+    document.getElementById('btnQaSeedDemo')?.addEventListener('click', async () => {
+      const btn = document.getElementById('btnQaSeedDemo');
+      btn.disabled = true;
+      btn.textContent = 'Seeding Data...';
+      try {
+        const res = await MediKioskApi.post('/api/demo/seed', {});
+        if (res.ok) {
+          alert('Demo data seeded successfully!\n- Doctor: doctor@aiia.gov.in / doctor123\n- Staff: staff@aiia.gov.in / staff123\n- 4 Queue Patients ready in Doctor Dashboard.');
+          btn.textContent = '✓ Data Seeded';
+        } else {
+          alert('Seed error: ' + (res.error || 'Server error. Is the backend running?'));
+          btn.disabled = false;
+          btn.textContent = '+ Seed Demo Clinical Data';
+        }
+      } catch (err) {
+        alert('Could not connect to backend (http://127.0.0.1:8000). Please start the backend server.');
+        btn.disabled = false;
+        btn.textContent = '+ Seed Demo Clinical Data';
+      }
+    });
+  </script>
 
 </body>
 </html>

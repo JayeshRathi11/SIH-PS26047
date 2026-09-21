@@ -1,4 +1,84 @@
-# MediKiosk Backend
+# MediKiosk - Smart AYUSH Clinical Triage & Kiosk System (SIH-PS26047)
+
+MediKiosk is an intelligent, multi-lingual, privacy-first healthcare kiosk and clinician triage workstation designed for the National AYUSH Mission. It bridges patient intake, adaptive accessibility, standardized AYUSH clinical documentation (AFI & NAMASTE), and real-time clinician oversight.
+
+---
+
+## 🌟 Newly Implemented Features & Architecture
+
+### 1. Modern Frontend Architecture (React + Vite + Tailwind CSS)
+Located in `frontend/`:
+- **Dual-Mode Single Page Application (`App.jsx`)**:
+  - **रोगी कियोस्क / Patient Kiosk**: Complete 5-step patient registration, DPDP consent, clinical intake, prior record upload, and confirmation.
+  - **डॉक्टर वर्कस्टेशन / Doctor Workstation**: Real-time triage dashboard with prioritized OPD queue, 8-section case sheet editor, and contradiction review.
+- **Adaptive Accessibility Friction Hook (`useAdaptiveFriction.js`)**:
+  - Automatically calculates user interaction friction based on hesitation, silence, and confusion phrases.
+  - Dynamically steps down input complexity:
+    - **Level 0 (Normal)**: Conversational voice prompts with microphone waveform.
+    - **Level 1 (Moderate)**: Spoken/guided multiple-choice symptom pills.
+    - **Level 2 (High Friction / Low Literacy)**: 2D Anatomical Body Map (`BodyMapPicker.jsx`) and visual touch cards.
+- **2D Interactive Anatomical Body Map (`BodyMapPicker.jsx`)**:
+  - Anterior and Posterior body views with clickable anatomical zones (Head, Chest, Abdomen, Joints, Spine, etc.) mapping directly to clinical symptoms.
+- **Patient Self-Copy & Digital Receipt Modal (`SelfCopyModal.jsx`)**:
+  - Post-consultation digital receipt modal generating:
+    - QR Code for instant patient smartphone scan.
+    - Simulated SMS dispatch with consultation link.
+    - Printable OPD token slip.
+- **Clinician-in-the-Loop Red Flag Audit (`RedFlagAuditWidget.jsx`)**:
+  - Doctor binary evaluation ("Valid Clinical Alert" / "False Alarm") with optional audit notes logging directly to the backend.
+- **8-Section AYUSH Case Sheet (`CaseSheetEditor.jsx`)**:
+  - Covers Chief Complaints, History of Present Illness (HPI), Ashtavidha Pariksha (Nadi, Mutra, Mala, Jihva, Shabda, Sparsha, Drik, Akriti), Past History, Medication History with AFI & NAMASTE normalization tags, Allergies, Diagnosis, and Treatment Plan (Chikitsa Sutra).
+- **Multi-Source Contradiction Banner**:
+  - Surfaces discrepancies between patient voice intake, prior OCR prescriptions, and discharge summaries (e.g. conflicting medication dosages).
+
+### 2. Delta Backend Enhancements (FastAPI)
+- **Emergency Contact Phone**:
+  - Added `emergency_contact_phone` to `Patient` model, schema, and repository (`backend/app/models/patient.py`, `backend/app/schemas/patient.py`).
+- **Weighted Doctor Queue Priority Formula**:
+  - Dynamic formula: `(is_red_flag * 1000) + (patient_age >= 65 ? 50 : 0) + (wait_time_minutes * 1.5)`.
+  - Implemented in `backend/app/services/opd_queue_service.py` and exposed in `OpdQueueEntryResponse`. Red flags jump to the top, followed by waiting seniors.
+- **Clinician Feedback on Algorithmic Red Flags**:
+  - `POST /api/interviews/{interview_id}/red-flags/{red_flag_id}/feedback` logging to `clinician_red_flag_feedbacks` table (`backend/app/models/clinician_feedback.py`).
+- **AYUSH Entity Normalizer (AFI & NAMASTE)**:
+  - `POST /api/ayush/normalize` powered by `AyushEntityNormalizer` with classical formulation catalogs (Ashwagandharishta, Triphala, Sitopaladi, Giloy, etc.) and RapidFuzz matching.
+- **Zero-Retention TTL Watchdog**:
+  - `POST /api/sessions/watchdog/purge` identifying sessions idle >15 minutes, securely wiping physical/cloud storage assets, setting storage reference to `[PURGED_ZERO_RETENTION]`, and canceling abandoned sessions.
+- **Patient Record Self-Copy Endpoints**:
+  - `GET /api/interviews/{id}/self-copy/receipt` (digital token & QR payload).
+  - `POST /api/interviews/{id}/self-copy/sms` (SMS dispatch simulation).
+- **Returning Patient Phone Lookup Flow**:
+  - `GET /api/patients/by-phone/{phone_number}` resolving 409 Conflict dead-ends and automatically resuming or creating patient encounter sessions.
+
+---
+
+## 🚀 Running the Project Locally
+
+### 1. Backend Server (FastAPI)
+```bash
+# Navigate to backend directory
+cd backend
+
+# Run uvicorn development server
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+```
+- API is live at: `http://127.0.0.1:8000`
+- Interactive OpenAPI Docs: `http://127.0.0.1:8000/docs`
+
+### 2. Frontend Application (React + Vite + Tailwind)
+```bash
+# Navigate to frontend directory
+cd frontend
+
+# Install dependencies (first time only)
+npm install
+
+# Start Vite dev server
+npm run dev
+```
+- Web Application is live at: `http://127.0.0.1:5173/`
+- Production bundle can be built with: `npm run build`
+
+---
 
 ## REAL AI PROVIDERS
 

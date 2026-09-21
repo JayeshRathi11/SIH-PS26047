@@ -42,5 +42,18 @@ class PatientService:
             )
         return patient
 
+    def get_by_phone(self, db: Session, phone_number: str) -> Patient:
+        patient = self.repository.get_by_phone(db, phone_number)
+        if not patient and not phone_number.startswith("+"):
+            patient = self.repository.get_by_phone(db, f"+{phone_number}")
+        if not patient and phone_number.startswith("+"):
+            patient = self.repository.get_by_phone(db, phone_number[1:])
+        if not patient:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Patient with phone number '{phone_number}' not found.",
+            )
+        return patient
+
 
 patient_service = PatientService()

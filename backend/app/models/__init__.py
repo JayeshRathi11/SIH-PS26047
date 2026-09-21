@@ -22,6 +22,7 @@ from app.models.red_flag import (
     RedFlagSeverity,
     RedFlagStatus,
 )
+from app.models.clinician_feedback import ClinicianRedFlagFeedback
 from app.models.medical_document import (
     MedicalDocument,
     DocumentType,

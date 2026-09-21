@@ -27,6 +27,9 @@ from app.api.patients import router as patients_router
 from app.api.sessions import router as sessions_router
 from app.api.speech_quality import router as speech_quality_router
 from app.api.tts import router as tts_router
+from app.api.demo import router as demo_router
+from app.api.ayush import router as ayush_router
+from app.api.self_copy import router as self_copy_router
 from app.core.config import enforce_production_config, settings
 from app.core.rate_limiter import rate_limit_login
 from app.core.request_logging_middleware import RequestObservabilityMiddleware
@@ -185,6 +188,9 @@ app.include_router(speech_quality_router, prefix="/api")
 app.include_router(adaptive_accessibility_router, prefix="/api")
 app.include_router(contradictions_router, prefix="/api")
 app.include_router(tts_router)
+app.include_router(demo_router, prefix="/api")
+app.include_router(ayush_router, prefix="/api")
+app.include_router(self_copy_router, prefix="/api")
 
 
 if __name__ == "__main__":

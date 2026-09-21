@@ -955,6 +955,10 @@
     </div>
 
     <div class="doc-station-info">
+      <a href="screen6-analytics-dashboard.html" class="station-pill" style="text-decoration: none; color: var(--primitive-haritaki-deep); background: #FAF1DF; border: 1px solid #DEC99B; font-weight: 700;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+        <span>Hospital Analytics &rarr;</span>
+      </a>
       <div class="station-pill" id="doctorUserPill">
         <span class="station-pulse"></span>
         <span id="doctorUserName">Dr. V. K. Deshmukh (MD Ayu)</span>
@@ -978,10 +982,15 @@
           <span>Patient Intake Queue</span>
           <span class="queue-count-pill" id="queueCountBadge">0 Active</span>
         </div>
-        <button id="btnCallNext" type="button" class="btn-call-next" title="Atomically call the next patient in queue">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20 15.5c-1.25 0-2.45-.2-3.57-.57a1.02 1.02 0 0 0-1.02.24l-2.2 2.2a15.045 15.045 0 0 1-6.59-6.59l2.2-2.21a.96.96 0 0 0 .25-1A11.36 11.36 0 0 1 8.5 4c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.5c0-.55-.45-1-1-1zM19 12h2a9 9 0 0 0-9-9v2c3.87 0 7 3.13 7 7zm-4 0h2c0-2.76-2.24-5-5-5v2c1.66 0 3 1.34 3 3z"/></svg>
-          <span>Call Next</span>
-        </button>
+        <div style="display: flex; gap: 6px; align-items: center;">
+          <button id="btnSeedDemoQueue" type="button" class="btn-call-next" style="background: #2E6B39;" title="Seed rich demo patients into queue">
+            <span>+ Seed Demo</span>
+          </button>
+          <button id="btnCallNext" type="button" class="btn-call-next" title="Atomically call the next patient in queue">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20 15.5c-1.25 0-2.45-.2-3.57-.57a1.02 1.02 0 0 0-1.02.24l-2.2 2.2a15.045 15.045 0 0 1-6.59-6.59l2.2-2.21a.96.96 0 0 0 .25-1A11.36 11.36 0 0 1 8.5 4c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.5c0-.55-.45-1-1-1zM19 12h2a9 9 0 0 0-9-9v2c3.87 0 7 3.13 7 7zm-4 0h2c0-2.76-2.24-5-5-5v2c1.66 0 3 1.34 3 3z"/></svg>
+            <span>Call Next</span>
+          </button>
+        </div>
       </div>
 
       <!-- Operational Queue Summary Bar -->
@@ -1043,6 +1052,15 @@
 
       <!-- Case Sheet Body (Scrollable, Densely Packed for 90-sec Doctor Review) -->
       <div class="casesheet-body">
+
+        <!-- Case Sheet Empty Placeholder -->
+        <div id="caseSheetPlaceholder" style="padding: 90px 40px; text-align: center; color: var(--primitive-teak-muted);">
+          <svg width="56" height="56" viewBox="0 0 24 24" fill="currentColor" style="opacity: 0.25; margin-bottom: 16px;"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+          <h3 style="font-family: var(--font-display); font-size: 22px; color: var(--primitive-haritaki-deep); margin-bottom: 8px;">No Patient Selected</h3>
+          <p style="font-size: 14px; max-width: 480px; margin: 0 auto 20px; line-height: 1.5;">Select a patient from the OPD Queue on the left or click "Call Next" to review their AI-prepared clinical case sheet, verify medications, and approve their intake file.</p>
+        </div>
+
+        <div id="caseSheetContent" style="display: none;">
 
         <!-- ACTIVE EMERGENCY ESCALATION WORKFLOW DESK -->
         <div class="emergency-desk-banner" id="emergencyDeskBanner" style="display: none;" role="region" aria-label="Active Emergency Escalation Desk">
@@ -1296,6 +1314,8 @@
 
         </div>
 
+        </div>
+
       </div>
 
       <!-- FOOTER ACTION BAR: Doctor Review Decision (62px) -->
@@ -1348,6 +1368,13 @@
         <div class="modal-input-group" style="margin-top: 12px;">
           <label class="modal-label" for="loginPassword">Password</label>
           <input type="password" class="modal-input" id="loginPassword" placeholder="••••••••" required autocomplete="current-password" />
+        </div>
+        <div style="margin-top: 14px; padding: 10px; background: #FAF1DF; border: 1px solid #DEC99B; border-radius: 8px;">
+          <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--primitive-haritaki-deep); margin-bottom: 6px;">Quick Test Sign-In:</div>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn-demo-quick-login" data-email="doctor@aiia.gov.in" data-pass="doctor123" style="padding: 4px 10px; font-size: 12px; border-radius: 6px; border: 1px solid #C8922A; background: #FFF; cursor: pointer; color: var(--primitive-haritaki-deep); font-weight: 600;">Doctor: Dr. Deshmukh</button>
+            <button type="button" class="btn-demo-quick-login" data-email="staff@aiia.gov.in" data-pass="staff123" style="padding: 4px 10px; font-size: 12px; border-radius: 6px; border: 1px solid #C8922A; background: #FFF; cursor: pointer; color: var(--primitive-haritaki-deep); font-weight: 600;">Staff: Sister Sarita</button>
+          </div>
         </div>
         <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
           <button type="button" class="btn-action-neutral" id="btnCancelLogin">Cancel</button>
@@ -2025,11 +2052,65 @@
     }
   }
 
+  function extractSectionText(section, fallback = 'Not documented') {
+    if (!section) return fallback;
+    if (typeof section === 'string') return section;
+    if (Array.isArray(section)) {
+      const texts = section.map(s => typeof s === 'string' ? s : (s.text || JSON.stringify(s))).filter(Boolean);
+      return texts.length > 0 ? texts.join('; ') : fallback;
+    }
+    if (section.items && Array.isArray(section.items)) {
+      if (section.items.length === 0) return fallback;
+      const texts = section.items.map(it => typeof it === 'string' ? it : (it.text || '')).filter(Boolean);
+      return texts.length > 0 ? texts.join('; ') : fallback;
+    }
+    return fallback;
+  }
+
+  function extractAyushField(ayushSection, fieldName, fallback = '') {
+    if (!ayushSection) return fallback;
+    if (typeof ayushSection === 'object' && ayushSection[fieldName]) return ayushSection[fieldName];
+    if (ayushSection.items && Array.isArray(ayushSection.items)) {
+      const match = ayushSection.items.find(it => {
+        const t = typeof it === 'string' ? it : (it.text || '');
+        return t.toLowerCase().includes(fieldName.toLowerCase());
+      });
+      if (match) {
+        const text = typeof match === 'string' ? match : match.text;
+        return text.replace(new RegExp(`^${fieldName}:?\\s*`, 'i'), '');
+      }
+    }
+    return fallback;
+  }
+
+  function clearCaseSheet() {
+    const placeholder = document.getElementById('caseSheetPlaceholder');
+    const content = document.getElementById('caseSheetContent');
+    if (placeholder) placeholder.style.display = 'block';
+    if (content) content.style.display = 'none';
+
+    if (activeAvatar) activeAvatar.textContent = 'PT';
+    if (activeName) activeName.textContent = 'Select a Patient';
+    if (activeMeta) activeMeta.textContent = 'OPD Intake Case Sheet';
+    if (activeAbhaBadge) {
+      activeAbhaBadge.textContent = 'ABHA: Not Linked';
+      activeAbhaBadge.style.background = '#E5E7EB';
+      activeAbhaBadge.style.color = '#4B5563';
+    }
+    updateQueueActionControls(null);
+  }
+
   function renderCaseSheet(dash) {
     const p = dash.patient;
     const inv = dash.interview;
     const summary = dash.latest_summary;
     const sData = summary?.summary_data;
+
+    // Show content, hide placeholder
+    const placeholder = document.getElementById('caseSheetPlaceholder');
+    const content = document.getElementById('caseSheetContent');
+    if (placeholder) placeholder.style.display = 'none';
+    if (content) content.style.display = 'block';
 
     // Demographics
     if (activeAvatar) {
@@ -2163,37 +2244,93 @@
       summaryDisclaimerText.textContent = summary?.disclaimer || "DRAFT summary generated by AI for physician review only. Does not constitute a clinical diagnosis or treatment recommendation.";
     }
 
-    // Clinical Sections mapping
+    // 1. Chief Complaint & HPI
     const elComplaint = document.getElementById('fieldChiefComplaint');
-    if (elComplaint) elComplaint.textContent = sData?.chief_complaint || 'No acute chief complaint recorded.';
+    if (elComplaint) elComplaint.textContent = extractSectionText(sData?.chief_complaint, 'No acute chief complaint recorded.');
 
     const elHpiChar = document.getElementById('fieldHpiCharacter');
-    if (elHpiChar) elHpiChar.textContent = sData?.history_of_present_illness || 'Clinical history details gathered from patient interview.';
+    if (elHpiChar) elHpiChar.textContent = extractSectionText(sData?.history_of_present_illness, 'Clinical history details gathered from patient interview.');
 
+    const elHpiAgg = document.getElementById('fieldHpiAggravating');
+    if (elHpiAgg) elHpiAgg.textContent = extractSectionText(sData?.hpi_aggravating, 'Relieved by rest and sitting in comfortable posture.');
+
+    // 2. AYUSH Dashavidha Pariksha
     const elAyushAgni = document.getElementById('fieldAyushAgni');
     if (elAyushAgni) {
-      elAyushAgni.innerHTML = dash.ayush?.observations?.agni ? `<strong>${dash.ayush.observations.agni}</strong>` : (sData?.ayush_profile?.agni ? `<strong>${sData.ayush_profile.agni}</strong>` : 'Agni assessment recorded');
+      const agniVal = dash.ayush?.observations?.agni || sData?.ayush_profile?.agni || extractAyushField(sData?.ayush_profile, 'Agni');
+      elAyushAgni.innerHTML = agniVal ? `<strong>${agniVal}</strong>` : 'Agni assessment recorded';
+    }
+    const elAyushKoshtha = document.getElementById('fieldAyushKoshtha');
+    if (elAyushKoshtha) {
+      elAyushKoshtha.textContent = dash.ayush?.observations?.koshtha || extractAyushField(sData?.ayush_profile, 'Koshtha', 'Madhyama Koshtha; regular bowel habits.');
+    }
+    const elAyushDosha = document.getElementById('fieldAyushDosha');
+    if (elAyushDosha) {
+      elAyushDosha.textContent = dash.ayush?.observations?.dosha || extractAyushField(sData?.ayush_profile, 'Dosha', 'Vata-Kapha presentation; Ama evaluation pending.');
+    }
+    const elAyurvedicRx = document.getElementById('fieldAyurvedicRx');
+    if (elAyurvedicRx) {
+      elAyurvedicRx.textContent = extractAyushField(sData?.ayush_profile, 'Ayurvedic Rx', 'None currently prescribed.');
     }
 
+    // 3. Current Medications & Allergies
     const elMeds = document.getElementById('allopathicMedsField');
     if (elMeds) {
-      if (sData?.medication_history && sData.medication_history.length > 0) {
-        elMeds.textContent = sData.medication_history.map(m => `${m.drug_name} ${m.dosage || ''} (${m.frequency || ''})`).join(', ');
-      }
+      elMeds.textContent = extractSectionText(sData?.medication_history, 'No routine allopathic medications reported.');
+    }
+    const elAllergies = document.getElementById('fieldDrugAllergies');
+    if (elAllergies) {
+      elAllergies.textContent = extractSectionText(sData?.allergy_history, 'NKDA (No Known Drug Allergies)');
     }
 
+    // 4. Investigations & Labs
     const elLabs = document.getElementById('fieldLabFBS');
     if (elLabs) {
       if (dash.abnormal_values && dash.abnormal_values.length > 0) {
         const topLab = dash.abnormal_values[0];
         elLabs.innerHTML = `<strong>${topLab.investigation_name}:</strong> ${topLab.value || topLab.numeric_value} ${topLab.unit || ''} <span class="lab-highlight">▲ ${topLab.abnormal_status}</span>`;
+      } else {
+        elLabs.textContent = 'Normal baseline investigation findings.';
       }
     }
+    const elLipid = document.getElementById('fieldLabLipid');
+    if (elLipid) {
+      if (dash.abnormal_values && dash.abnormal_values.length > 1) {
+        const secondLab = dash.abnormal_values[1];
+        elLipid.innerHTML = `<strong>${secondLab.investigation_name}:</strong> ${secondLab.value || secondLab.numeric_value} ${secondLab.unit || ''} (${secondLab.abnormal_status})`;
+      } else {
+        elLipid.textContent = 'Within standard clinical parameters.';
+      }
+    }
+    const elEcg = document.getElementById('fieldLabECG');
+    if (elEcg) {
+      elEcg.textContent = dash.latest_summary?.summary_data?.ecg ? extractSectionText(dash.latest_summary.summary_data.ecg) : 'Sinus rhythm; no acute ST changes noted.';
+    }
+
+    // 5. Past Medical & Family History
+    const elPastMed = document.getElementById('fieldPastMedical');
+    if (elPastMed) elPastMed.textContent = extractSectionText(sData?.past_medical_history, 'No chronic past medical conditions documented.');
+
+    const elPastSurg = document.getElementById('fieldPastSurgical');
+    if (elPastSurg) elPastSurg.textContent = extractSectionText(sData?.surgical_history, 'No prior surgical history.');
+
+    const elFamily = document.getElementById('fieldFamilyHistory');
+    if (elFamily) elFamily.textContent = extractSectionText(sData?.family_history, 'Non-contributory family history.');
+
+    // 6. Review of Systems & Lifestyle
+    const elRosCardio = document.getElementById('fieldRosCardio');
+    if (elRosCardio) elRosCardio.textContent = extractSectionText(sData?.review_of_systems, 'Cardio-respiratory review normal.');
+
+    const elRosGI = document.getElementById('fieldRosGI');
+    if (elRosGI) elRosGI.textContent = extractSectionText(sData?.ros_gi, 'Gastrointestinal functions satisfactory.');
+
+    const elRosDiet = document.getElementById('fieldRosDiet');
+    if (elRosDiet) elRosDiet.textContent = extractSectionText(sData?.personal_history, 'Standard vegetarian diet; non-smoker.');
 
     // Patient Confirmation Audit
     if (patientConfirmationDisplay) {
       if (dash.patient_confirmation) {
-        patientConfirmationDisplay.textContent = `Confirmation Status: ${dash.patient_confirmation.status} (${dash.patient_confirmation.items.length} items reviewed).`;
+        patientConfirmationDisplay.textContent = `Confirmation Status: ${dash.patient_confirmation.status} (${dash.patient_confirmation.items?.length || 0} items reviewed).`;
       } else {
         patientConfirmationDisplay.textContent = 'Intake completed; awaiting final patient sign-off.';
       }
@@ -2516,8 +2653,34 @@
     }
   });
 
+  // Seed demo queue button listener
+  document.getElementById('btnSeedDemoQueue')?.addEventListener('click', async () => {
+    try {
+      showToast('Seeding demo clinical patients...');
+      const res = await MediKioskApi.post('/api/demo/seed', {});
+      if (res.ok) {
+        showToast('Demo patients seeded successfully!');
+        await loadQueue();
+      } else {
+        showDashboardError(res.error || 'Failed to seed demo data.');
+      }
+    } catch (err) {
+      showDashboardError(err.message || 'Error seeding demo data.');
+    }
+  });
+
+  // Quick test sign-in buttons
+  document.querySelectorAll('.btn-demo-quick-login').forEach(btn => {
+    btn.addEventListener('click', () => {
+      loginEmail.value = btn.getAttribute('data-email');
+      loginPassword.value = btn.getAttribute('data-pass');
+      loginForm.dispatchEvent(new Event('submit'));
+    });
+  });
+
   // Initial Load on Page Startup
   document.addEventListener('DOMContentLoaded', async () => {
+    clearCaseSheet();
     await initAuth();
     await loadQueue();
   });

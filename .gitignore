@@ -62,4 +62,4 @@ backend/uploads/
 ehthumbs.db
 Thumbs.db
 backend/scratch/
-backend/scratch/
+*.db
