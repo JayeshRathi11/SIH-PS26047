@@ -15,6 +15,9 @@ class Settings:
     POSTGRES_PORT: str | None = os.getenv("POSTGRES_PORT")
     POSTGRES_DB: str | None = os.getenv("POSTGRES_DB")
 
+    HOST: str = os.getenv("HOST", "127.0.0.1")
+    PORT: int = int(os.getenv("PORT", "8000"))
+
     # Document Storage Configuration
     # DOCUMENT_STORAGE_PROVIDER selects the storage backend explicitly.
     # Supported values: "local" (safe default for tests/dev), "cloudinary" (production).

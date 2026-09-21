@@ -206,10 +206,16 @@ class OpdQueueService:
                 priority = requested_priority.value
                 priority_reason = None
 
-        # 6. Allocate Atomic Daily Token
+        # 6. Allocate Atomic Daily Token & Persist Entry
+        # Re-verify active entry to prevent race condition
+        double_check = self.repository.find_active_by_patient(
+            db, payload.patient_id, queue_date
+        )
+        if double_check:
+            return self._to_response(double_check, db)
+
         token_number = self.repository.allocate_token(db, queue_date)
 
-        # 7. Persist Queue Entry
         entry = OpdQueueEntry(
             patient_id=payload.patient_id,
             interview_id=payload.interview_id,
@@ -221,6 +227,7 @@ class OpdQueueService:
             checked_in_at=datetime.now(timezone.utc),
         )
         created = self.repository.create_entry(db, entry)
+
         logger.info(
             f"Created OPD queue entry {created.id} (token #{token_number}) with priority {priority} for patient {payload.patient_id}"
         )

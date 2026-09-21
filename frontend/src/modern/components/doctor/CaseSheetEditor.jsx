@@ -228,6 +228,7 @@ export default function CaseSheetEditor({ patient, onSave }) {
 
                   <button
                     type="button"
+                    aria-label={`Remove prescription ${p.name}`}
                     onClick={() => handleRemovePrescription(idx)}
                     className="text-copper-patina hover:text-manjistha-red p-1 rounded transition-all cursor-pointer"
                   >

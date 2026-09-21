@@ -62,6 +62,9 @@ def get_db() -> Generator[Session, None, None]:
     db = session_maker()
     try:
         yield db
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 

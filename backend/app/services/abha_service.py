@@ -124,7 +124,7 @@ class AbhaService:
             self.audit_repo.append(db, fail_audit)
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"ABDM Gateway communication failure: {str(exc)}",
+                detail="ABDM Gateway communication failure. Please check network connection and try again.",
             )
         except Exception as exc:
             fail_audit = PrivacyAuditLog(
@@ -142,7 +142,7 @@ class AbhaService:
             self.audit_repo.append(db, fail_audit)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"ABDM verification error: {str(exc)}",
+                detail="ABDM verification service encountered an unexpected error. Please try again later.",
             )
 
         # 7. Verification rejection handling

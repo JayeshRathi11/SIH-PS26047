@@ -1042,10 +1042,12 @@ def start_doctor_review(
     "/{interview_id}/doctor-reviews",
     response_model=DoctorReviewListResponse,
     status_code=status.HTTP_200_OK,
+    description="List doctor reviews for an interview. Requires DOCTOR role.",
 )
 def list_doctor_reviews(
     interview_id: int,
     db: Session = Depends(get_db),
+    _current_user: AppUser = Depends(require_roles(UserRole.DOCTOR)),
 ):
     return doctor_verification_service.list_reviews(
         db=db,
@@ -1057,11 +1059,13 @@ def list_doctor_reviews(
     "/{interview_id}/doctor-reviews/{review_id}",
     response_model=DoctorReviewResponse,
     status_code=status.HTTP_200_OK,
+    description="Get a doctor review. Requires DOCTOR role.",
 )
 def get_doctor_review(
     interview_id: int,
     review_id: int,
     db: Session = Depends(get_db),
+    _current_user: AppUser = Depends(require_roles(UserRole.DOCTOR)),
 ):
     return doctor_verification_service.get_review(
         db=db,

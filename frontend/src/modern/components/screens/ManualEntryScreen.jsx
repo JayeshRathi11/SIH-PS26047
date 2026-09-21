@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Phone, MapPin, Calendar, Check, ArrowRight } from 'lucide-react';
+import { User, Phone, MapPin, Calendar, Check, ArrowRight, AlertTriangle } from 'lucide-react';
 import { useKioskSession } from '../../context/KioskSessionContext';
 import ClayCard from '../atoms/ClayCard';
 import ClayButton from '../atoms/ClayButton';
@@ -9,7 +9,7 @@ import ClayBadge from '../atoms/ClayBadge';
 import { MediKioskApi } from '../../services/api';
 
 export default function ManualEntryScreen({ onComplete, onBack }) {
-  const { updatePatient } = useKioskSession();
+  const { language, updatePatient } = useKioskSession();
 
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
@@ -60,6 +60,11 @@ export default function ManualEntryScreen({ onComplete, onBack }) {
     if (!validate()) return;
     setLoading(true);
 
+    const cleanMobile = mobile.trim();
+    const formattedPhone = cleanMobile.startsWith('+') ? cleanMobile : (`+91${cleanMobile}`);
+    const birthYear = Math.max(1900, new Date().getFullYear() - (parseInt(age, 10) || 30));
+    const estimatedDob = `${birthYear}-01-01`;
+
     const payload = {
       name: name.trim(),
       age: parseInt(age, 10),
@@ -70,21 +75,42 @@ export default function ManualEntryScreen({ onComplete, onBack }) {
       verification_mode: 'MANUAL'
     };
 
+    const apiPayload = {
+      name: name.trim(),
+      phone_number: formattedPhone,
+      date_of_birth: estimatedDob,
+      gender: gender,
+      preferred_language: language || 'en'
+    };
+
     try {
-      const res = await MediKioskApi.post('/api/patients', payload);
-      const saved = res?.data || payload;
+      const res = await MediKioskApi.post('/api/patients', apiPayload);
+      const saved = res?.data || apiPayload;
       updatePatient({
         id: saved.id || Date.now(),
         ...payload
       });
       onComplete();
-    } catch {
-      // Fallback
-      updatePatient({
-        id: Date.now(),
-        ...payload
-      });
-      onComplete();
+    } catch (err) {
+      if (err?.isConflict || err?.status === 409) {
+        try {
+          const lookup = await MediKioskApi.get(`/api/patients/by-phone/${encodeURIComponent(formattedPhone)}`);
+          if (lookup?.ok && lookup?.data?.id) {
+            updatePatient({
+              id: lookup.data.id,
+              name: lookup.data.name || name.trim(),
+              ...payload
+            });
+            onComplete();
+            return;
+          }
+        } catch {}
+      }
+      // Do not use fake Date.now() ID - inform the user of failure
+      setErrors((prev) => ({
+        ...prev,
+        submit: err?.detail || 'पंजीकरण विफल रहा। कृपया विवरण या नेटवर्क जांचें और पुनः प्रयास करें। (Registration failed. Please check details or network and retry.)'
+      }));
     } finally {
       setLoading(false);
     }
@@ -104,6 +130,13 @@ export default function ManualEntryScreen({ onComplete, onBack }) {
           कृपया परामर्श पर्ची के लिए अपना बुनियादी विवरण दर्ज करें।
         </p>
       </div>
+
+      {errors.submit && (
+        <div className="mb-4 p-3 bg-manjistha-red/10 border border-manjistha-red/30 rounded-card text-manjistha-red text-caption font-semibold flex items-center gap-2">
+          <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+          <span>{errors.submit}</span>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Form Fields Column */}

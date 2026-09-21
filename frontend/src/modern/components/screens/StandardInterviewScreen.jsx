@@ -68,10 +68,13 @@ export default function StandardInterviewScreen({
         setIsListening(false);
         const recognized = "मुझे 3 दिनों से हल्का बुखार और जोड़ों में दर्द है";
         setVoiceTranscript(recognized);
-        setSelectedSymptoms((prev) => [...new Set([...prev, 'ज्वर / बुखार', 'संधि शूल / जोड़ों में दर्द'])]);
-        updateInterview({
-          chief_complaints: [...new Set([...selectedSymptoms, 'ज्वर / बुखार', 'संधि शूल / जोड़ों में दर्द'])],
-          duration_days: 3
+        setSelectedSymptoms((prev) => {
+          const merged = [...new Set([...prev, 'ज्वर / बुखार', 'संधि शूल / जोड़ों में दर्द'])];
+          updateInterview({
+            chief_complaints: merged,
+            duration_days: 3
+          });
+          return merged;
         });
       }, 3500);
     } else {

@@ -99,6 +99,7 @@ class PatientSession(Base):
             "patient_id",
             unique=True,
             postgresql_where=text("status NOT IN ('COMPLETED', 'CANCELLED')"),
+            sqlite_where=text("status NOT IN ('COMPLETED', 'CANCELLED')"),
         ),
         Index("idx_patient_sessions_patient_status", "patient_id", "status"),
     )

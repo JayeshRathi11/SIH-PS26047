@@ -70,3 +70,8 @@ backend/scratch/
 
 # Backups and archives
 *.zip
+
+# Dump folder for legacy code, completed artifacts, and local backups
+dump/
+_dump/
+

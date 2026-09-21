@@ -19,7 +19,7 @@ from app.repositories.privacy_audit_repository import (
     PrivacyAuditRepository,
     privacy_audit_repository,
 )
-from app.schemas.consent import ConsentCreateRequest
+from app.schemas.consent import ConsentCheckResponse, ConsentCreateRequest
 from app.services.language_service import LanguageService, language_service
 
 
@@ -241,6 +241,24 @@ class ConsentService:
             db, patient_id=patient_id, purpose=purpose, interview_id=interview_id
         )
         return consent if active else None
+
+    def check_consent(
+        self,
+        db: Session,
+        patient_id: int,
+        purpose: ConsentPurpose,
+        interview_id: Optional[int] = None,
+    ) -> ConsentCheckResponse:
+        active, _ = self.has_active_consent(
+            db, patient_id=patient_id, purpose=purpose, interview_id=interview_id
+        )
+        return ConsentCheckResponse(
+            allowed=active,
+            purpose=purpose,
+            patient_id=patient_id,
+            interview_id=interview_id,
+            reason=None if active else "No active, valid consent found for requested purpose",
+        )
 
     def require_consent(
         self,

@@ -31,11 +31,29 @@ export default function IdentityScreen({ onSelectManual, onVerified, onTriggerOt
         verification_mode: 'ABHA_QR'
       };
 
-      // Call API or register patient
-      const res = await MediKioskApi.post('/api/patients', mockAbhaPayload);
-      const savedPatient = res?.data || mockAbhaPayload;
+      const apiPayload = {
+        name: 'रमेश कुमार / Ramesh Kumar',
+        phone_number: '+919876543210',
+        date_of_birth: '1976-05-15',
+        gender: 'Male',
+        preferred_language: language || 'hi'
+      };
+
+      let patientId = 101;
+      try {
+        const res = await MediKioskApi.post('/api/patients', apiPayload);
+        if (res?.data?.id) patientId = res.data.id;
+      } catch (postErr) {
+        if (postErr?.isConflict || postErr?.status === 409) {
+          try {
+            const lookup = await MediKioskApi.get(`/api/patients/by-phone/${encodeURIComponent(apiPayload.phone_number)}`);
+            if (lookup?.ok && lookup?.data?.id) patientId = lookup.data.id;
+          } catch {}
+        }
+      }
+
       updatePatient({
-        id: savedPatient.id || 101,
+        id: patientId,
         ...mockAbhaPayload
       });
 
@@ -44,14 +62,7 @@ export default function IdentityScreen({ onSelectManual, onVerified, onTriggerOt
       // Fallback
       updatePatient({
         id: 101,
-        abha_id: '91-8765-4321-0987',
-        name: 'रमेश कुमार / Ramesh Kumar',
-        age: 48,
-        gender: 'Male',
-        mobile: '9876543210',
-        district: 'South Delhi',
-        state: 'Delhi',
-        verification_mode: 'ABHA_QR'
+        ...mockAbhaPayload
       });
       onVerified();
     } finally {

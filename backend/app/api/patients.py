@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Path, status
 from sqlalchemy.orm import Session
 from app.core.auth_dependencies import get_optional_current_user, require_patient_owner
 from app.core.database import get_db
+from app.core.rate_limiter import rate_limit_login
 from app.models.app_user import AppUser, UserRole
 from app.schemas.patient import PatientCreate, PatientResponse
 from app.schemas.timeline import TimelineListResponse
@@ -23,7 +24,13 @@ def register_patient(
     return patient_service.register_patient(db=db, patient_in=patient_in)
 
 
-@router.get("/by-phone/{phone_number}", response_model=PatientResponse, status_code=status.HTTP_200_OK)
+@router.get(
+    "/by-phone/{phone_number}",
+    response_model=PatientResponse,
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(rate_limit_login)],
+    summary="Look up patient by phone number with rate limiting",
+)
 def get_patient_by_phone(
     phone_number: str = Path(..., min_length=5, max_length=25),
     db: Session = Depends(get_db),

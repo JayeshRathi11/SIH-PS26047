@@ -42,6 +42,18 @@ ALLOWED_STATUS_TRANSITIONS = {
 }
 
 
+def _detect_mime_type_from_magic_bytes(header_bytes: bytes) -> str | None:
+    if header_bytes.startswith(b"%PDF-"):
+        return "application/pdf"
+    if header_bytes.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if header_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if len(header_bytes) >= 12 and header_bytes[:4] == b"RIFF" and header_bytes[8:12] == b"WEBP":
+        return "image/webp"
+    return None
+
+
 class MedicalDocumentService:
     def __init__(
         self,
@@ -88,7 +100,7 @@ class MedicalDocumentService:
                 ),
             )
 
-        # 2. MIME type validation
+        # 2. MIME type validation (initial header check)
         content_type = file.content_type or "application/octet-stream"
         if content_type not in ALLOWED_MIME_TYPES:
             raise HTTPException(
@@ -115,6 +127,15 @@ class MedicalDocumentService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Uploaded file is empty.",
             )
+
+        # 3b. Magic bytes validation to prevent MIME spoofing
+        detected_mime = _detect_mime_type_from_magic_bytes(file_bytes[:32])
+        if not detected_mime or detected_mime not in ALLOWED_MIME_TYPES:
+            raise HTTPException(
+                status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                detail="File content does not match allowed types (PDF, JPEG, PNG, WebP).",
+            )
+        content_type = detected_mime
 
 
         # 4. Generate safe unique storage key
