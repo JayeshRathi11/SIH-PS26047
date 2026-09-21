@@ -63,3 +63,10 @@ ehthumbs.db
 Thumbs.db
 backend/scratch/
 *.db
+
+# Markdown files exclusion (Only README.md is permitted)
+*.md
+!README.md
+
+# Backups and archives
+*.zip

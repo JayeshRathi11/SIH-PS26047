@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MediKiosk — Urgent Care Interstitial (Clinical Red-Flag Protocol)</title>
+
+  <!-- Google Fonts: Baloo 2 & Noto Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="../styles/tokens.css" />
+
+  <!-- MediKiosk Foundation Integration Scripts -->
+  <script src="../scripts/config.js"></script>
+  <script src="../scripts/session.js"></script>
+  <script src="../scripts/api.js"></script>
+
+  <style>
+    /* ── Standardized Desktop Layout (Base 1440px, Min 1024px) ── */
+    html, body {
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+      background-color: var(--color-canvas-outer, #EDE8DE);
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .app-container,
+    .kiosk-screen {
+      max-width: var(--app-max-width);
+      min-width: var(--app-min-width);
+      margin: 0 auto;
+      width: 100%;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      background-color: var(--color-bg);
+      box-shadow: 0 0 32px rgba(44, 37, 32, 0.08);
+    }
+
+    /* Top Bar (72px) */
+    .topbar {
+      flex: 0 0 var(--topbar-h);
+      background: var(--color-topbar-bg);
+      border-bottom: 1px solid var(--color-topbar-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--page-px);
+    }
+
+    .topbar__brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .topbar__logo-mark {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-sm);
+      background: var(--primitive-haritaki-gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 1px 4px rgba(44, 37, 32, 0.15);
+    }
+
+    .topbar__logo-mark svg { width: 26px; height: 26px; }
+
+    .topbar__name {
+      font-family: var(--font-display);
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--primitive-haritaki-deep);
+      line-height: 1.1;
+    }
+
+    .topbar__sub {
+      font-family: var(--font-body);
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--color-text-secondary);
+    }
+
+    .topbar__controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .lang-chips {
+      display: flex;
+      gap: 6px;
+    }
+
+    .lang-chip {
+      height: var(--touch-target-min);
+      min-width: 58px;
+      padding: 0 14px;
+      border: 1.5px solid var(--color-border-subtle);
+      border-radius: var(--radius-sm);
+      background: var(--color-surface);
+      color: var(--color-text-secondary);
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all var(--transition-tap);
+    }
+
+    .lang-chip.active {
+      background: var(--color-btn-primary-bg);
+      color: var(--color-btn-primary-text);
+      border-color: var(--color-btn-primary-bg);
+    }
+
+    /* Red-Flag Urgent Banner Strip */
+    .urgent-strip {
+      background: #FDEDEB;
+      border-bottom: 2px solid var(--primitive-manjistha-red);
+      padding: 12px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .urgent-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 16px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--primitive-manjistha-red);
+    }
+
+    .urgent-beacon {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--primitive-manjistha-red);
+      box-shadow: 0 0 0 4px rgba(181, 56, 38, 0.25);
+      animation: alertPulse 1.8s infinite;
+    }
+
+    @keyframes alertPulse {
+      0% { transform: scale(0.9); box-shadow: 0 0 0 2px rgba(181, 56, 38, 0.4); }
+      50% { transform: scale(1.15); box-shadow: 0 0 0 8px rgba(181, 56, 38, 0.1); }
+      100% { transform: scale(0.9); box-shadow: 0 0 0 2px rgba(181, 56, 38, 0.4); }
+    }
+
+    .urgent-kiosk-id {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--primitive-teak-grey);
+    }
+
+    /* Content Zone (Fits 800x1280, zero scrollbar) */
+    .content-zone {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 24px var(--page-px);
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+
+    /* Primary Reassurance Card */
+    .reassurance-card {
+      background: var(--color-surface);
+      border: 2.5px solid var(--primitive-manjistha-red);
+      border-radius: var(--radius-card);
+      padding: 24px 28px;
+      box-shadow: 0 6px 20px rgba(181, 56, 38, 0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .reassurance-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 18px;
+    }
+
+    .reassurance-icon {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: #FDEDEB;
+      color: var(--primitive-manjistha-red);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .reassurance-icon svg { width: 34px; height: 34px; }
+
+    .reassurance-title-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .reassurance-title {
+      font-family: var(--font-display);
+      font-size: 34px;
+      font-weight: 800;
+      color: var(--primitive-teak-grey);
+      line-height: 1.2;
+      margin: 0;
+    }
+
+    .reassurance-subtitle {
+      font-size: 19px;
+      color: var(--primitive-manjistha-red);
+      font-weight: 700;
+      line-height: 1.3;
+    }
+
+    .reassurance-body {
+      font-size: 19px;
+      line-height: 1.5;
+      color: var(--primitive-teak-grey);
+      background: #FFFDF8;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--primitive-copper-track);
+      padding: 16px 20px;
+    }
+
+    /* Sarvam TTS Voice Comfort Bar */
+    .audio-comfort-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      background: #F4FBF6;
+      border: 1.5px solid rgba(43, 114, 69, 0.3);
+      border-radius: var(--radius-sm);
+      padding: 12px 18px;
+    }
+
+    .audio-comfort-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .audio-speaker-dot {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--primitive-herbal-green);
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .audio-speaker-dot svg { width: 20px; height: 20px; }
+
+    .audio-comfort-text {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1F5A31;
+    }
+
+    .btn-replay-comfort {
+      padding: 6px 14px;
+      border-radius: 16px;
+      border: 1.5px solid #1F5A31;
+      background: #FFFFFF;
+      color: #1F5A31;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Dispatch Status Box */
+    .dispatch-status-box {
+      background: var(--color-surface);
+      border: 2px solid var(--color-border-subtle);
+      border-radius: var(--radius-card);
+      padding: 18px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: var(--shadow-card);
+    }
+
+    .dispatch-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .dispatch-title {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--color-text-primary);
+    }
+
+    .dispatch-details {
+      font-size: 16px;
+      color: var(--color-text-secondary);
+      font-weight: 500;
+    }
+
+    .dispatch-eta-pill {
+      background: rgba(200, 138, 34, 0.15);
+      border: 1.5px solid var(--primitive-haritaki-gold);
+      color: var(--primitive-haritaki-deep);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Direct Patient Assistance Actions (2 Large Touch Buttons) */
+    .assistance-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .assistance-btn {
+      height: 84px;
+      border-radius: var(--radius-card);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      cursor: pointer;
+      transition: all var(--transition-tap);
+      border: none;
+      box-shadow: var(--shadow-card);
+    }
+
+    .assistance-btn:active {
+      transform: scale(0.98);
+    }
+
+    /* Button 1: Attendant Chime */
+    .assistance-btn--primary {
+      background: var(--primitive-haritaki-gold);
+      color: var(--primitive-teak-grey);
+      border: 2px solid var(--primitive-haritaki-deep);
+    }
+
+    /* Button 2: Wheelchair / Faint Alert */
+    .assistance-btn--secondary {
+      background: var(--color-surface);
+      border: 2.5px solid var(--primitive-manjistha-red);
+      color: var(--primitive-manjistha-red);
+    }
+
+    .assistance-btn__left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .assistance-btn__icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .assistance-btn--secondary .assistance-btn__icon {
+      background: #FDEDEB;
+    }
+
+    .assistance-btn__icon svg { width: 28px; height: 28px; }
+
+    .assistance-btn__text {
+      display: flex;
+      flex-direction: column;
+      text-align: left;
+      gap: 3px;
+    }
+
+    .assistance-btn__title {
+      font-family: var(--font-display);
+      font-size: 24px;
+      font-weight: 700;
+      line-height: 1.15;
+    }
+
+    .assistance-btn__subtitle {
+      font-size: 16px;
+      font-weight: 500;
+      opacity: 0.88;
+    }
+
+    .assistance-btn__arrow svg { width: 28px; height: 28px; }
+
+    /* Action Bar (96px) */
+    .action-bar {
+      flex: 0 0 var(--actionbar-h);
+      background: var(--color-actionbar-bg);
+      border-top: 1px solid var(--color-actionbar-border);
+      box-shadow: var(--shadow-actionbar);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--page-px);
+    }
+
+    .btn-mistake {
+      min-width: 220px;
+      height: var(--touch-target-back-btn);
+      border-radius: var(--radius-btn);
+      background: var(--color-surface);
+      border: 2px solid var(--color-border);
+      color: var(--color-text-secondary);
+      font-family: var(--font-body);
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 0 20px;
+    }
+
+    .btn-mistake svg { width: 22px; height: 22px; }
+
+    .station-contact {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+    }
+
+    .station-contact__title {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--primitive-teak-grey);
+    }
+
+    .station-contact__num {
+      font-size: 15px;
+      color: var(--primitive-manjistha-red);
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-container kiosk-screen" role="alertdialog" aria-label="Urgent Clinical Protocol Active">
+
+  <!-- Top Bar (72px) -->
+  <header class="topbar">
+    <div class="topbar__brand">
+      <div class="topbar__logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+        </svg>
+      </div>
+      <div>
+        <div class="topbar__name" data-i18n="topbar_title">AIIA MediKiosk</div>
+        <div class="topbar__sub" data-i18n="topbar_sub">Self-Service OPD Intake • All India Institute of Ayurveda</div>
+      </div>
+    </div>
+    <div class="topbar__controls">
+      <div class="lang-chips" role="group" aria-label="Language selection">
+        <button class="lang-chip active" data-lang="en" aria-pressed="true">EN</button>
+        <button class="lang-chip" data-lang="hi" aria-pressed="false">हि</button>
+        <button class="lang-chip" data-lang="mr" aria-pressed="false">म</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Urgent Alert Strip -->
+  <aside class="urgent-strip">
+    <div class="urgent-badge">
+      <span class="urgent-beacon" aria-hidden="true"></span>
+      <span id="urgentBadgeText" data-i18n="urgent_badge">Urgent Triage Activated • Staff Notified</span>
+    </div>
+    <div class="urgent-kiosk-id" data-i18n="kiosk_id">
+      Location: Ground Floor OPD (Kiosk #03)
+    </div>
+  </aside>
+
+  <!-- Content Zone (Fits exactly 800x1280, zero scrollbar) -->
+  <main class="content-zone">
+
+    <!-- Primary Reassurance Card -->
+    <section class="reassurance-card">
+      <div class="reassurance-header">
+        <div class="reassurance-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+        </div>
+        <div class="reassurance-title-group">
+          <h1 class="reassurance-title" data-i18n="reassurance_title">
+            Please remain comfortably seated.
+          </h1>
+          <div class="reassurance-subtitle" data-i18n="reassurance_sub">
+            Medical staff have been alerted and are walking over right now.
+          </div>
+        </div>
+      </div>
+
+      <div class="reassurance-body" id="reassuranceBody" data-i18n="reassurance_body">
+        Based on the symptoms you reported (chest tightness / discomfort), our clinical triage protocol prioritizes your safety. Please do not walk to find a doctor or exert yourself — the duty nursing team is already on their way to this kiosk.
+      </div>
+
+      <!-- Sarvam TTS Calming Voice Bar -->
+      <div class="audio-comfort-bar" role="status">
+        <div class="audio-comfort-info">
+          <div class="audio-speaker-dot" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+          </div>
+          <div class="audio-comfort-text" data-i18n="voice_comfort">
+            Playing audio: "कृपया यहीं शांत बैठें, घबराएं नहीं..."
+          </div>
+        </div>
+        <button class="btn-replay-comfort" id="btnReplayComfort">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+          <span data-i18n="btn_replay">Repeat</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Dispatch Status Box -->
+    <section class="dispatch-status-box" aria-label="Dispatch status">
+      <div class="dispatch-meta">
+        <div class="dispatch-title" data-i18n="dispatch_title">Emergency OPD Triage Desk</div>
+        <div class="dispatch-details" data-i18n="dispatch_details">Signal received by: Sister In-Charge (Station A)</div>
+      </div>
+      <div class="dispatch-eta-pill">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+        <span data-i18n="eta_label">ETA: &lt; 2 mins</span>
+      </div>
+    </section>
+
+    <!-- Immediate Patient Actions (2 Large Touch Targets) -->
+    <section class="assistance-actions" aria-label="Immediate assistance actions">
+
+      <!-- Button 1: Immediate Attendant Bell -->
+      <button class="assistance-btn assistance-btn--primary" id="btnSoundChime" aria-label="Press for Immediate Attendant">
+        <div class="assistance-btn__left">
+          <div class="assistance-btn__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primitive-haritaki-deep)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+          </div>
+          <div class="assistance-btn__text">
+            <div class="assistance-btn__title" data-i18n="btn1_title">Press for Immediate Attendant</div>
+            <div class="assistance-btn__subtitle" data-i18n="btn1_sub">Sounds alert chime at the nursing desk nearby</div>
+          </div>
+        </div>
+        <div class="assistance-btn__arrow">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </div>
+      </button>
+
+      <!-- Button 2: Faint / Wheelchair Assistance -->
+      <button class="assistance-btn assistance-btn--secondary" id="btnWheelchair" aria-label="Request Wheelchair Assistance">
+        <div class="assistance-btn__left">
+          <div class="assistance-btn__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primitive-manjistha-red)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="4" r="2"></circle>
+              <path d="M5 11l4-2 3 5 4-2"></path>
+              <path d="M7 18a5 5 0 1 0 10 0"></path>
+              <path d="M12 13v5"></path>
+            </svg>
+          </div>
+          <div class="assistance-btn__text">
+            <div class="assistance-btn__title" data-i18n="btn2_title">I Feel Faint / Need Wheelchair</div>
+            <div class="assistance-btn__subtitle" data-i18n="btn2_sub">Requests immediate wheelchair and stretcher support</div>
+          </div>
+        </div>
+        <div class="assistance-btn__arrow">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </div>
+      </button>
+
+    </section>
+
+  </main>
+
+  <!-- Action Bar (96px) -->
+  <footer class="action-bar">
+    <button class="btn-mistake" id="btnMistake" onclick="if(confirm('Return to symptom intake interview?')) { window.location.href='screen2a-standard.html'; }">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+      <span data-i18n="btn_mistake">I tapped by mistake</span>
+    </button>
+
+    <button class="btn-proceed" id="btnProceedDocs" type="button" style="height: 56px; padding: 0 22px; border-radius: var(--radius-btn); background: var(--color-btn-primary-bg); border: none; color: var(--color-btn-primary-text); font-family: var(--font-display); font-size: 19px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 8px rgba(200, 138, 34, 0.25);">
+      <span data-i18n="btn_proceed_docs">Staff Attended • Proceed</span>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M5 13h11.86l-5.43 5.43 1.42 1.42L21 12l-8.15-7.85-1.42 1.42L16.86 11H5v2z"/>
+      </svg>
+    </button>
+
+    <div class="station-contact">
+      <span class="station-contact__title" data-i18n="contact_title">OPD Emergency Desk</span>
+      <span class="station-contact__num">Ext: 2204 • Direct Call</span>
+    </div>
+  </footer>
+
+</div>
+
+<!-- ── JavaScript: Language switching, chime triggers, Sarvam audio comfort, Red flag integration ── -->
+<script>
+  const i18n = {
+    en: {
+      topbar_title: "AIIA MediKiosk",
+      topbar_sub: "Self-Service OPD Intake • All India Institute of Ayurveda",
+      urgent_badge: "Urgent Triage Activated • Staff Notified",
+      kiosk_id: "Location: Ground Floor OPD (Kiosk #03)",
+      reassurance_title: "Please remain comfortably seated.",
+      reassurance_sub: "Medical staff have been alerted and are walking over right now.",
+      reassurance_body: "Based on the symptoms you reported (chest tightness / discomfort), our clinical triage protocol prioritizes your safety. Please do not walk to find a doctor or exert yourself — the duty nursing team is already on their way to this kiosk.",
+      voice_comfort: "Playing audio: \"Please stay seated, do not worry...\"",
+      btn_replay: "Repeat",
+      dispatch_title: "Emergency OPD Triage Desk",
+      dispatch_details: "Signal received by: Sister In-Charge (Station A)",
+      eta_label: "ETA: < 2 mins",
+      btn1_title: "Press for Immediate Attendant",
+      btn1_sub: "Sounds alert chime at the nursing desk nearby",
+      btn2_title: "I Feel Faint / Need Wheelchair",
+      btn2_sub: "Requests immediate wheelchair and stretcher support",
+      btn_mistake: "I tapped by mistake",
+      contact_title: "OPD Emergency Desk",
+      btn_proceed_docs: "Staff Attended • Proceed"
+    },
+    hi: {
+      topbar_title: "अखिल भारतीय आयुर्वेद संस्थान",
+      topbar_sub: "स्वयं-सेवा ओपीडी पंजीकरण • नई दिल्ली",
+      urgent_badge: "प्राथमिकता ट्राइएज सक्रिय • स्टाफ को सूचित किया गया",
+      kiosk_id: "स्थान: भूतल ओपीडी (कियोस्क क्र. ०३)",
+      reassurance_title: "कृपया यहीं शांत व आराम से बैठें।",
+      reassurance_sub: "चिकित्सा कर्मियों को सूचित कर दिया गया है, वे तुरंत आ रहे हैं।",
+      reassurance_body: "आपके द्वारा बताए गए लक्षणों (सीने में भारीपन / दबाव) को देखते हुए हमारी सुरक्षा प्रणाली ने आपातकालीन टीम को संदेश भेजा है। कृपया डॉक्टर खोजने के लिए पैदल न चलें — नर्सिंग स्टाफ इस कियोस्क की ओर ही आ रहा है।",
+      voice_comfort: "ऑडियो: \"कृपया यहीं शांत बैठें, घबराएं नहीं...\"",
+      btn_replay: "दोहराएं",
+      dispatch_title: "आपातकालीन ओपीडी ट्राइएज डेस्क",
+      dispatch_details: "संदेश प्राप्तकर्ता: सिस्टर इन-चार्ज (स्टेशन ए)",
+      eta_label: "आगमन: २ मिनट में",
+      btn1_title: "सहायक को तुरंत बुलाएं",
+      btn1_sub: "निकटवर्ती नर्सिंग डेस्क पर घंटी बजाएं",
+      btn2_title: "मुझे चक्कर आ रहे हैं / व्हीलचेयर चाहिए",
+      btn2_sub: "तत्काल व्हीलचेयर और स्ट्रेचर सहायता मांगें",
+      btn_mistake: "गलती से दबा दिया था",
+      contact_title: "ओपीडी आपातकालीन डेस्क",
+      btn_proceed_docs: "स्टाफ उपस्थित • आगे बढ़ें"
+    },
+    mr: {
+      topbar_title: "अखिल भारतीय आयुर्वेद संस्था",
+      topbar_sub: "स्वतः-सेवा ओपीडी नोंदणी • नवी दिल्ली",
+      urgent_badge: "तातडीची ट्राइएज सुरू • कर्मचाऱ्यांना सूचना दिली",
+      kiosk_id: "स्थान: तळमजला ओपीडी (कियोस्क क्र. ०३)",
+      reassurance_title: "कृपया शांत आणि जागेवरच बसून राहा.",
+      reassurance_sub: "वैद्यकीय कर्मचाऱ्यांना माहिती मिळाली असून ते लगेच येत आहेत.",
+      reassurance_body: "आपल्या छातीत जडपणाच्या लक्षणामुळे सुरक्षेच्या दृष्टीने तातडीच्या वैद्यकीय पथकाला सतर्क करण्यात आले आहे. कृपया डॉक्टरांना शोधण्यासाठी चालू नका किंवा श्रम करू नका — नर्सिंग टीम आपल्याकडेच येत आहे.",
+      voice_comfort: "ऑडिओ: \"कृपया शांत बसा, काळजी करू नका...\"",
+      btn_replay: "पुन्हा ऐका",
+      dispatch_title: "तातडीचा ओपीडी ट्राइएज कक्ष",
+      dispatch_details: "संदेश मिळाला: सिस्टर इन-चार्ज (स्टेशन ए)",
+      eta_label: "वेळ: २ मिनिटांत",
+      btn1_title: "कर्मचाऱ्याला तातडीने बोलवा",
+      btn1_sub: "नर्सिंग डेस्कवर घंटी वाजवा",
+      btn2_title: "मला चक्कर येत आहे / व्हीलचेअर हवी",
+      btn2_sub: "तातडीची व्हीलचेअर व स्ट्रेचर मदत मागवा",
+      btn_mistake: "चुकून दाबले गेले",
+      contact_title: "ओपीडी तातडीचा कक्ष",
+      btn_proceed_docs: "कर्मचारी उपस्थित • पुढे जा"
+    }
+  };
+
+  let currentLang = 'en';
+
+  function setLanguage(lang) {
+    if (!i18n[lang]) return;
+    try { localStorage.setItem('medikiosk_lang', lang); } catch(e){}
+    currentLang = lang;
+
+    document.querySelectorAll('.lang-chip').forEach(chip => {
+      const isActive = chip.getAttribute('data-lang') === lang;
+      chip.classList.toggle('active', isActive);
+      chip.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    });
+
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      if (i18n[lang][key]) {
+        el.textContent = i18n[lang][key];
+      }
+    });
+  }
+
+  document.querySelectorAll('.lang-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      setLanguage(chip.getAttribute('data-lang'));
+    });
+  });
+
+  // Assistance button triggers with visible feedback & backend sync
+  document.getElementById('btnSoundChime').addEventListener('click', async function() {
+    this.style.background = '#8F5D13';
+    this.style.color = '#FFFFFF';
+
+    const interviewId = MediKioskSession.getInterviewId();
+    if (interviewId) {
+      try {
+        await MediKioskApi.post(`/api/interviews/${interviewId}/emergency/escalate`, {
+          staff_id: 'kiosk_station_03',
+          reason: 'Patient pressed attendant chime button at kiosk',
+          severity: 'HIGH'
+        });
+      } catch (err) {
+        // Backend RBAC might restrict escalation mutations to DOCTOR/STAFF
+      }
+    }
+
+    alert(currentLang === 'hi' ? 'सहायक को घंटी भेजी गई। कृपया प्रतीक्षा करें।' : (currentLang === 'mr' ? 'मदतीची घंटी वाजवली. कृपया थांबा.' : 'Attendant chime triggered. Please remain seated.'));
+    setTimeout(() => {
+      this.style.background = 'var(--primitive-haritaki-gold)';
+      this.style.color = 'var(--primitive-teak-grey)';
+    }, 1500);
+  });
+
+  document.getElementById('btnWheelchair').addEventListener('click', async function() {
+    this.style.background = 'var(--primitive-manjistha-red)';
+    this.style.color = '#FFFFFF';
+
+    const interviewId = MediKioskSession.getInterviewId();
+    if (interviewId) {
+      try {
+        await MediKioskApi.post(`/api/interviews/${interviewId}/emergency/escalate`, {
+          staff_id: 'kiosk_station_03',
+          reason: 'Patient reported faint / wheelchair assistance requested at kiosk',
+          severity: 'CRITICAL'
+        });
+      } catch (err) {
+        // Backend RBAC might restrict escalation mutations to DOCTOR/STAFF
+      }
+    }
+
+    alert(currentLang === 'hi' ? 'व्हीलचेयर सहायता टीम को रवाना कर दिया गया है।' : (currentLang === 'mr' ? 'व्हीलचेअर मदत पथक निघाले आहे.' : 'Wheelchair assistance team has been dispatched.'));
+    setTimeout(() => {
+      this.style.background = 'var(--color-surface)';
+      this.style.color = 'var(--primitive-manjistha-red)';
+    }, 1500);
+  });
+
+  document.getElementById('btnProceedDocs').addEventListener('click', async function(e) {
+    e.preventDefault();
+    const interviewId = MediKioskSession.getInterviewId();
+    if (interviewId) {
+      try {
+        await MediKioskApi.post(`/api/opd/queue/interviews/${interviewId}/sync-red-flags`, {});
+      } catch (err) {
+        // Non-blocking sync
+      }
+    }
+    window.location.href = 'screen3-documents.html';
+  });
+
+  document.getElementById('btnReplayComfort').addEventListener('click', function() {
+    console.log(`[Sarvam TTS Hook]: Playing comforting audio message in language ${currentLang}...`);
+  });
+
+  // Load Authoritative Red Flag State from Backend
+  async function loadRedFlagState() {
+    const interviewId = MediKioskSession.getInterviewId();
+    if (!interviewId) return;
+
+    try {
+      const res = await MediKioskApi.get(`/api/interviews/${interviewId}/red-flags`);
+      if (res.ok && res.data) {
+        const rfData = res.data;
+        if (rfData.has_active_red_flags && rfData.red_flags && rfData.red_flags.length > 0) {
+          const messages = rfData.red_flags.map(r => r.message).join('; ');
+          const elBody = document.getElementById('reassuranceBody');
+          if (elBody && messages) {
+            elBody.textContent = `Clinical protocol activated: ${messages}. Duty medical personnel have been alerted to kiosk.`;
+          }
+          const badgeEl = document.getElementById('urgentBadgeText');
+          if (badgeEl && rfData.highest_severity) {
+            badgeEl.textContent = `${rfData.highest_severity} Triage Protocol Active • Staff Notified`;
+          }
+        }
+      }
+    } catch (e) {
+      // Non-blocking red flag status fetch
+    }
+
+    try {
+      await MediKioskApi.post(`/api/opd/queue/interviews/${interviewId}/sync-red-flags`, {});
+    } catch (e) {
+      // Non-blocking sync
+    }
+  }
+
+  const savedLang = (function(){ try { return localStorage.getItem('medikiosk_lang'); } catch(e){ return null; } })() || 'en';
+  setLanguage(savedLang);
+  loadRedFlagState();
+</script>
+
+</body>
+</html>

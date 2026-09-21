@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MediKiosk — Screen 2a: Clinical Intake (Standard Complaint)</title>
+
+  <!-- Google Fonts: Baloo 2 & Noto Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="../styles/tokens.css" />
+  <script src="../scripts/config.js"></script>
+  <script src="../scripts/session.js"></script>
+  <script src="../scripts/api.js"></script>
+
+  <style>
+    /* ── Standardized Desktop Layout (Base 1440px, Min 1024px) ── */
+    html, body {
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+      background-color: var(--color-canvas-outer, #EDE8DE);
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .app-container,
+    .kiosk-screen {
+      max-width: var(--app-max-width);
+      min-width: var(--app-min-width);
+      margin: 0 auto;
+      width: 100%;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      background-color: var(--color-bg);
+      box-shadow: 0 0 32px rgba(44, 37, 32, 0.08);
+    }
+
+    /* Top Bar (72px) */
+    .topbar {
+      flex: 0 0 var(--topbar-h);
+      background: var(--color-topbar-bg);
+      border-bottom: 1px solid var(--color-topbar-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--page-px);
+    }
+
+    .topbar__brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .topbar__logo-mark {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-sm);
+      background: var(--primitive-haritaki-gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 1px 4px rgba(44, 37, 32, 0.15);
+    }
+
+    .topbar__logo-mark svg { width: 26px; height: 26px; }
+
+    .topbar__name {
+      font-family: var(--font-display);
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--primitive-haritaki-deep);
+      line-height: 1.1;
+    }
+
+    .topbar__sub {
+      font-family: var(--font-body);
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--color-text-secondary);
+    }
+
+    .topbar__controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .lang-chips {
+      display: flex;
+      gap: 6px;
+    }
+
+    .lang-chip {
+      height: var(--touch-target-min);
+      min-width: 58px;
+      padding: 0 14px;
+      border: 1.5px solid var(--color-border-subtle);
+      border-radius: var(--radius-sm);
+      background: var(--color-surface);
+      color: var(--color-text-secondary);
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .lang-chip.active {
+      background: var(--color-btn-primary-bg);
+      color: var(--color-btn-primary-text);
+      border-color: var(--color-btn-primary-bg);
+    }
+
+    /* 5-Step Bar (Step 1 Complete, Step 2 Active) */
+    .stepbar {
+      flex: 0 0 var(--stepbar-h);
+      background: var(--color-bg);
+      border-bottom: 1px solid var(--color-border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+    }
+
+    .step-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .step-track {
+      flex: 1;
+      height: 2px;
+      background: var(--primitive-copper-track);
+      margin: 0 8px 18px 8px;
+    }
+
+    .step-track--done {
+      background: var(--primitive-haritaki-gold);
+    }
+
+    .step-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .step-dot--complete {
+      width: 20px;
+      height: 20px;
+      background: var(--primitive-haritaki-deep);
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .step-dot--complete svg { width: 14px; height: 14px; }
+
+    .step-dot--active {
+      width: 22px;
+      height: 22px;
+      background: var(--primitive-haritaki-gold);
+      border: 3px solid #FFFFFF;
+      box-shadow: 0 0 0 2px var(--primitive-haritaki-gold);
+    }
+
+    .step-dot--upcoming {
+      background: #FFFFFF;
+      border: 2px solid var(--color-step-upcoming);
+    }
+
+    .step-label {
+      font-family: var(--font-body);
+      font-size: 18px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .step-label--complete { color: var(--primitive-haritaki-deep); font-weight: 700; }
+    .step-label--active   { color: var(--color-text-primary); font-weight: 700; }
+    .step-label--upcoming { color: var(--color-text-secondary); }
+
+    /* Content Zone (1056px, fits zero scrollbar) */
+    .content-zone {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 24px var(--page-px);
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+
+    /* Question Header Bar */
+    .question-header {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .clinical-tag {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--primitive-haritaki-deep);
+      background: rgba(200, 138, 34, 0.12);
+      padding: 6px 14px;
+      border-radius: 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* AI State Indicator Pill */
+    .ai-state-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 16px;
+      font-weight: 600;
+      background: #FFFFFF;
+      border: 1.5px solid var(--color-border-subtle);
+      color: var(--primitive-teak-muted);
+    }
+
+    .ai-state-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--primitive-herbal-green);
+    }
+
+    /* Question Text & Repeat Audio Control */
+    .question-card {
+      background: var(--color-surface);
+      border: 2px solid var(--color-border-subtle);
+      border-radius: var(--radius-card);
+      padding: 22px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      box-shadow: var(--shadow-card);
+    }
+
+    .question-text {
+      font-family: var(--font-display);
+      font-size: 34px;
+      font-weight: 700;
+      line-height: 1.25;
+      color: var(--color-text-primary);
+      margin: 0;
+    }
+
+    .btn-repeat-audio {
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      background: rgba(200, 138, 34, 0.12);
+      border: 2px solid var(--primitive-haritaki-deep);
+      color: var(--primitive-haritaki-deep);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      cursor: pointer;
+      flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(44, 37, 32, 0.08);
+      transition: all var(--transition-tap);
+    }
+
+    .btn-repeat-audio:active {
+      background: var(--primitive-haritaki-gold);
+      color: var(--primitive-teak-grey);
+    }
+
+    .btn-repeat-audio svg { width: 28px; height: 28px; }
+
+    .btn-repeat-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    /* Dual Input Section (Voice & Touch with Equal Weight) */
+    .dual-input-container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin: auto 0;
+    }
+
+    
+    /* Voice Input Clay Card Enhancements */
+    .voice-title-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .voice-live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 14px;
+      background: #FAF1DF;
+      border: 1.5px solid #DEC99B;
+      color: var(--primitive-haritaki-deep);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .pulse-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--primitive-haritaki-gold);
+      animation: pulseDot 1.4s infinite ease-in-out;
+    }
+
+    .waveform-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .input-level-label {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--primitive-haritaki-deep);
+    }
+
+    .waveform-bars {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 14px;
+      border-radius: var(--radius-pill);
+      height: 32px;
+      box-sizing: border-box;
+    }
+
+    .wave-bar {
+      width: 4px;
+      background: var(--primitive-haritaki-gold);
+      border-radius: 2px;
+      transform-origin: bottom;
+      box-shadow: 0 1px 2px rgba(200, 146, 42, 0.4);
+    }
+
+    .bar-1 { height: 12px; animation: wavePulse 0.9s infinite ease-in-out alternate; }
+    .bar-2 { height: 22px; animation: wavePulse 1.1s infinite ease-in-out alternate 0.15s; }
+    .bar-3 { height: 14px; animation: wavePulse 0.8s infinite ease-in-out alternate 0.3s; }
+    .bar-4 { height: 24px; animation: wavePulse 1.2s infinite ease-in-out alternate 0.1s; }
+    .bar-5 { height: 18px; animation: wavePulse 0.95s infinite ease-in-out alternate 0.25s; }
+    .bar-6 { height: 10px; animation: wavePulse 0.85s infinite ease-in-out alternate 0.4s; }
+    .bar-7 { height: 20px; animation: wavePulse 1.05s infinite ease-in-out alternate 0.2s; }
+    .bar-8 { height: 12px; animation: wavePulse 0.9s infinite ease-in-out alternate 0.35s; }
+
+    .input-speaking-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--primitive-haritaki-deep);
+    }
+
+    .mic-dome-wrapper {
+      position: relative;
+      width: 84px;
+      height: 84px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .mic-acoustic-ring {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .ring-outer {
+      width: 108px;
+      height: 108px;
+      border: 2px solid rgba(200, 146, 42, 0.25);
+      animation: clayAcousticExpand 2.2s infinite ease-out;
+    }
+
+    .ring-inner {
+      width: 94px;
+      height: 94px;
+      background: rgba(200, 146, 42, 0.15);
+      animation: clayAcousticExpand 2.2s infinite ease-out 0.4s;
+    }
+
+    /* Equal Weight Voice Banner Card */
+    .voice-input-card {
+      background: var(--color-surface);
+      border: 2px solid var(--primitive-haritaki-gold);
+      border-radius: var(--radius-card);
+      padding: 18px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      box-shadow: 0 4px 14px rgba(200, 138, 34, 0.14);
+      cursor: pointer;
+      transition: all var(--transition-tap);
+    }
+
+    .voice-input-card:active {
+      transform: scale(0.99);
+    }
+
+    .voice-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .voice-title {
+      font-family: var(--font-display);
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--primitive-haritaki-deep);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .voice-hint {
+      font-size: 18px;
+      color: var(--color-text-secondary);
+      font-weight: 500;
+    }
+
+    .mic-button {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: var(--primitive-haritaki-gold);
+      color: var(--primitive-teak-grey);
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 2px 10px rgba(200, 138, 34, 0.35);
+      position: relative;
+    }
+
+    .mic-button svg { width: 34px; height: 34px; }
+
+    /* Touch Options (3-4 Large Tappable Cards, Equal Prominence) */
+    .touch-options-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+
+    .option-card {
+      background: var(--color-surface);
+      border: 2.5px solid var(--color-border-subtle);
+      border-radius: var(--radius-card);
+      min-height: 120px;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      box-shadow: var(--shadow-card);
+      transition: all var(--transition-tap);
+      position: relative;
+    }
+
+    .option-card:active {
+      transform: scale(0.98);
+    }
+
+    .option-card--selected {
+      border-color: var(--primitive-haritaki-gold);
+      background: #FFFDF8;
+      box-shadow: 0 4px 14px rgba(200, 138, 34, 0.18);
+    }
+
+    .option-card__title {
+      font-family: var(--font-display);
+      font-size: 26px;
+      font-weight: 700;
+      line-height: 1.2;
+      color: var(--color-text-primary);
+    }
+
+    .option-card__sub {
+      font-size: 17px;
+      color: var(--color-text-secondary);
+      font-weight: 500;
+    }
+
+    .option-card__check {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2px solid var(--primitive-copper-patina);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: transparent;
+      transition: all var(--transition-tap);
+    }
+
+    .option-card--selected .option-card__check {
+      background: var(--primitive-haritaki-gold);
+      border-color: var(--primitive-haritaki-gold);
+      color: var(--primitive-teak-grey);
+    }
+
+    .option-card__check svg { width: 16px; height: 16px; }
+
+    /* Action Bar (96px) */
+    .action-bar {
+      flex: 0 0 var(--actionbar-h);
+      background: var(--color-actionbar-bg);
+      border-top: 1px solid var(--color-actionbar-border);
+      box-shadow: var(--shadow-actionbar);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--page-px);
+    }
+
+    .btn-back {
+      min-width: var(--touch-target-back-btn);
+      height: var(--touch-target-back-btn);
+      border-radius: var(--radius-btn);
+      background: var(--color-surface);
+      border: 2px solid var(--color-border);
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      font-size: 20px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 24px;
+    }
+
+    .btn-back svg { width: 22px; height: 22px; }
+
+    .btn-primary {
+      height: var(--touch-target-primary);
+      min-width: 280px;
+      padding: 0 32px;
+      border-radius: var(--radius-btn);
+      background: var(--color-btn-primary-bg);
+      border: none;
+      color: var(--color-btn-primary-text);
+      font-family: var(--font-display);
+      font-size: 26px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      box-shadow: 0 2px 8px rgba(200, 138, 34, 0.30);
+    }
+
+    .btn-primary:active {
+      background: var(--color-btn-primary-bg-pressed);
+    }
+  </style>
+</head>
+<body>
+<div class="app-container kiosk-screen">
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="topbar__brand">
+      <div class="topbar__logo-mark">
+        <svg viewBox="0 0 22 22" fill="none">
+          <path d="M11 3C11 3 5 7 5 12.5C5 16.09 7.69 19 11 19C14.31 19 17 16.09 17 12.5C17 7 11 3 11 3Z" fill="#2C2520"/>
+          <path d="M11 6C11 6 7 9.5 7 13C7 15.21 8.79 17 11 17" stroke="#2C2520" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M11 6C11 6 15 9.5 15 13C15 15.21 13.21 17 11 17" stroke="#2C2520" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="11" y1="17" x2="11" y2="20" stroke="#2C2520" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="topbar__name">MediKiosk</div>
+        <div class="topbar__sub" data-i18n="topbarSub">All India Institute of Ayurveda</div>
+      </div>
+    </div>
+
+    <div class="topbar__controls">
+      <div class="lang-chips" role="radiogroup" aria-label="Language selection">
+        <button class="lang-chip active" data-lang="en" role="radio" aria-checked="true">EN</button>
+        <button class="lang-chip" data-lang="hi" role="radio" aria-checked="false">हि</button>
+        <button class="lang-chip" data-lang="mr" role="radio" aria-checked="false">म</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 5-STEP BAR: STEP 2 ACTIVE -->
+  <nav class="stepbar" aria-label="OPD Progress">
+    <div class="step-item">
+      <div class="step-dot step-dot--complete">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+      </div>
+      <span class="step-label step-label--complete" data-i18n="step1">✓ 1. Identity</span>
+    </div>
+    <div class="step-track step-track--done"></div>
+
+    <div class="step-item">
+      <div class="step-dot step-dot--active"></div>
+      <span class="step-label step-label--active" data-i18n="step2">2. Interview</span>
+    </div>
+    <div class="step-track"></div>
+
+    <div class="step-item">
+      <div class="step-dot step-dot--upcoming"></div>
+      <span class="step-label step-label--upcoming" data-i18n="step3">3. Documents</span>
+    </div>
+    <div class="step-track"></div>
+
+    <div class="step-item">
+      <div class="step-dot step-dot--upcoming"></div>
+      <span class="step-label step-label--upcoming" data-i18n="step4">4. Summary</span>
+    </div>
+    <div class="step-track"></div>
+
+    <div class="step-item">
+      <div class="step-dot step-dot--upcoming"></div>
+      <span class="step-label step-label--upcoming" data-i18n="step5">5. Confirm</span>
+    </div>
+  </nav>
+
+  <!-- CONTENT ZONE -->
+  <main class="content-zone">
+
+    <div id="interviewErrorMsg" role="alert" style="display: none; background: #FFEBEE; border: 1.5px solid #E57373; border-radius: var(--radius-sm); color: #C62828; padding: 12px 18px; font-size: 16px; font-weight: 600; margin-bottom: 16px; text-align: center; box-shadow: 0 2px 6px rgba(198, 40, 40, 0.1);"></div>
+
+    <!-- Question Header -->
+    <div class="question-header">
+      <div class="status-row">
+        <span class="clinical-tag" data-i18n="tagSOCRATES">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+          <span id="questionCategory" data-i18n="triageCategory">Symptom Evaluation: Chest Complaint</span>
+        </span>
+
+        <div class="ai-state-pill" id="aiStatePill">
+          <span class="ai-state-dot"></span>
+          <span id="aiStateLabel" data-i18n="aiReady">AI: Ready for Answer</span>
+        </div>
+      </div>
+
+      <!-- Main Question with Audio Replay Button -->
+      <div class="question-card">
+        <h1 class="question-text" id="questionText" data-i18n="question">
+          What does the discomfort in your chest feel like?
+        </h1>
+
+        <!-- Repeat Audio Button (Sarvam TTS Backend) -->
+        <button class="btn-repeat-audio" id="btnRepeatAudio" aria-label="Replay Question Audio" title="Listen (Sarvam TTS)">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+          </svg>
+          <span class="btn-repeat-label" data-i18n="replay">Replay</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- DUAL INPUT SECTION: SPEAK OR TAP (Equal Visual Weight) -->
+    <div class="dual-input-container">
+
+      <!-- INPUT 1: VOICE ANSWER (Claymorphic Live Status + Waveform) -->
+      <div class="voice-input-card clay-surface" id="voiceCard" tabindex="0" role="button" aria-label="Speak your answer aloud">
+        <div class="voice-info">
+          <div class="voice-title-row">
+            <span class="voice-title" data-i18n="voiceTitle">Speak Your Answer</span>
+            <!-- Live Voice Status Badge -->
+            <div class="voice-live-badge clay-pill" id="voiceLiveBadge">
+              <span class="pulse-dot" id="voicePulseDot"></span>
+              <span id="voiceStatusText" data-i18n="voiceActive">Listening to your voice...</span>
+            </div>
+          </div>
+
+          <div class="voice-hint" id="voiceHint" data-i18n="voiceHint">
+            Tap the microphone to pause or describe what you feel in your own words
+          </div>
+
+          <!-- 8-Bar Waveform / Input Level Container -->
+          <div class="waveform-container" id="audioWaveform">
+            <span class="input-level-label" data-i18n="inputLevel">Input Level:</span>
+            <div class="waveform-bars clay-inset-recess" id="waveformBars">
+              <span class="wave-bar bar-1"></span>
+              <span class="wave-bar bar-2"></span>
+              <span class="wave-bar bar-3"></span>
+              <span class="wave-bar bar-4"></span>
+              <span class="wave-bar bar-5"></span>
+              <span class="wave-bar bar-6"></span>
+              <span class="wave-bar bar-7"></span>
+              <span class="wave-bar bar-8"></span>
+            </div>
+            <span class="input-speaking-label" id="speakingLabel" data-i18n="speakingClearly">Speaking clearly</span>
+          </div>
+        </div>
+
+        <!-- 3D Clay Mic Dome Button with Acoustic Rings -->
+        <div class="mic-dome-wrapper">
+          <div class="mic-acoustic-ring ring-outer" id="micRingOuter"></div>
+          <div class="mic-acoustic-ring ring-inner" id="micRingInner"></div>
+          <button class="mic-button clay-mic-dome touch-target" id="micBtn" aria-label="Toggle voice recording" type="button">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.91-3c-.49 0-.9.36-.98.85C16.52 14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15c-.08-.49-.49-.85-.98-.85-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91 5.78V20c0 .55.45 1 1 1s1-.45 1-1v-2.08c3.02-.43 5.42-2.78 5.91-5.78.1-.6-.39-1.14-1-1.14z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- INPUT 2: TOUCH CHOICE (4 Large Tappable Cards) -->
+      <div class="touch-options-grid" role="radiogroup" aria-label="Touch Options">
+        
+        <!-- Option 1 -->
+        <div class="option-card option-card--selected" data-value="pressure" tabindex="0" role="radio" aria-checked="true">
+          <div class="option-card__title" data-i18n="opt1Title">Heavy Pressure / Tightness</div>
+          <div class="option-card__sub" data-i18n="opt1Sub">Like a heavy weight sitting on the chest</div>
+          <div class="option-card__check">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+          </div>
+        </div>
+
+        <!-- Option 2 -->
+        <div class="option-card" data-value="sharp" tabindex="0" role="radio" aria-checked="false">
+          <div class="option-card__title" data-i18n="opt2Title">Sharp or Stabbing</div>
+          <div class="option-card__sub" data-i18n="opt2Sub">Piercing pain, worse when breathing deeply</div>
+          <div class="option-card__check">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+          </div>
+        </div>
+
+        <!-- Option 3 -->
+        <div class="option-card" data-value="burning" tabindex="0" role="radio" aria-checked="false">
+          <div class="option-card__title" data-i18n="opt3Title">Burning / Heartburn</div>
+          <div class="option-card__sub" data-i18n="opt3Sub">Hot acidic feeling rising into throat</div>
+          <div class="option-card__check">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+          </div>
+        </div>
+
+        <!-- Option 4 -->
+        <div class="option-card" data-value="dull" tabindex="0" role="radio" aria-checked="false">
+          <div class="option-card__title" data-i18n="opt4Title">Dull Aching or Muscle Soreness</div>
+          <div class="option-card__sub" data-i18n="opt4Sub">Mild continuous ache, tender to touch</div>
+          <div class="option-card__check">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ACTION BAR -->
+  <footer class="action-bar">
+    <button class="btn-back" onclick="window.location.href='screen2-interview.html'" aria-label="Go back to Interview Introduction">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+      </svg>
+      <span data-i18n="btnBack">Back</span>
+    </button>
+
+    <div id="progressText" style="font-size: 19px; font-weight: 600; color: var(--primitive-teak-muted);" data-i18n="progress">
+      Question 1 of 4 • Character of Pain
+    </div>
+
+    <button class="btn-primary" id="btnNextQuestion">
+      <span data-i18n="btnNext">Next Question</span>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M5 13h11.86l-5.43 5.43 1.42 1.42L21 12l-8.15-7.85-1.42 1.42L16.86 11H5v2z"/>
+      </svg>
+    </button>
+  </footer>
+
+</div>
+
+<!-- SCRIPT: Language Switching & Dual-Input Interaction -->
+<script>
+  const i18n = {
+    en: {
+      topbarSub: "All India Institute of Ayurveda",
+      step1: "✓ 1. Identity",
+      step2: "2. Interview",
+      step3: "3. Documents",
+      step4: "4. Summary",
+      step5: "5. Confirm",
+      triageCategory: "Symptom Evaluation: Chest Complaint",
+      aiReady: "AI: Ready for Answer",
+      question: "What does the discomfort in your chest feel like?",
+      replay: "Replay",
+      voiceTitle: "Speak Your Answer",
+      voiceHint: "Tap the microphone and describe what you feel in your own words",
+            voiceActive: "Listening to your voice...",
+      voicePaused: "Voice input paused",
+      inputLevel: "Input Level:",
+      speakingClearly: "Speaking clearly",
+      opt1Title: "Heavy Pressure / Tightness",
+      opt1Sub: "Like a heavy weight sitting on the chest",
+      opt2Title: "Sharp or Stabbing",
+      opt2Sub: "Piercing pain, worse when breathing deeply",
+      opt3Title: "Burning / Heartburn",
+      opt3Sub: "Hot acidic feeling rising into throat",
+      opt4Title: "Dull Aching or Soreness",
+      opt4Sub: "Mild continuous ache, tender to touch",
+      btnBack: "Back",
+      progress: "Question 1 of 4 • Character of Pain",
+      btnNext: "Next Question"
+    },
+    hi: {
+      topbarSub: "अखिल भारतीय आयुर्वेद संस्थान",
+      step1: "✓ १. पहचान",
+      step2: "२. लक्षण चर्चा",
+      step3: "३. दस्तावेज़",
+      step4: "४. सारांश",
+      step5: "५. पुष्टि",
+      triageCategory: "लक्षण परीक्षण: छाती की समस्या",
+      aiReady: "एआई: उत्तर के लिए तैयार",
+      question: "आपकी छाती में दर्द या भारीपन कैसा महसूस होता है?",
+      replay: "सुनें",
+      voiceTitle: "बोलकर उत्तर दें",
+      voiceHint: "माइक छुएं और अपनी भाषा में बताएं कि आपको कैसा लग रहा है",
+            voiceActive: "आपकी आवाज़ सुन रहे हैं...",
+      voicePaused: "आवाज़ इनपुट रुका हुआ है",
+      inputLevel: "ध्वनि स्तर:",
+      speakingClearly: "स्पष्ट आवाज़",
+      opt1Title: "भारीपन या जकड़न",
+      opt1Sub: "जैसे छाती पर कोई भारी वजन रखा हो",
+      opt2Title: "तेज़ या चुभन जैसा दर्द",
+      opt2Sub: "सांस लेने पर चुभने वाला तेज़ दर्द",
+      opt3Title: "जलन या खट्टी डकार",
+      opt3Sub: "गले और सीने में जलन का अनुभव",
+      opt4Title: "हल्का लगातार दर्द",
+      opt4Sub: "हल्का दर्द जो दबाने पर महसूस होता है",
+      btnBack: "पीछे",
+      progress: "प्रश्न १ / ४ • दर्द का प्रकार",
+      btnNext: "अगला प्रश्न"
+    },
+    mr: {
+      topbarSub: "अखिल भारतीय आयुर्वेद संस्था",
+      step1: "✓ १. ओळख",
+      step2: "२. लक्षण तपासणी",
+      step3: "३. कागदपत्रे",
+      step4: "४. सारांश",
+      step5: "५. पुष्टी",
+      triageCategory: "लक्षण तपासणी: छातीची तक्रार",
+      aiReady: "एआय: उत्तरासाठी सज्ज",
+      question: "आपल्या छातीत दुखणे किंवा जडपणा नेमका कसा जाणवतो?",
+      replay: "ऐका",
+      voiceTitle: "बोलून उत्तर द्या",
+      voiceHint: "माइकला स्पर्श करा आणि आपल्या शब्दांत त्रास सांगा",
+            voiceActive: "आपला आवाज ऐकत आहे...",
+      voicePaused: "आवाज इनपुट थांबवले आहे",
+      inputLevel: "ध्वनी स्तर:",
+      speakingClearly: "स्पष्ट आवाज",
+      opt1Title: "जडपणा किंवा आवळल्यासारखे",
+      opt1Sub: "छातीवर जड वजन ठेवल्यासारखे वाटणे",
+      opt2Title: "तीव्र किंवा टोचल्यासारखे दुखणे",
+      opt2Sub: "दीर्घ श्वास घेताना टोचल्यासारखे वाटणे",
+      opt3Title: "जळजळ / पित्त",
+      opt3Sub: "घशात व छातीत जळजळ जाणवणे",
+      opt4Title: "मंद सलग दुखणे",
+      opt4Sub: "हलके सलग दुखणे, दाबल्यावर दुखणे",
+      btnBack: "मागे",
+      progress: "प्रश्न १ / ४ • दुखण्याचा प्रकार",
+      btnNext: "पुढील प्रश्न"
+    }
+  };
+
+  function setLanguage(lang) {
+    if (!i18n[lang]) return;
+    try { localStorage.setItem('medikiosk_lang', lang); } catch(e){}
+    document.documentElement.lang = lang;
+
+    document.querySelectorAll('.lang-chip').forEach(chip => {
+      const isMatch = chip.getAttribute('data-lang') === lang;
+      chip.classList.toggle('active', isMatch);
+      chip.setAttribute('aria-checked', isMatch ? 'true' : 'false');
+    });
+
+    const t = i18n[lang];
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      if (t[key]) el.textContent = t[key];
+    });
+  }
+
+  document.querySelectorAll('.lang-chip').forEach(chip => {
+    chip.addEventListener('click', () => setLanguage(chip.getAttribute('data-lang')));
+  });
+
+  // Touch option selection
+  document.querySelectorAll('.option-card').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('.option-card').forEach(c => {
+        c.classList.remove('option-card--selected');
+        c.setAttribute('aria-checked', 'false');
+      });
+      card.classList.add('option-card--selected');
+      card.setAttribute('aria-checked', 'true');
+    });
+  });
+
+  // TTS Replay button simulation
+  document.getElementById('btnRepeatAudio')?.addEventListener('click', () => {
+    console.log("[Sarvam TTS] Playing question audio in current language");
+    const label = document.getElementById('aiStateLabel');
+    if (label) label.textContent = "AI: Speaking...";
+    setTimeout(() => {
+      if (label) label.textContent = "AI: Ready for Answer";
+    }, 2500);
+  });
+
+  // Mic Toggle Demo with Waveform & Live Status Badge
+  const micBtn = document.getElementById('micBtn');
+  const voiceStatusText = document.getElementById('voiceStatusText');
+  const voiceLiveBadge = document.getElementById('voiceLiveBadge');
+  const voicePulseDot = document.getElementById('voicePulseDot');
+  const audioWaveform = document.getElementById('audioWaveform');
+  const micRingOuter = document.getElementById('micRingOuter');
+  const micRingInner = document.getElementById('micRingInner');
+  const aiStateLabel = document.getElementById('aiStateLabel');
+  const voiceHint = document.getElementById('voiceHint');
+
+  let isListening = true; // active by default in interview
+
+  function setListeningState(active) {
+    isListening = active;
+    const lang = document.documentElement.lang || 'en';
+    const t = i18n[lang] || i18n.en;
+
+    if (isListening) {
+      if (voiceStatusText) voiceStatusText.textContent = t.voiceActive || "Listening to your voice...";
+      if (voiceLiveBadge) {
+        voiceLiveBadge.style.background = "#FAF1DF";
+        voiceLiveBadge.style.borderColor = "#DEC99B";
+        voiceLiveBadge.style.color = "var(--primitive-haritaki-deep)";
+      }
+      if (voicePulseDot) voicePulseDot.style.display = "block";
+      if (audioWaveform) audioWaveform.style.opacity = "1";
+      if (micRingOuter) micRingOuter.style.display = "block";
+      if (micRingInner) micRingInner.style.display = "block";
+      if (micBtn) {
+        micBtn.style.filter = "none";
+        micBtn.style.opacity = "1";
+      }
+      if (aiStateLabel) aiStateLabel.textContent = "AI: Listening...";
+      if (voiceHint) voiceHint.textContent = t.voiceHint || "Speak naturally — describe what you feel in your own words";
+    } else {
+      if (voiceStatusText) voiceStatusText.textContent = t.voicePaused || "Voice input paused";
+      if (voiceLiveBadge) {
+        voiceLiveBadge.style.background = "#EDE5D3";
+        voiceLiveBadge.style.borderColor = "#D5CBBA";
+        voiceLiveBadge.style.color = "var(--color-text-secondary)";
+      }
+      if (voicePulseDot) voicePulseDot.style.display = "none";
+      if (audioWaveform) audioWaveform.style.opacity = "0.35";
+      if (micRingOuter) micRingOuter.style.display = "none";
+      if (micRingInner) micRingInner.style.display = "none";
+      if (micBtn) {
+        micBtn.style.filter = "grayscale(0.7)";
+        micBtn.style.opacity = "0.85";
+      }
+      if (aiStateLabel) aiStateLabel.textContent = "AI: Ready for Answer";
+      if (voiceHint) voiceHint.textContent = "Voice input paused. Tap microphone to resume speaking.";
+    }
+  }
+
+  micBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    setListeningState(!isListening);
+  });
+
+  const savedLang = (function(){ try { return localStorage.getItem('medikiosk_lang'); } catch(e){ return null; } })() || 'en';
+  setLanguage(savedLang);
+
+  // Backend Integration: Dynamic Interview & Next Question Engine
+  const patientId = MediKioskSession.getPatientId();
+  const sessionId = MediKioskSession.getSessionId();
+  const interviewId = MediKioskSession.getInterviewId();
+
+  if (!patientId || !sessionId) {
+    window.location.href = 'screen1a-identity.html';
+  } else if (!interviewId) {
+    window.location.href = 'screen2-interview.html';
+  }
+
+  function renderQuestion(q) {
+    if (!q) return;
+    const qTextEl = document.getElementById('questionText');
+    const qCatEl = document.getElementById('questionCategory');
+    const progEl = document.getElementById('progressText');
+
+    if (qTextEl) {
+      qTextEl.textContent = q.description || q.display_name || 'Please describe your symptoms';
+    }
+    if (qCatEl) {
+      qCatEl.textContent = q.section || q.category || 'Symptom Evaluation';
+    }
+    if (progEl) {
+      if (q.priority && q.display_name) {
+        progEl.textContent = `Question ${q.priority} • ${q.display_name}`;
+      } else if (q.display_name) {
+        progEl.textContent = q.display_name;
+      }
+    }
+  }
+
+  function setControlsDisabled(disabled) {
+    const btn = document.getElementById('btnNextQuestion');
+    if (btn) {
+      btn.disabled = disabled;
+      btn.style.opacity = disabled ? '0.6' : '1';
+      btn.style.cursor = disabled ? 'not-allowed' : 'pointer';
+    }
+    document.querySelectorAll('.option-card').forEach(card => {
+      card.style.pointerEvents = disabled ? 'none' : 'auto';
+      card.style.opacity = disabled ? '0.7' : '1';
+    });
+  }
+
+  function handleInterviewError(err) {
+    const errBox = document.getElementById('interviewErrorMsg');
+    const aiLabel = document.getElementById('aiStateLabel');
+    if (aiLabel) aiLabel.textContent = 'AI: Error occurred';
+
+    if (errBox) {
+      errBox.style.display = 'block';
+      if (err.isForbidden) {
+        errBox.textContent = 'Clinical History consent is required. Please grant consent on Step 1b.';
+        setTimeout(() => { window.location.href = 'screen1b-consent.html'; }, 2500);
+      } else if (err.isAuthError) {
+        errBox.textContent = 'Session authentication required. Please consult clinic staff.';
+      } else if (err.isNotFound) {
+        errBox.textContent = 'Interview record not found. Redirecting to start...';
+        setTimeout(() => { window.location.href = 'screen2-interview.html'; }, 2000);
+      } else if (err.isValidationError) {
+        errBox.textContent = err.message || 'Invalid answer format. Please try again.';
+      } else if (err.isRateLimit) {
+        errBox.textContent = 'Too many requests. Please wait a moment.';
+      } else if (err.isNetworkError) {
+        errBox.textContent = 'Network communication issue. Please check connection.';
+      } else {
+        errBox.textContent = err.message || 'Failed to process answer. Please try again.';
+      }
+    }
+  }
+
+  async function initInterview() {
+    if (!interviewId) return;
+    try {
+      // 1. Verify interview status
+      const ivRes = await MediKioskApi.get(`/api/interviews/${interviewId}`);
+      if (ivRes.ok && ivRes.data) {
+        if (ivRes.data.status === 'COMPLETED') {
+          window.location.href = 'screen3-documents.html';
+          return;
+        } else if (ivRes.data.status === 'NOT_STARTED') {
+          await MediKioskApi.post(`/api/interviews/${interviewId}/start`, {});
+        }
+      }
+
+      // 2. Fetch first question from Stage 8 adaptive engine
+      const qRes = await MediKioskApi.get(`/api/interviews/${interviewId}/next-question`);
+      if (qRes.ok && qRes.data) {
+        if (!qRes.data.has_next || qRes.data.is_complete) {
+          window.location.href = 'screen2b-ayush.html';
+          return;
+        }
+        renderQuestion(qRes.data);
+      }
+    } catch (err) {
+      handleInterviewError(err);
+    }
+  }
+
+  function getSelectedAnswerText() {
+    const selected = document.querySelector('.option-card--selected');
+    if (selected) {
+      const title = selected.querySelector('.option-card__title')?.textContent.trim() || '';
+      const sub = selected.querySelector('.option-card__sub')?.textContent.trim() || '';
+      return sub ? `${title}: ${sub}` : title;
+    }
+    return 'Experiencing symptom as described';
+  }
+
+  document.getElementById('btnNextQuestion')?.addEventListener('click', async function(e) {
+    e.preventDefault();
+    const errBox = document.getElementById('interviewErrorMsg');
+    if (errBox) {
+      errBox.style.display = 'none';
+      errBox.textContent = '';
+    }
+
+    const answerText = getSelectedAnswerText();
+    if (!answerText) return;
+
+    setControlsDisabled(true);
+    const aiLabel = document.getElementById('aiStateLabel');
+    if (aiLabel) aiLabel.textContent = 'AI: Processing answer...';
+
+    try {
+      const currentLang = localStorage.getItem('medikiosk_lang') || 'en';
+
+      // 1. Process patient message through backend NLP and ontology
+      const msgRes = await MediKioskApi.post(`/api/interviews/${interviewId}/messages/process`, {
+        role: 'PATIENT',
+        content: answerText,
+        language: currentLang
+      });
+
+      // 2. Evaluate red flags
+      try {
+        const rfRes = await MediKioskApi.post(`/api/interviews/${interviewId}/red-flags/evaluate`, {});
+        if (rfRes.ok && rfRes.data && rfRes.data.has_active_red_flags) {
+          const sev = rfRes.data.highest_severity;
+          if (sev === 'CRITICAL' || sev === 'HIGH') {
+            window.location.href = 'screen2-red-flag.html';
+            return;
+          }
+        }
+      } catch (rfErr) {
+        // Red flag evaluation non-blocking
+      }
+
+      // 3. Handle next question or completion
+      const resData = msgRes.data;
+      if (resData && (resData.is_history_complete || !resData.next_question || !resData.next_question.has_next || resData.next_question.is_complete)) {
+        window.location.href = 'screen2b-ayush.html';
+        return;
+      }
+
+      if (resData && resData.next_question) {
+        renderQuestion(resData.next_question);
+      }
+
+      // Reset options selection
+      document.querySelectorAll('.option-card').forEach((c, idx) => {
+        const isFirst = idx === 0;
+        c.classList.toggle('option-card--selected', isFirst);
+        c.setAttribute('aria-checked', isFirst ? 'true' : 'false');
+      });
+
+      if (aiLabel) aiLabel.textContent = 'AI: Ready for Answer';
+      setControlsDisabled(false);
+    } catch (err) {
+      setControlsDisabled(false);
+      handleInterviewError(err);
+    }
+  });
+
+  initInterview();
+</script>
+</body>
+</html>

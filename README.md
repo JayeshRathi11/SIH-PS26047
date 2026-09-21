@@ -6,10 +6,30 @@ MediKiosk is an intelligent, multi-lingual, privacy-first healthcare kiosk and c
 
 ## 🌟 Newly Implemented Features & Architecture
 
-### 1. Modern Frontend Architecture (React + Vite + Tailwind CSS)
-Located in `frontend/`:
-- **Dual-Mode Single Page Application (`App.jsx`)**:
-  - **रोगी कियोस्क / Patient Kiosk**: Complete 5-step patient registration, DPDP consent, clinical intake, prior record upload, and confirmation.
+### 1. Modern Claymorphic Light Ayurveda Frontend (`frontend/src/modern/`)
+- **1:1 Visual Fidelity with Authentic Ayurvedic Palette**:
+  - Kora Khadi (`#F7F4EB` unbleached canvas), Shweta White (`#FCFAF6` elevated clay), Haritaki Gold (`#C8922A` primary action), Manjistha Red (`#B5402E` emergency triage), and Herbal Green (`#2E6B39` verified status).
+  - Pillowy claymorphism with 28px card corners, 20px button radii, double specular highlights, and tactile press depression (`transform: scale(0.97) translateY(2px)`).
+- **Complete 11-Screen Modern Suite**:
+  - **Screen 0 (`WelcomeScreen.jsx`)**: Multilingual portal (`EN`, `हिन्दी`, `मराठी`) with 4-step journey cards and Hospital Sahayak status.
+  - **Screen 1a (`IdentityScreen.jsx` & `ManualEntryScreen.jsx`)**: ABHA QR scan simulation, Mobile OTP, and tactile on-screen numeric keypad (`ClayKeypad.jsx`).
+  - **Screen 1b (`ConsentScreen.jsx`)**: DPDP Act 2023 3-clause granular consent with bilingual Web Audio TTS readout (`AudioContext.jsx`).
+  - **Screen 2 (`StandardInterviewScreen.jsx` & `AyushParikshaScreen.jsx`)**: Dr. Charaka AI conversational assistant, severity slider, interactive SVG anatomical body map (`ClayBodyMap.jsx`), and Ashtavidha Pariksha matrix.
+  - **Screen 2c (`RedFlagAlertScreen.jsx`)**: Manjistha red alert theme, casualty diversion to Room 001, emergency audio siren, and hospital staff dispatch.
+  - **Screen 3 (`DocumentScanScreen.jsx`)**: Camera & prescription upload with Sarvam Vision OCR extraction preview cards.
+  - **Screen 4 (`PatientSummaryScreen.jsx`)**: Thermal receipt consultation slip, QR code receipt, print action, and Self-Copy modal (WhatsApp/SMS).
+  - **Screen 5 (`DoctorDashboardScreen.jsx`)**: Live triage queue sidebar, 8-section AYUSH case sheet editor, red-flag audit widget, AFI/NAMASTE herb autocomplete, and FHIR R4 Bundle export.
+  - **Screen 6 (`AnalyticsDashboardScreen.jsx`)**: OPD census telemetry, department distributions, and AI safety precision rates.
+- **Non-Destructive Coexistence & Instant Rollback (`frontend/src/legacy/`)**:
+  - Untouched legacy frontend preserved 100% intact in `frontend/src/legacy/`.
+  - Seamless toggle via query param (`?ui=legacy` vs `?ui=modern`) and floating on-screen developer badge.
+- **Developer / QA Screen Launcher (`QaLauncherModal.jsx`)**:
+  - Accessible via `Ctrl+Shift+Q` to jump directly into any screen state or inject test patient scenarios.
+
+### 2. Legacy Frontend Architecture (React + Vite + Tailwind CSS)
+Located in `frontend/src/legacy/`:
+- **Dual-Mode Single Page Application (`AppLegacy.jsx`)**:
+  - **रोगी कियोस्क / Patient Kiosk**: 5-step patient registration, DPDP consent, clinical intake, prior record upload, and confirmation.
   - **डॉक्टर वर्कस्टेशन / Doctor Workstation**: Real-time triage dashboard with prioritized OPD queue, 8-section case sheet editor, and contradiction review.
 - **Adaptive Accessibility Friction Hook (`useAdaptiveFriction.js`)**:
   - Automatically calculates user interaction friction based on hesitation, silence, and confusion phrases.
